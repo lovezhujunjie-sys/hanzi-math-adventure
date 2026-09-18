@@ -40,7 +40,7 @@
 //                   旧数据的识字表本来就缺了两百多字，不换等于漏教。
 //                   写字表把「语文园地」的字也计入（两册各 +20），新版上册写字表拼音
 //                   是课本原样；下册课本电子版缺拼音层，是照词语表反推的（风险已记档）。
-const VERSION = 'hm-2026-09-18.6';
+const VERSION = 'hm-2026-09-18.8';
 const INDEX = new URL('./index.html', self.location.href).href;
 
 self.addEventListener('install', e => {

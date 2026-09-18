@@ -1068,9 +1068,127 @@
     };
   }
 
+  /* ═══════════ 点字注音：不认识的字，点一下 ═══════════
+     老曾 2026-09-18 要的：数学、语文里任何一个字，点一下就出拼音并念出来。
+
+     🔴 读音只有一个真源：tools/build_pinyin.py 生成的 PY_CHAR / PY_SEG。
+        这里**只负责取和画**，绝不在 JS 里另算一套读音判据（判据分叉吃过亏）。
+        PY_CHAR 每个字都有兜底；PY_SEG 存「默认读音在该词里是错的」那些，按词定音。
+
+     取音顺序：在**点中的那一块文字**里找盖住这个字的、最长的 PY_SEG 键；
+               命中就用它的音，没命中就用 PY_CHAR。
+               —— 「按词定音」能成立，全靠这个最长匹配：键是词，能匹配在长句里。 */
+  const PY_SKIP = 'button,.choice,.ci-chip,.chip,.map-item,.numpad,input,textarea,a,' +
+                  'canvas,.icon-btn,.switch,.py-pop,[data-goal],[data-rate],[data-back]';
+  let PY_MAXLEN = 2;
+  for (const k in PY_SEG) if (k.length > PY_MAXLEN) PY_MAXLEN = k.length;
+  const PY_CJK = /[一-龥]/;
+  let pyTimer = null;
+
+  /* 在 text 里找盖住第 off 个字的**最长**的键。返回 {key, py, at} 或 null。 */
+  function pyFindIn(text, off) {
+    for (let L = Math.min(PY_MAXLEN, text.length); L >= 2; L--) {
+      for (let st = Math.max(0, off - L + 1); st <= off && st + L <= text.length; st++) {
+        if (off >= st + L) continue;
+        const key = text.slice(st, st + L);
+        if (PY_SEG[key]) {
+          const py = PY_SEG[key].split(' ');
+          if (py.length === key.length) return { key: key, py: PY_SEG[key], at: off - st };
+        }
+      }
+    }
+    return null;
+  }
+  /* 文字节点 node 在祖先 root 里的字符偏移。PY_SEG 的键可能被 <b>/<span> 切开，
+     所以要按祖先的全文算偏移，再到全文里匹配。 */
+  function pyOffsetOf(root, node, off) {
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let n = 0;
+    while (w.nextNode()) {
+      if (w.currentNode === node) return n + off;
+      n += w.currentNode.nodeValue.length;
+    }
+    return -1;
+  }
+  /* 从「点了屏幕上的哪个点」推出「点到的是哪个字」，再取它的读音。 */
+  function pyReadAt(x, y) {
+    let range = null;
+    if (document.caretRangeFromPoint) range = document.caretRangeFromPoint(x, y);
+    else if (document.caretPositionFromPoint) {
+      const p = document.caretPositionFromPoint(x, y);
+      if (p) { range = document.createRange(); range.setStart(p.offsetNode, p.offset); }
+    }
+    if (!range) return null;
+    const node = range.startContainer;
+    if (!node || node.nodeType !== 3) return null;      // 点在元素缝里，不是字
+    const txt = node.nodeValue;
+    let off = Math.min(range.startOffset, txt.length - 1);
+    if (off > 0 && !PY_CJK.test(txt[off]) && PY_CJK.test(txt[off - 1])) off--;  // 点在字的右半边
+    const ch = txt[off];
+    if (!ch || !PY_CJK.test(ch)) return null;           // 数字、标点、emoji：不管
+
+    let hit = pyFindIn(txt, off), root = node.parentElement;
+    if (!hit && root && root.parentElement) {           // 往上扩一层，救被标签切开的词
+      const up = root.parentElement, o = pyOffsetOf(up, node, off);
+      if (o >= 0) { const h2 = pyFindIn(up.textContent, o); if (h2) { hit = h2; root = up; } }
+    }
+    return {
+      ch: ch, off: off, node: node, root: root,
+      /* hit.at 是「这个字在命中的那个词里排第几个」，直接取那一节拼音。
+         没命中词就回落 PY_CHAR 的单字默认音。 */
+      py: hit ? hit.py.split(' ')[hit.at] : null,
+      key: hit ? hit.key : '', keyPy: hit ? hit.py : ''
+    };
+  }
+  /* 把这个字的位置交给屏幕：气泡就近弹出来 */
+  function pyRectOf(node, off) {
+    try {
+      const r = document.createRange();
+      r.setStart(node, off); r.setEnd(node, off + 1);
+      return r.getBoundingClientRect();
+    } catch (e) { return null; }
+  }
+  function pyShow(info, rect) {
+    const pop = document.getElementById('py-pop');
+    const py = info.py || PY_CHAR[info.ch] || '';
+    if (!py) return;                                    // 没数据就不弹，不猜
+    /* 命中一个「词」时把孩子认得的那个词也写出来——光一个字的音容易记不住。
+       太长的键（整句）不写，那是句子不是词。 */
+    const isWord = info.key && info.key.length <= 6;
+    pop.innerHTML =
+      '<div class="pz kai">' + info.ch + '</div>' +
+      '<div class="pp">' + py + '</div>' +
+      (isWord ? '<div class="pw">' + info.key + ' <b>' + info.keyPy + '</b></div>' : '');
+    pop.classList.add('on');
+    const w = pop.offsetWidth, h = pop.offsetHeight;
+    const cx = Math.min(Math.max(rect.left + rect.width / 2, w / 2 + 10), window.innerWidth - w / 2 - 10);
+    const above = rect.top - h - 16 > 6;
+    pop.classList.toggle('below', !above);
+    pop.style.left = cx + 'px';
+    /* 气泡一律按 translateY(-100%) 定位（见 CSS）：翻到下方＝top 再往下让一个气泡的高度。
+       这样上下两态 transform 完全相同，切换时不会有动画滑过被点的字。 */
+    pop.style.top = (above ? rect.top - 10 : rect.bottom + 10 + h) + 'px';
+    /* 念出来。念**词**比念单字准：多音字单独念，朗读引擎自己也会猜错。
+       整句的键就退回念这个字。 */
+    speak(isWord ? info.key : info.ch, 0.85);
+    clearTimeout(pyTimer);
+    pyTimer = setTimeout(() => pop.classList.remove('on'), 7000);
+  }
+  function bindPyTap() {
+    document.addEventListener('click', e => {
+      if (!e.clientX && !e.clientY) return;                       // 键盘触发的假点击
+      if (e.target.closest && e.target.closest(PY_SKIP)) return;  // 能点的东西有自己的活干
+      const info = pyReadAt(e.clientX, e.clientY);
+      if (!info) return;
+      const rect = pyRectOf(info.node, info.off);
+      if (rect) pyShow(info, rect);
+    });
+  }
+
   /* ═══════════ 启动 ═══════════ */
   load();
   bind();
+  bindPyTap();
   renderKids();
   if (S.cur) goHome(); else showScreen('screen-kid');
 
@@ -1080,6 +1198,9 @@
     hanziGroups: () => hanziGroups(),
     hanziQFactory: (all) => hanziQFactory(all),
     state: () => S, blankProfile,
-    quiz: () => Q, learn: () => LEARN, screen: () => curScreen
+    quiz: () => Q, learn: () => LEARN, screen: () => curScreen,
+    /* 点字注音的内部件：给浏览器测试直接驱动**线上这份**实现用。
+       测试必须打真身，不许在测试里另抄一套匹配逻辑（那就是判据分叉）。 */
+    py: { find: pyFindIn, read: pyReadAt, char: PY_CHAR, seg: PY_SEG, amb: PY_AMB, maxlen: PY_MAXLEN }
   };
 })();
