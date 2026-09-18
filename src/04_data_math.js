@@ -301,7 +301,7 @@ const GEN = {
              why: '想口诀：' + (b * q) + ' 比 ' + a + ' 小，' + (b * (q + 1)) + ' 又比 ' + a + ' 大了，' +
                   '所以商是 ' + q + '，剩下 ' + a + ' − ' + (b * q) + ' = ' + r + '。答：' + q + '……' + r + '。',
              whyHtml: '<div style="font-size:17px;line-height:1.9">' + full + '</div>' +
-                      '<div style="font-size:17px;line-height:1.9;color:#ff8a3d">剩下 ' + left + '（' + r + ' ' + it.m + '）</div>' +
+                      '<div style="font-size:17px;line-height:1.9;color:#FF7A59">剩下 ' + left + '（' + r + ' ' + it.m + '）</div>' +
                       '<div style="font-size:13px;margin-top:4px">' + b + ' × ' + q + ' = ' + (b * q) + '，还多 ' + r + ' ' + it.m + '，不够再装一袋。</div>' };
   },
   /* —— 大宝：表内除法（画成「平均分到盘子里」） —— */
@@ -396,7 +396,7 @@ const GEN = {
     ];
     const u = pick(U);
     const o = options4(u.a, [u.a*10, u.a/10, u.a+10, u.a-1, u.a+1, u.a*2], 1, 2000);
-    return { big: u.pic + '<div style="font-size:30px;margin-top:6px">' + u.q.replace('（　）','<span style="color:#ff8a3d">（　）</span>') + '</div>',
+    return { big: u.pic + '<div style="font-size:30px;margin-top:6px">' + u.q.replace('（　）','<span style="color:#FF7A59">（　）</span>') + '</div>',
              sub: '括号里填几？', ...o, say: u.q.replace('（　）','几'), why: u.why };
   },
   /* —— 大宝：列竖式（配小棒图，看得见进位和借位） —— */

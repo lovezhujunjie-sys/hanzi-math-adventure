@@ -235,52 +235,58 @@
 </div>
 
 <style>
-  .map-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  .map-item{
-    position:relative;background:var(--card);border-radius:var(--r);padding:16px 12px 14px;
-    box-shadow:var(--shadow);cursor:pointer;text-align:center;border:3px solid transparent;
-    transition:transform .12s ease;
-  }
-  .map-item:active{transform:scale(.96);}
-  .map-item.done{border-color:#c9f0da;background:linear-gradient(180deg,#f4fdf8,#fff);}
-  .map-item .mi-ico{font-size:34px;line-height:1;margin-bottom:8px;}
-  .map-item .mi-name{font-size:15px;font-weight:800;}
-  .map-item .mi-desc{font-size:11px;color:var(--ink3);margin-top:3px;line-height:1.4;}
-  .map-item .mi-stars{font-size:14px;margin-top:7px;letter-spacing:2px;}
-  .map-item .mi-num{
-    width:38px;height:38px;margin:0 auto 8px;border-radius:12px;
-    background:linear-gradient(135deg,#fff0e2,#ffe0c2);
-    color:var(--brand);font-size:21px;font-weight:900;line-height:38px;
-  }
-  .map-item .mi-sample{font-size:17px;color:var(--ink4);letter-spacing:3px;margin-top:6px;}
-  .map-item .mi-stars .off{opacity:.2;}
-  .map-item.big{grid-column:1 / -1;display:flex;align-items:center;gap:14px;text-align:left;padding:16px;border-color:#ffe1c4;}
-  .map-item.big .mi-ico{font-size:40px;margin:0;}
-  .combo{
-    position:fixed;left:50%;top:22%;transform:translate(-50%,-50%) scale(.6);
-    font-size:34px;font-weight:900;color:#ff8a3d;z-index:120;pointer-events:none;opacity:0;
-    text-shadow:0 2px 0 #fff,0 4px 16px rgba(255,138,61,.4);
-  }
-  .combo.on{animation:comboPop .8s ease;}
-  @keyframes comboPop{
-    0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}
-    30%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}
-    70%{opacity:1;transform:translate(-50%,-60%) scale(1)}
-    100%{opacity:0;transform:translate(-50%,-80%) scale(.95)}
-  }
-  .big-card{
-    background:linear-gradient(135deg,#fff6ea,#ffe9d3);border-radius:var(--r);padding:18px;
-    box-shadow:var(--shadow);text-align:center;margin-bottom:14px;
-  }
-  .big-card .n{font-size:46px;font-weight:900;color:var(--brand);line-height:1;}
-  .big-card .l{font-size:13px;color:var(--ink2);margin-top:6px;}
-  .quiz-emoji{font-size:26px;line-height:1.5;word-break:break-word;}
-  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px;}
-  .chip{
-    padding:9px 14px;border-radius:14px;background:var(--card);border:2px solid var(--line2);
-    font-size:14px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;
-  }
-  .chip.on{background:var(--brand);color:#fff;border-color:var(--brand);}
+/* ══════════════════════════════════════════════════════════════
+   糖果冒险主题 · 第二部分：关卡地图 / 连击 / 筛选chips
+   ══════════════════════════════════════════════════════════════ */
+.map-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.map-item{
+  position:relative;background:var(--card);border-radius:var(--r);padding:18px 12px 15px;
+  box-shadow:var(--shadow);cursor:pointer;text-align:center;border:3px solid transparent;
+  transition:transform .16s cubic-bezier(.34,1.56,.64,1),box-shadow .16s ease;overflow:hidden;
+}
+.map-item:active{transform:scale(.95);}
+.map-item.done{border-color:#B8EBD3;background:linear-gradient(160deg,#F2FEF8,#fff);}
+.map-item .mi-ico{font-size:36px;line-height:1;margin-bottom:9px;display:inline-block;animation:float 3.5s ease-in-out infinite;}
+.map-item .mi-name{font-size:15px;font-weight:900;}
+.map-item .mi-desc{font-size:11px;color:var(--ink3);margin-top:4px;line-height:1.4;font-weight:600;}
+.map-item .mi-stars{font-size:15px;margin-top:8px;letter-spacing:2px;}
+.map-item .mi-num{
+  width:40px;height:40px;margin:0 auto 9px;border-radius:14px;
+  background:var(--grad-brand);
+  color:#fff;font-size:22px;font-weight:900;line-height:40px;box-shadow:0 4px 12px rgba(255,122,89,.35);
+}
+.map-item .mi-sample{font-size:17px;color:var(--ink4);letter-spacing:3px;margin-top:6px;font-family:"Kaiti SC","STKaiti","KaiTi","楷体",serif;}
+.map-item .mi-stars .off{opacity:.2;}
+.map-item.big{grid-column:1 / -1;display:flex;align-items:center;gap:14px;text-align:left;padding:18px;border-color:#FFDCC2;background:linear-gradient(135deg,#FFF6EF,#F0F6FF);}
+.map-item.big .mi-ico{font-size:42px;margin:0;animation:bounce 2.5s ease-in-out infinite;}
+.combo{
+  position:fixed;left:50%;top:22%;transform:translate(-50%,-50%) scale(.6);
+  font-size:36px;font-weight:900;color:#fff;z-index:120;pointer-events:none;opacity:0;
+  background:var(--grad-brand);padding:8px 24px;border-radius:50px;
+  text-shadow:none;box-shadow:0 8px 24px rgba(255,122,89,.5);
+}
+.combo.on{animation:comboPop .8s ease;}
+@keyframes comboPop{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}
+  30%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}
+  70%{opacity:1;transform:translate(-50%,-60%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-80%) scale(.95)}
+}
+.big-card{
+  background:var(--grad-brand);border-radius:var(--r);padding:20px;
+  box-shadow:0 8px 22px rgba(255,122,89,.30);text-align:center;margin-bottom:14px;color:#fff;
+}
+.big-card .n{font-size:48px;font-weight:900;color:#fff;line-height:1;}
+.big-card .l{font-size:13px;color:rgba(255,255,255,.92);margin-top:6px;font-weight:700;}
+.quiz-emoji{font-size:26px;line-height:1.5;word-break:break-word;}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px;}
+.chip{
+  padding:9px 16px;border-radius:50px;background:var(--card);border:2.5px solid var(--line2);
+  font-size:14px;font-weight:800;color:var(--ink2);cursor:pointer;font-family:inherit;transition:all .15s;
+}
+.chip:active{transform:scale(.94);}
+.chip.on{background:var(--grad-brand);color:#fff;border-color:transparent;box-shadow:0 4px 12px rgba(255,122,89,.35);}
+
 </style>
 <div class="combo" id="combo"></div>
 <div id="confetti"></div>
