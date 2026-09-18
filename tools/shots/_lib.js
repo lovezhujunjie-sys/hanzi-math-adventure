@@ -59,6 +59,28 @@ function tapFirstCjk(i){
   }
   return '屏幕上没找到中文';
 }
+/* 🔴 截图驱动**自己不会叫**——跑完就看图，点没点到根本不知道。这是假绿的温床：
+   22 号脚本原写 `tapCharIn('#learn-info',0) || tapCharIn('#learn-ju',0)`，
+   而 `#learn-info` 里全是**组词按钮**（按设计不弹气泡），偏偏 tapCharIn 失败时
+   也返回**非空字符串**，`||` 永远短路 → 后面的兜底一次都没跑过，截出来的图里
+   一个气泡都没有，看着像功能没做。（2026-09-18 逐张看图才发现。）
+   所以：凡是「点字出拼音」的截图脚本，末尾一律挂这条自检——
+   **气泡没弹出来就在页面上糊一条大红横幅，让看图的人一眼看见这张图没验到东西。** */
+function expectPop(what){
+  setTimeout(function(){
+    const pop = document.getElementById('py-pop');
+    const on = !!(pop && pop.classList.contains('on'));
+    const bar = document.createElement('div');
+    bar.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;' +
+      'padding:8px 6px;font:bold 15px/1.4 system-ui,sans-serif;text-align:center;color:#fff;' +
+      'background:' + (on ? '#1a9c62' : '#d33');
+    bar.textContent = on
+      ? '✅ 截图自检：气泡已弹出（' + what + '）'
+      : '🔴 截图自检失败：气泡没弹出来（' + what + '）——这张图没验到东西';
+    document.body.appendChild(bar);
+  }, 400);
+}
+
 /* 在某个容器里点第 i 个中文字（容器里的字才是孩子要读的题面/词） */
 function tapCharIn(sel, i){
   const box = document.querySelector(sel);
