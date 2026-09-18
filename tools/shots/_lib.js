@@ -5,6 +5,16 @@ function pickMod(name){
   for(const m of ms) if(m.textContent.indexOf(name)>=0) return m;
   return null;
 }
+/* 按**标题**找首页模块。
+   🔴 pickMod 是按整块文字模糊找的，会误伤：「星星」两个字也出现在
+      「数学闯关」的说明「11 个关卡，答对拿星星」里，于是找星星会点到数学去
+      （2026-09-18 错题本测试就踩了，症状是「点了星星却站在关卡地图上」）。
+      模块的名字在 .tt 里，按它找才准。 */
+function pickModTitle(name){
+  const ms=document.querySelectorAll('#home-mods .mod');
+  for(const m of ms){ const t=m.querySelector('.tt'); if(t && t.textContent.indexOf(name)>=0) return m; }
+  return null;
+}
 function pickMap(name){
   const its=document.querySelectorAll('#map-grid .map-item');
   for(const it of its) if(it.textContent.indexOf(name)>=0) return it;
@@ -89,6 +99,29 @@ function expectPop(what){
   }, 400);
 }
 
+/* 在描红画布上真画一笔（派发真 pointer 事件，走 onpointerdown/move/up 那条路）。
+   🔴 不要绕过界面直接调 markTraced——那是自己验自己，
+      「笔画长度不够也盖章」这类错永远抓不到。
+   total 是希望累计的笔迹长度（像素）；门槛是格子边长的 1.6 倍。 */
+function drawTrace(total){
+  const cv = document.getElementById('trace-canvas');
+  const r = cv.getBoundingClientRect();
+  const x0 = r.left + r.width * 0.2, y0 = r.top + r.height * 0.2;
+  const ev = (type, x, y) => cv.dispatchEvent(new PointerEvent(type,
+    { clientX: x, clientY: y, bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse' }));
+  ev('pointerdown', x0, y0);
+  const step = r.width * 0.5;
+  const n = Math.max(1, Math.ceil(total / step));
+  for (let i = 1; i <= n; i++) ev('pointermove', x0 + (i % 2 ? step : 0), y0 + (i % 2 ? step : 0));
+  ev('pointerup', x0, y0);
+  return n;
+}
+/* 屏幕上的描红画布边长（门槛按它算） */
+function traceCellSize(){
+  const w = document.getElementById('trace-wrap');
+  return w ? w.clientWidth : 0;
+}
+
 /* 在某个容器里点第 i 个中文字（容器里的字才是孩子要读的题面/词） */
 function tapCharIn(sel, i){
   const box = document.querySelector(sel);
@@ -111,4 +144,50 @@ function tapCharIn(sel, i){
     }
   }
   return sel + ' 里没有中文字';
+}
+
+/* 造几条真错题（走真界面答错），再进星星页，滚到指定卡片。
+   报告卡和错题本卡都在首屏之外，不滚过去截图里就只有一排奖章。 */
+function makeWrongsThenStars(n, scrollTo, done){
+  kid('da');
+  setTimeout(function(){
+    const mods = document.querySelectorAll('#home-mods .mod');
+    let mod = null;
+    for (let i=0;i<mods.length;i++) if (/认/.test(mods[i].textContent) && /字/.test(mods[i].textContent)) mod = mods[i];
+    if (mod) mod.click();
+    setTimeout(function(){
+      const big = document.querySelector('#map-grid .map-item.big');
+      if (big) big.click();
+      setTimeout(function(){ one(0); }, 150);
+    },150);
+  },80);
+  function one(k){
+    if (k >= n) {
+      document.querySelector('#screen-quiz .icon-btn').click();     // 退出闯关 → 关卡地图
+      setTimeout(function(){
+        document.querySelector('#screen-map [data-back]').click();  // → 首页
+        setTimeout(function(){
+          const t = pickModTitle('星星');
+          if (t) t.click();
+          setTimeout(function(){
+            const el = document.getElementById(scrollTo);
+            if (el) el.scrollIntoView({block:'center'});
+            if (done) done();
+          }, 250);
+        },150);
+      },150);
+      return;
+    }
+    const hm = window.__hm, Q = hm.quiz();
+    if (!Q || !Q.list || Q.i >= Q.list.length) return;
+    const q = Q.list[Q.i];
+    let w = null;
+    [].slice.call(document.querySelectorAll('#q-choices .choice')).forEach(function(b){
+      if (!w && b.textContent.trim() !== String(q.answer).trim()) w = b;
+    });
+    if (w) w.click();
+    const nx = document.getElementById('q-next');
+    if (nx && !nx.classList.contains('hide')) nx.click();
+    setTimeout(function(){ one(k+1); }, 120);
+  }
 }

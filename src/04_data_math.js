@@ -534,6 +534,9 @@ const ACHIEVEMENTS = [
   {id:'d7',     e:'🗓️', t:'连续 7 天',   test:s => s.streak >= 7},
   {id:'d30',    e:'🏅', t:'连续 30 天',  test:s => s.streak >= 30},
   {id:'hz50',   e:'📖', t:'认字 50 个',  test:s => s.hanziLearned >= 50},
+  /* 写字以前是唯一一个不给任何回执的入口：写完屏幕上什么都不发生，也没进任何进度。
+     现在写满一格就记一个，10 个给一枚章。 */
+  {id:'tr10',   e:'✍️', t:'写过 10 个字', test:s => Object.keys(s.traced || {}).length >= 10},
   {id:'mult',   e:'✖️', t:'口诀全通关',  test:s => s.mulPassed >= 45},
   {id:'perfect',e:'💯', t:'一次全对',    test:s => s.perfectCount >= 1}
 ];
