@@ -22,6 +22,8 @@
       levelStars: {},              // 关卡id → 历史最高星
       hanziSeen: {},               // 认过的字
       mulDone: {},                 // 背熟的乘法口诀 key
+      traced: {},                  // 写过的字（描红写满一格才算）→ {字:1}
+      traceStars: 0,               // 已经因写字发出去的星星数，防重复发
       wrong: [],                   // 错题本 [{q,a,why,t}]
       stats: {}                    // 关卡id → {right,total}
     };
@@ -279,7 +281,9 @@
      🔴 只在 hanziGroups() 这一处转换——下游（地图/认字卡/闯关/描红）都吃同一种结构，
         免得四处各解各的、改一处漏三处。 */
   let G2_BOOK = 's1';                       // 大宝当前在看哪一册
-  function hanziGroups() {
+  /* bookId 不传＝当前翻到的那一册。学习报告要跨册统计，就得能按 id 点名要哪一册
+     （分组的 key 格式只在下面这一处拼，别在报告里照着拼一遍）。 */
+  function hanziGroups(bookId) {
     if (S.cur === 'er') {
       return Object.keys(HANZI_QI).map(k => {
         const g = HANZI_QI[k];
@@ -287,7 +291,7 @@
                  kind: 'theme', book: 'qi' };
       });
     }
-    const b = HANZI_G2.books.find(x => x.id === G2_BOOK) || HANZI_G2.books[0];
+    const b = HANZI_G2.books.find(x => x.id === (bookId || G2_BOOK)) || HANZI_G2.books[0];
     const out = [];
     for (const kind of ['xie', 'shi']) {
       for (const u of b.units) {
@@ -431,9 +435,10 @@
   /* ═══════════ 通用闯关引擎 ═══════════ */
   let Q = null;
   function startQuiz(cfg) {
-    // cfg: {title, n, make, key, backFn}
+    // cfg: {title, n, make, key, backFn} 或 {title, list, key, backFn}（题目已经生成好）
     Q = { cfg, i: 0, right: 0, wrongs: [], combo: 0, list: [] };
-    for (let i = 0; i < cfg.n; i++) Q.list.push(cfg.make());
+    if (cfg.list) Q.list = cfg.list.slice();
+    else for (let i = 0; i < cfg.n; i++) Q.list.push(cfg.make());
     document.getElementById('quiz-title').textContent = cfg.title;
     document.getElementById('quiz-result').classList.add('hide');
     document.getElementById('quiz-body').classList.remove('hide');
@@ -540,8 +545,10 @@
       });
       fb.className = 'feedback no';
       fb.innerHTML = '再想想～ 正确答案是 <b>' + q.answer + '</b>' +
-        (q.why ? '<span class="why">' + q.why + '</span>' : '') + (q.whyHtml || '');
+        (q.why ? '<span class="why">' + q.why + '</span>' : '') + (q.whyHtml || '') +
+        revealHtml(q);
       fb.classList.remove('hide');
+      bindReveal(fb);
       record(q, false);
       addWrong(q, val);
       const nx = document.getElementById('q-next');
@@ -549,18 +556,89 @@
       nx.onclick = () => { sfx.tap(); Q.locked = false; Q.i++; renderQ(); };
     }
   }
+  /* 答错之后把这道题的每个选项念什么摊出来（点一下就念）。
+     🔴 只在答错时出现：这时答案已经公布了，揭示不再算泄题；
+        答对时也不揭示，是怕拖慢孩子连对时候的节奏。 */
+  function revealHtml(q) {
+    if (!q.reveal || !q.reveal.items || !q.reveal.items.length) return '';
+    const cards = q.reveal.items.map(it =>
+      '<button class="rv-card' + (it.ans ? ' ans' : '') + '" data-say="' + esc(it.t) + '">' +
+      '<span class="' + (it.t.length > 1 ? 'w' : 'z') + '">' + it.t + '</span>' +
+      (it.py ? '<span class="p">' + it.py + '</span>' : '') + '</button>').join('');
+    return '<span class="rv"><span class="rv-t">这几个都念什么？点一下就念给你听 👇</span>' +
+           '<span class="rv-row">' + cards + '</span></span>';
+  }
+  function bindReveal(root) {
+    root.querySelectorAll('.rv-card').forEach(b => {
+      b.onclick = () => { sfx.tap(); speak(b.getAttribute('data-say')); };
+    });
+  }
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+
   function record(q, ok) {
     const p = ME(), key = q._key || 'misc';
     const s = p.stats[key] = p.stats[key] || { right: 0, total: 0 };
     s.total++; if (ok) s.right++;
     save();
   }
+  /* 一份成绩统计压成一行「对/总 · xx%」；没练过就给句人话，别显示 0% 。 */
+  function statLine(s, empty) {
+    if (!s || !s.total) return empty;
+    return s.right + ' / ' + s.total + ' 对 · ' + Math.round(s.right / s.total * 100) + '%';
+  }
+  /* 记一道错题。
+     `src` 是「怎么把这题再出一道」的凭据，错题本靠它才能练（见 rebuildWrong）：
+       · 汉字题：{k:'hanzi', z:'隔'} —— 能精确到那一个字，重出的是同一个字的新题
+       · 数学题：{k:'math', id:'add100'} —— 数学题现场生成、不存题库，
+                 所以重出的是**同一关的另一道题**，不是原题。界面上必须这么写。
+       · 口诀抽背：{k:'mul'} */
   function addWrong(q, val) {
     const p = ME();
-    const label = (q.story || q.sub || String(q.big || '').replace(/<[^>]+>/g, ' ')).slice(0, 40).trim();
-    p.wrong.unshift({ q: label, you: String(val), a: String(q.answer), why: q.why || '', t: Date.now() });
+    p.wrong.unshift({ q: wrongLabel(q), you: String(val), a: String(q.answer), why: q.why || '',
+                      src: q._src || null, t: Date.now() });
     if (p.wrong.length > 60) p.wrong.length = 60;
     save();
+  }
+  /* 错题本上那行标题。
+     🔴 以前只取 story/sub，而这两样常常**不带题目内容**：
+        「哪个词里有这个字？」——哪个字？没写。「这个拼音是哪个字？」——哪个拼音？也没写。
+        家长翻错题本看到一排没头没尾的句子，等于这本账白记。
+        所以题面（大字 / 拼音 / 算式）要一起带上。 */
+  function wrongLabel(q) {
+    const strip = s => String(s == null ? '' : s).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const stem = strip(q.big);
+    const body = strip(q.story || q.sub);
+    if (!stem) return body.slice(0, 40);
+    if (!body) return stem.slice(0, 40);
+    return (stem + ' · ' + body).slice(0, 40);
+  }
+  /* 按错题本里的凭据重出一批题。出不了的条目跳过（宁可少几道，也不糊一道假的）。 */
+  function rebuildWrong(items) {
+    const out = [];
+    items.forEach(w => {
+      const s = w && w.src;
+      if (!s) return;
+      try {
+        if (s.k === 'hanzi') {
+          const pool = hanziPool(), word = pool.find(x => x.z === s.z);
+          if (!word) return;
+          const q = hanziQFactory(pool, 'wrong_redo').one(word);
+          q._key = 'hanzi_quiz'; q._src = s;          // 成绩照旧记到认字闯关头上
+          out.push(q);
+        } else if (s.k === 'math') {
+          const m = (LEVELS[S.cur].math || []).find(x => x.id === s.id);
+          if (!m) return;
+          const q = GEN[m.gen]();
+          q._key = m.id; q._src = s;
+          out.push(q);
+        } else if (s.k === 'mul') {
+          const q = GEN.mj();
+          q._key = 'mul_quiz'; q._src = s;
+          out.push(q);
+        }
+      } catch (e) { /* 单个出不来不影响其余 */ }
+    });
+    return out;
   }
   function showResult() {
     const cfg = Q.cfg, n = Q.list.length, right = Q.right;
@@ -612,7 +690,8 @@
       n: m.n,
       key: m.id,
       backFn: () => openMathMap(),
-      make: () => { const q = GEN[m.gen](); q._key = m.id; return q; }
+      /* _key＝成绩记到哪关；_src＝错题本要能按同一关重出题（数学不存题库，重出的是同类题） */
+      make: () => { const q = GEN[m.gen](); q._key = m.id; q._src = { k: 'math', id: m.id }; return q; }
     });
   }
   function openTimedMenu() {
@@ -759,7 +838,7 @@
     document.getElementById('mul-quiz').onclick = () => {
       startQuiz({
         title: '🔢 口诀抽背', n: 10, key: 'mul_quiz', backFn: () => openMul(),
-        make: () => { const q = GEN.mj(); q._key = 'mul_quiz'; return q; }
+        make: () => { const q = GEN.mj(); q._key = 'mul_quiz'; q._src = { k: 'mul' }; return q; }
       });
     };
     showScreen('screen-mul');
@@ -816,11 +895,14 @@
         会出歧义题。宁可少一种题型，也不给孩子出没有唯一答案的题。 */
   /* 出题器单独抽出来，是为了让自动化测试能直接跑几千道题查「有没有两个正确答案」
      （测试跑的就是线上这一份代码，不是另写一套判据） */
-  function hanziQFactory(all) {
+  /* 汉字出题工厂。key 是这批题成绩记到哪个账上（默认 hanzi_quiz）。
+     🔴 返回的函数上挂一个 `.one(word)`：按**指定的字**出一道题。
+        错题本重练要用它——不然「重练错题」只能重新随机抽字，练的不是孩子错的那个。 */
+  function hanziQFactory(all, key) {
     const er = S.cur === 'er';
     const pool = all.length >= 8 ? all : all.concat(all, all);
-    return () => {
-        const w = pick(all);
+    const k = key || 'hanzi_quiz';
+    const one = w => {
         const others = shuffle(pool.filter(x => x.z !== w.z && x.py !== w.py)).slice(0, 3);
         /* 看字选拼音专用的干扰项：拼音必须两两不同，还得跟答案不同。
            🔴 这里踩过真坑——只保证「干扰字拼音≠答案拼音」不够，
@@ -838,15 +920,27 @@
         let type = er ? pick(w.pic ? ['pic', 'py'] : ['py'])
                       : pick(['py', 'zi', 'ci']);
         if (type === 'zi' && pyOthers.length < 3) type = 'ci';   // 同音字太多凑不齐 4 个读音，换题型
+        /* 选项是「字」的题型，答错之后把每个字念什么摊开给孩子看。
+           🔴 为什么必须由工厂算、不在渲染时算：答案那个字要用**课本给的读音** w.py，
+              干扰字才用 PY_CHAR 默认音。PY_CHAR 是孤立单字的默认音，多音字可能跟这一课教的
+              不一致（系 jì / xì 就真的差），把答案那份也交给 PY_CHAR 会当场自相矛盾。
+              读音仍然只有一个真源（课本生字表 + build_pinyin.py），这里只是选对那一个。 */
+        const charReveal = choices => ({
+          items: choices.map(ch => ({
+            t: ch, py: ch === w.z ? w.py : (PY_CHAR[ch] || ''), ans: ch === w.z
+          }))
+        });
         if (type === 'pic') {
+          const chs = shuffle([w.z].concat(others.map(o => o.z)));
           return { big: '<span style="font-size:80px">' + w.pic + '</span>', sub: '这是哪个字？',
-                   choices: shuffle([w.z].concat(others.map(o => o.z))), answer: w.z,
+                   choices: chs, answer: w.z, reveal: charReveal(chs),
                    say: '这个图是哪个字', why: w.z + '（' + w.py + '）' + (w.ci ? '　组词：' + w.ci.join('、') : '') };
         }
         if (type === 'py') {
+          const chs = shuffle([w.z].concat(others.map(o => o.z)));
           return { big: '<span style="font-size:44px;color:var(--brand)">' + w.py + '</span>',
                    sub: '这个拼音是哪个字？',
-                   choices: shuffle([w.z].concat(others.map(o => o.z))), answer: w.z,
+                   choices: chs, answer: w.z, reveal: charReveal(chs),
                    say: '这个拼音是哪个字', why: w.z + ' 读作 ' + w.py +
                    (w.ci ? '，组词：' + w.ci.join('、') : '') };
         }
@@ -868,17 +962,35 @@
           const extra = shuffle([...new Set(wordsOf(hanziPool()))]).filter(c => bads.indexOf(c) < 0);
           bads = bads.concat(extra).slice(0, 3);
         }
+        const ws = shuffle([rightWord].concat(bads));
         return { big: '<span style="font-size:86px" class="kai">' + w.z + '</span>', sub: '哪个词里有这个字？',
-                 choices: shuffle([rightWord].concat(bads)), answer: rightWord, choiceClass: 'txt',
+                 choices: ws, answer: rightWord, choiceClass: 'txt',
+                 /* 整词的拼音逐字取自 pyText（⇦ 点字注音那份取音实现，按词定音），
+                    不在渲染层另算一遍。 */
+                 reveal: { items: ws.map(c => ({
+                   t: c, ans: c === rightWord, py: pyText(c).join(' ')
+                 })) },
                  say: w.z + '，哪个词里有这个字',
                  why: '「' + rightWord + '」里面有「' + w.z + '」。' + w.z + ' 读作 ' + w.py + '。' };
     };
+    /* 每道题都带上「成绩记哪本账」和「怎么重建」——
+       没有这两样，错题本只能看不能练（汉字题也就进不了学习报告）。 */
+    const tagged = (w, q) => {
+      q._key = k;
+      q._src = { k: 'hanzi', z: w.z };
+      return q;
+    };
+    const f = () => { const w = pick(all); return tagged(w, one(w)); };
+    f.one = w => tagged(w, one(w));
+    return f;
   }
-  function startHanziQuiz(all) {
+  /* all＝出题的字池；key＝这批成绩记到哪本账上（认字卡从某一组进来就记那一组，
+     这样学习报告里能看出「哪个单元老错」）。 */
+  function startHanziQuiz(all, key) {
     startQuiz({
-      title: '⚡ 认字闯关', n: 10, key: 'hanzi_quiz',
+      title: '⚡ 认字闯关', n: 10, key: key || 'hanzi_quiz',
       backFn: () => openHanziMap(),
-      make: hanziQFactory(all)
+      make: hanziQFactory(all, key)
     });
   }
 
@@ -890,9 +1002,48 @@
     TRACE = { pool, w };
     document.getElementById('trace-title').textContent = '✍️ 写「' + w.z + '」';
     document.getElementById('trace-py').textContent = w.py;
+    document.getElementById('trace-stamp').classList.add('hide');
+    renderTraceGot();
     showScreen('screen-trace');
     setupCanvas();
     speak(w.z);
+  }
+  const tracedCount = () => Object.keys(ME().traced || {}).length;
+  function renderTraceGot() {
+    document.getElementById('trace-got').textContent = '已经写过 ' + tracedCount() + ' 个字';
+  }
+  /* 写满一格之后给回执：盖章 + 念一遍 + 计数；每攒够 5 个字发 1 颗星。
+     🔴 只判「有没有写」（笔画总长够不够），不判笔顺、不判像不像——
+        笔顺数据要另接一套字库，离线单文件放不下，宁可不做也不做假的。
+     记账和「看得见的庆祝」是两件事，别捆一起：
+       · 记账（写过的字 / 星星）每写满一格都算一次，靠 isNew 防重复；
+       · 章和彩带按时间**节流**——描红本来就是一个字反复写，
+         不节流的话一笔到底会连盖好几个章，孩子只看见闪。
+       一会儿要改的话记住：星是「写满 5 个不同的字」发的，跟盖了几次章无关。 */
+  function markTraced() {
+    const w = TRACE.w, p = ME();
+    const isNew = !p.traced[w.z];
+    if (isNew) p.traced[w.z] = 1;
+    const n = tracedCount();
+    const want = Math.floor(n / 5);           // 写满 5 个该发几颗
+    const got = Math.max(0, want - p.traceStars);
+    if (got) { p.stars += got; p.traceStars = want; }
+    save();
+    renderTraceGot();
+    const now = Date.now();
+    if (now - (TRACE.lastStamp || 0) > 1200) { // 章：1.2 秒内只盖一次
+      TRACE.lastStamp = now;
+      const st = document.getElementById('trace-stamp');
+      st.textContent = got ? '⭐ 得 ' + got + ' 颗星！' : '✅ 写完啦';
+      st.classList.remove('hide');
+      clearTimeout(markTraced._t);
+      markTraced._t = setTimeout(() => st.classList.add('hide'), 1400);
+      confetti(got ? 14 : 5);
+    }
+    sfx.ok();
+    addSec(12);                                // 写字也算学习时间
+    speak(w.z);
+    if (isNew) toast('「' + w.z + '」记下了 · 共 ' + n + ' 个');
   }
   function setupCanvas() {
     const cv = document.getElementById('trace-canvas');
@@ -910,17 +1061,38 @@
       const p = e.touches ? e.touches[0] : e;
       return { x: p.clientX - r.left, y: p.clientY - r.top };
     };
-    const start = e => { drawing = true; e.preventDefault(); ctx.beginPath(); const p = pos(e); ctx.moveTo(p.x, p.y); };
+    /* 笔迹总长：判「写满一格」只看这个数。
+       门槛定成 1.6 倍格子边长——随手点一下、划一道都不算，
+       真沿着字描一遍（一个字通常好几笔）稳稳超过。
+       🔴 交一次账就把墨清零：不清的话，一旦凑够门槛，
+          之后每一次抬手都算「写满」，随手乱划也能连连盖章。
+       也**没有**「这个字已经盖过章就不再管」的一次性开关——
+       描红就是一个字反复写，第二遍写满必须照样有回执，
+       否则孩子写完一遍再写就毫无动静，像坏掉了
+       （2026-09-18 测试抓到的就是这个：擦掉重写前第二遍不给任何反馈）。
+       重复的问题交给记账那边的 isNew 和盖章那边的 1.2 秒节流。 */
+    let ink = 0, last = null;
+    const start = e => { drawing = true; e.preventDefault(); ctx.beginPath(); const p = pos(e); ctx.moveTo(p.x, p.y); last = p; };
     const move = e => {
       if (!drawing) return; e.preventDefault();
       const p = pos(e);
       ctx.strokeStyle = '#4d8df6'; ctx.lineWidth = 12; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       ctx.lineTo(p.x, p.y); ctx.stroke();
+      if (last) ink += Math.hypot(p.x - last.x, p.y - last.y);
+      last = p;
     };
-    const end = () => { drawing = false; };
+    const end = () => {
+      drawing = false; last = null;
+      if (ink >= size * 1.6) { ink = 0; markTraced(); }
+    };
     cv.onpointerdown = start; cv.onpointermove = move; cv.onpointerup = end; cv.onpointerleave = end;
     cv.onpointercancel = end;
-    TRACE.reset = () => { ctx.clearRect(0, 0, size, size); drawTraceBase(ctx, size); };
+    TRACE.reset = () => {
+      ctx.clearRect(0, 0, size, size); drawTraceBase(ctx, size);
+      ink = 0;
+      TRACE.lastStamp = 0;                        // 擦掉重写＝重新给一次机会，章马上能再盖
+      document.getElementById('trace-stamp').classList.add('hide');
+    };
   }
   function drawTraceBase(ctx, size) {
     ctx.clearRect(0, 0, size, size);
@@ -964,27 +1136,61 @@
     rows.push(['连续打卡', streak() + ' 天']);
     rows.push(['闯关次数', p.totalPlays + ' 次']);
     rows.push(['认过的字', p.hanziLearned + ' 个']);
+    rows.push(['写过的字', tracedCount() + ' 个']);
     if (S.cur === 'da') rows.push(['背熟口诀', p.mulPassed + ' / 45 句']);
+    /* 认字闯关以前**完全没进报告**：汉字题的 _key 没设，全落进 stats.misc，
+       而报告只遍历数学关卡——孩子练了半屏汉字，家长这边一个数都看不见。 */
+    rows.push(['认字闯关', statLine(p.stats.hanzi_quiz, '还没练过')]);
     const scored = lv.math.map(m => ({ m, s: p.stats[m.id] })).filter(x => x.s && x.s.total >= 3);
     const weak = scored.map(x => ({ n: x.m.name, r: x.s.right / x.s.total })).sort((a, b) => a.r - b.r);
+    /* 汉字分组的正确率跟数学关卡并排（只列练过 3 题以上的组）。
+       大宝每个单元名在上下册里重名（都是「第一单元」），所以前面要挂册名。 */
+    const hzGroups = S.cur === 'da'
+      ? HANZI_G2.books.reduce((acc, b) => acc.concat(hanziGroups(b.id)), [])
+      : hanziGroups();
+    const hzWeak = hzGroups
+      .map(g => ({ n: (g.kind === 'theme' ? '' : g.book + ' ') + g.name, s: p.stats[g.key] }))
+      .filter(x => x.s && x.s.total >= 3)
+      .map(x => ({ n: x.n, r: x.s.right / x.s.total }))
+      .sort((a, b) => a.r - b.r);
+    const rateRow = (w, label) =>
+      '<div class="list-row"><span class="k">' + label + w.n + '</span><span class="v" style="color:' +
+      (w.r >= 0.8 ? 'var(--green)' : w.r >= 0.6 ? 'var(--brand)' : 'var(--red)') + '">' +
+      Math.round(w.r * 100) + '%</span></div>';
     document.getElementById('report-card').innerHTML = rows.map(r =>
       '<div class="list-row"><span class="k">' + r[0] + '</span><span class="v">' + r[1] + '</span></div>').join('') +
       (weak.length ? '<div style="margin-top:12px;font-size:13px;color:var(--ink2)">各关正确率（低→高）：</div>' +
-        weak.map(w => '<div class="list-row"><span class="k">' + w.n + '</span><span class="v" style="color:' +
-          (w.r >= 0.8 ? 'var(--green)' : w.r >= 0.6 ? 'var(--brand)' : 'var(--red)') + '">' +
-          Math.round(w.r * 100) + '%</span></div>').join('') : '');
-
+        weak.map(w => rateRow(w, '')).join('') : '') +
+      (hzWeak.length ? '<div style="margin-top:12px;font-size:13px;color:var(--ink2)">认字按单元正确率（低→高）：</div>' +
+        hzWeak.map(w => rateRow(w, '')).join('') : '');
+    /* 可重练的错题：凭据齐全的那些。老记录（加 _src 之前存的）没有凭据，练不了。 */
+    const redoable = p.wrong.filter(w => w.src && rebuildWrong([w]).length).slice(0, 10);
     // 错题本
     const wb = document.getElementById('wrongbook-card');
     if (!p.wrong.length) {
       wb.innerHTML = '<div class="empty-tip">还没有错题，继续保持 👍</div>';
     } else {
-      wb.innerHTML = p.wrong.slice(0, 12).map((w, i) =>
+      wb.innerHTML = p.wrong.slice(0, 12).map(w =>
         '<div class="list-row"><span class="k">' + w.q + '<br><span style="color:var(--red);font-size:12px">你写的：' + (w.you || '—') + '</span></span>' +
         '<span class="v">' + w.a + '</span></div>').join('') +
-        '<div class="btn-row"><button class="btn ghost sm" id="wb-clear">清空错题本</button></div>';
+        '<div class="btn-row">' +
+          (redoable.length ? '<button class="btn green sm" id="wb-redo">🎯 再练这 ' + redoable.length + ' 道</button>' : '') +
+          '<button class="btn ghost sm" id="wb-clear">清空错题本</button></div>' +
+        (redoable.length
+          ? '<div style="font-size:12px;color:var(--ink3);line-height:1.6;margin-top:4px">' +
+            /* 🔴 这里不能用 Markdown 的 ** 加粗——innerHTML 不认，星号会原样显示出来
+               （2026-09-18 截图里看见的「**同一个字**」，是给人看的说明文字，不能带符号）。 */
+            '汉字错题出的是<b>同一个字</b>的新题；数学题是每次现出的，练的是<b>同一关</b>的题，不是原来那道。</div>'
+          : '');
       const c = document.getElementById('wb-clear');
       if (c) c.onclick = () => { p.wrong = []; save(); openStars(); toast('错题本清空了'); };
+      const rd = document.getElementById('wb-redo');
+      if (rd) rd.onclick = () => {
+        const qs = rebuildWrong(redoable);
+        if (!qs.length) return toast('这些题暂时出不了');
+        sfx.tap();
+        startQuiz({ title: '🎯 再练错题', key: 'wrong_redo', list: qs, backFn: openStars });
+      };
     }
 
     document.getElementById('set-goal').textContent = S.goal;
@@ -1011,9 +1217,11 @@
     /* 从认字卡点「认字闯关」：先考刚学的这一组，孩子刚看完就有反馈 */
     document.getElementById('learn-quiz').onclick = () => {
       sfx.tap();
+      /* 一组不够 8 个字就退回全库出题，但成绩仍记在这一组头上——
+         题目里有别的组的字是小事，账记混了才是大事。 */
       const list = (LEARN && LEARN.list && LEARN.list.length >= 8)
         ? LEARN.list : hanziPool();
-      startHanziQuiz(list, null);
+      startHanziQuiz(list, (LEARN && LEARN.key) || null);
     };
 
     /* 闯关 */
@@ -1099,6 +1307,24 @@
     }
     return null;
   }
+  /* 单字兜底读音。取音的顺序只有这一处写着：**先词表、后单字**。 */
+  const pyChar = ch => PY_CHAR[ch] || '';
+  /* 一句话里第 off 个字的读音。取音顺序只有这一处实现：**先词表、后单字**。
+     🔴 点字注音的气泡、答错后的揭示条，都走这一份。踩过两次坑，都是「另写一遍顺序」：
+        ① 揭示条一开始直接调 pyFindIn，而 pyFindIn **只匹配词表、不回落**，
+           于是每个多字词的拼音全是空的（测试当场抓到）。
+        ② 修①时写成 `pyFindIn(s,i).py` —— 那是**整段**的拼音，不是这一个字的，
+           于是「意思」显示成 `yì si yì si`（长 2 的字配了 4 个音节，又是测试抓的）。
+           pyFindIn 返回的 py 是整段串，必须用 at 切出自己那一节。 */
+  function pyOne(s, off) {
+    const hit = pyFindIn(s, off);
+    return hit ? (hit.py.split(' ')[hit.at] || pyChar(s[off])) : pyChar(s[off]);
+  }
+  /* 一段文字逐字的读音 */
+  function pyText(text) {
+    const s = String(text);
+    return s.split('').map((ch, i) => pyOne(s, i));
+  }
   /* 文字节点 node 在祖先 root 里的字符偏移。PY_SEG 的键可能被 <b>/<span> 切开，
      所以要按祖先的全文算偏移，再到全文里匹配。 */
   function pyOffsetOf(root, node, off) {
@@ -1134,9 +1360,9 @@
     }
     return {
       ch: ch, off: off, node: node, root: root,
-      /* hit.at 是「这个字在命中的那个词里排第几个」，直接取那一节拼音。
-         没命中词就回落 PY_CHAR 的单字默认音。 */
-      py: hit ? hit.py.split(' ')[hit.at] : null,
+      /* pyOne 走的正是「先词表、后单字」那一份；命中词时它按 hit.at 取这个字那一节，
+         跟揭示条同一个来源，两条路不会各算一套。 */
+      py: pyOne(txt, off),
       key: hit ? hit.key : '', keyPy: hit ? hit.py : ''
     };
   }
@@ -1150,7 +1376,7 @@
   }
   function pyShow(info, rect) {
     const pop = document.getElementById('py-pop');
-    const py = info.py || PY_CHAR[info.ch] || '';
+    const py = info.py || pyChar(info.ch);              // pyReadAt 已经兜过一层，这里再兜是防手滑
     if (!py) return;                                    // 没数据就不弹，不猜
     /* 命中一个「词」时把孩子认得的那个词也写出来——光一个字的音容易记不住。
        太长的键（整句）不写，那是句子不是词。 */
@@ -1201,6 +1427,6 @@
     quiz: () => Q, learn: () => LEARN, screen: () => curScreen,
     /* 点字注音的内部件：给浏览器测试直接驱动**线上这份**实现用。
        测试必须打真身，不许在测试里另抄一套匹配逻辑（那就是判据分叉）。 */
-    py: { find: pyFindIn, read: pyReadAt, char: PY_CHAR, seg: PY_SEG, amb: PY_AMB, maxlen: PY_MAXLEN }
+    py: { find: pyFindIn, read: pyReadAt, text: pyText, char: PY_CHAR, seg: PY_SEG, amb: PY_AMB, maxlen: PY_MAXLEN }
   };
 })();
