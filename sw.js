@@ -1,0 +1,67 @@
+// sw.js —— 离线缓存：让「汉字·数学 大冒险」第二次打开不用等网络
+//
+// 🔴 为什么需要它：
+//    这是给两个小孩用的 App——麟轩做作业、曾强在车上闹着要玩，这些时候
+//    网速都不由我们说了算。缓存下来就永远不受网络摆布。
+//
+// 🔴 为什么选 stale-while-revalidate（缓存先给、后台悄悄更新）：
+//    网络优先等于每次都要等首字节，白装。SWR 的代价是「改版后第一次打开
+//    可能还是旧版、再打开一次才是新版」——这个 App 自用、改版不频繁，
+//    用一次延迟换每次秒开，划算。
+//    ⚠️ 所以我改完版如果孩子说「没看到新东西」，下拉刷新一次即可。
+//
+// 🔴 整个 App 只有一个文件：index.html 里**零外部引用**（无 <link>、无 CDN 外链），
+//    所以缓存清单就一条，不存在「缓存了 HTML 却没缓存 CSS」那种半吊子状态。
+//
+// 🔴 每次改 index.html 都要顶下面的 VERSION：不顶的话老缓存不会被清，
+//    SWR 又只保证「再打开一次才更新」，孩子会一直看到旧版。
+//    2026-09-18 v1：首次上线——数学 11 关现场出题（含有余数除法）+ 汉字
+//                   二年级 1078 字按册/单元/写字表·识字表分组 + 描红写字。
+const VERSION = 'hm-2026-09-18';
+const INDEX = new URL('./index.html', self.location.href).href;
+
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(VERSION)
+      .then(c => c.addAll([INDEX]))
+      .catch(() => {})            // 首次预缓存失败不能把 SW 卡死在 installing
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys()
+      .then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', e => {
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;   // 不是自己的资源一律不碰
+
+  // 🔴 导航请求必须映射到 INDEX 这个 key，不能直接 caches.match(req)：
+  //    打开页面时请求的是仓库目录形式（…/hanzi-math-adventure/），
+  //    而缓存里存的 key 是 …/index.html —— 两者 URL 不同，
+  //    直接 match 会永远落空，缓存形同虚设（这是 SW 最常见的坑）。
+  const key = req.mode === 'navigate' ? INDEX : req.url;
+
+  e.respondWith((async () => {
+    const cache = await caches.open(VERSION);
+    const cached = await cache.match(key);
+    // 后台更新：故意不 await，让它自己慢慢跑；失败也不影响这次返回什么
+    const net = fetch(req).then(res => {
+      if (res && res.status === 200 && res.type === 'basic') {
+        cache.put(key, res.clone()).catch(() => {});
+      }
+      return res;
+    }).catch(() => null);
+    // 有缓存立刻给（这就是秒开的来源）；没有才等网络
+    return cached || (await net) || new Response('离线，且本地没有缓存', {
+      status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+    });
+  })());
+});

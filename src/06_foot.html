@@ -1,0 +1,14 @@
+</div><!-- /.app -->
+<script>
+/* 离线缓存：把 App 本体存进浏览器，断网也能打开（sw.js 就在同目录）。
+   🔴 本机双击 index.html（file://）时浏览器不允许注册 service worker，
+      注册会失败——这不是错误，双击照样能玩，只是不享受离线缓存。
+      所以这里先判协议，失败也静默，绝不让它弹个红字吓到小孩。 */
+if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+  addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
+  });
+}
+</script>
+</body>
+</html>

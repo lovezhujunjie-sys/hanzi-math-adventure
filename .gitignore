@@ -1,0 +1,8 @@
+# 截图产物：本地验收用（5MB），不进公开仓——仓根就是 GitHub Pages 的站点根，
+# 塞一堆 PNG 进去只会拖慢孩子打开 App 的速度。
+out/
+
+# build.sh 记的「当前缓存版本号 ↔ index.html 哈希」对照，本机状态，不入仓
+.sw-version
+
+.DS_Store

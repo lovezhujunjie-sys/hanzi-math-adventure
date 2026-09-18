@@ -1,0 +1,2667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#fff9f0">
+<title>汉字数学大冒险</title>
+<style>
+  :root{
+    --bg:#fff9f0; --bg2:#fff3e2; --card:#ffffff;
+    --ink:#2f2a24; --ink2:#6f665c; --ink3:#9c9388; --ink4:#c3bab0;
+    --line:#f2e8da; --line2:#e8dcc9;
+    --brand:#ff8a3d; --brand2:#ffb066; --brand-soft:#fff0e2;
+    --blue:#4d8df6; --blue-soft:#e8f0ff;
+    --green:#37bf7a; --green-soft:#e4f8ee;
+    --pink:#ff6fa5; --pink-soft:#ffe9f1;
+    --purple:#9b6ef3; --purple-soft:#f1eaff;
+    --red:#f2544b; --red-soft:#ffe9e7;
+    --gold:#ffc93c;
+    --r:20px;
+    --shadow:0 4px 14px rgba(120,90,50,.08);
+    --shadow2:0 8px 24px rgba(120,90,50,.14);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0;padding:0;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);
+    min-height:100vh;overscroll-behavior:none;
+    -webkit-user-select:none;user-select:none;
+  }
+  body{background-image:radial-gradient(circle at 12% 8%,rgba(255,183,102,.18),transparent 42%),radial-gradient(circle at 88% 4%,rgba(77,141,246,.14),transparent 38%);background-attachment:fixed;}
+  .kai{font-family:"Kaiti SC","STKaiti","KaiTi","楷体","PingFang SC",serif;}
+  .app{max-width:520px;margin:0 auto;padding:16px 16px 28px;padding-top:max(16px,env(safe-area-inset-top));padding-bottom:max(28px,env(safe-area-inset-bottom));}
+  .screen{display:none;}
+  .screen.on{display:block;animation:fadeUp .26s ease;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .center{text-align:center;}
+  .hide{display:none !important;}
+
+  /* ── 通用按钮 ── */
+  .btn{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    min-height:56px;padding:14px 20px;border:none;border-radius:var(--r);
+    background:var(--card);color:var(--ink);
+    font-size:18px;font-weight:700;font-family:inherit;
+    box-shadow:var(--shadow);cursor:pointer;
+    transition:transform .1s ease,box-shadow .1s ease;
+  }
+  .btn:active{transform:scale(.97);box-shadow:var(--shadow2);}
+  .btn.primary{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;}
+  .btn.blue{background:linear-gradient(135deg,var(--blue),#7aa9ff);color:#fff;}
+  .btn.green{background:linear-gradient(135deg,var(--green),#5fd39a);color:#fff;}
+  .btn.ghost{background:var(--card);color:var(--ink2);box-shadow:none;border:2px solid var(--line2);}
+  .btn.sm{min-height:44px;font-size:15px;padding:10px 14px;border-radius:14px;}
+  .btn-row{display:flex;gap:10px;margin-top:14px;}
+  .btn-row .btn{flex:1;}
+
+  /* ── 顶栏 ── */
+  .topbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+  .topbar .tb-title{font-size:19px;font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .icon-btn{
+    width:44px;height:44px;flex:none;border:none;border-radius:14px;background:var(--card);
+    font-size:20px;display:flex;align-items:center;justify-content:center;
+    box-shadow:var(--shadow);cursor:pointer;
+  }
+  .icon-btn:active{transform:scale(.94);}
+
+  /* ── 小朋友档案卡 ── */
+  .kid-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px;}
+  .kid-card{
+    background:var(--card);border-radius:24px;padding:20px 14px;text-align:center;
+    box-shadow:var(--shadow);cursor:pointer;border:3px solid transparent;transition:transform .12s ease;
+  }
+  .kid-card:active{transform:scale(.96);}
+  .kid-card.da{border-color:#d7e5ff;}
+  .kid-card.er{border-color:#ffe1c4;}
+  .kid-avatar{font-size:52px;line-height:1;margin-bottom:8px;}
+  .kid-name{font-size:20px;font-weight:800;}
+  .kid-tag{font-size:12px;color:var(--ink3);margin-top:4px;}
+
+  /* ── 首页卡 ── */
+  .hello{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .hello .av{font-size:38px;line-height:1;}
+  .hello .nm{font-size:22px;font-weight:800;}
+  .hello .sub{font-size:12px;color:var(--ink3);margin-top:2px;}
+  .hello .switch{margin-left:auto;font-size:12px;color:var(--ink3);border:1.5px solid var(--line2);border-radius:12px;padding:6px 10px;background:var(--card);cursor:pointer;}
+
+  .stat-strip{
+    display:flex;background:linear-gradient(135deg,#fff4e6,#ffe9d3);border-radius:var(--r);
+    padding:14px 8px;margin-bottom:16px;box-shadow:var(--shadow);
+  }
+  .stat{flex:1;text-align:center;}
+  .stat .n{font-size:24px;font-weight:800;color:var(--brand);line-height:1.1;}
+  .stat .n .u{font-size:12px;font-weight:600;}
+  .stat .l{font-size:11px;color:var(--ink2);margin-top:3px;}
+
+  .mod-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .mod{
+    position:relative;background:var(--card);border-radius:var(--r);padding:16px 14px;
+    box-shadow:var(--shadow);cursor:pointer;transition:transform .12s ease;overflow:hidden;
+  }
+  .mod:active{transform:scale(.96);}
+  .mod .ico{font-size:30px;line-height:1;margin-bottom:8px;}
+  .mod .tt{font-size:16px;font-weight:800;}
+  .mod .ds{font-size:11.5px;color:var(--ink3);margin-top:3px;line-height:1.4;}
+  .mod.wide{grid-column:1 / -1;display:flex;align-items:center;gap:14px;padding:18px 18px;}
+  .mod.wide .ico{font-size:40px;margin:0;}
+  .mod.wide .txt{flex:1;min-width:0;}
+  .mod .badge{
+    position:absolute;top:10px;right:10px;background:var(--gold);color:#7a5300;
+    font-size:11px;font-weight:800;border-radius:10px;padding:3px 8px;
+  }
+
+  /* ── 学习卡（认字） ── */
+  /* 大图在前、大字在后：3 岁半的孩子先认图、再认字，图是钩子 */
+  .big-pic{font-size:74px;line-height:1;margin-bottom:12px;}
+  .big-pic:empty{display:none;}
+  .tian{
+    position:relative;width:190px;height:190px;margin:0 auto;
+    background:#fff;border:3px solid var(--brand);border-radius:14px;box-shadow:var(--shadow);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .tian::before,.tian::after{content:'';position:absolute;}
+  .tian::before{left:50%;top:6%;bottom:6%;border-left:2px dashed #ffcfae;transform:translateX(-1px);}
+  .tian::after{top:50%;left:6%;right:6%;border-top:2px dashed #ffcfae;transform:translateY(-1px);}
+  .tian .hz{font-size:134px;line-height:1;position:relative;}
+  .py{font-size:26px;color:var(--brand);font-weight:700;margin:14px 0 4px;letter-spacing:1px;}
+  .hz-info{font-size:15px;color:var(--ink2);line-height:1.7;}
+  .hz-info b{color:var(--ink);}
+  .example-line{background:var(--brand-soft);border-radius:14px;padding:10px 14px;margin-top:10px;font-size:15px;color:var(--ink);line-height:1.6;}
+  /* 组词点一点就能听——二年级的字多半没法用图表示，词就是它的「场景」 */
+  .ci-wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px;}
+  .ci-chip{
+    border:none;font-family:inherit;cursor:pointer;
+    background:var(--bg2);border:2px solid var(--line2);border-radius:16px;
+    padding:10px 16px;font-size:19px;font-weight:700;color:var(--ink);
+  }
+  .ci-chip:active{transform:scale(.95);background:var(--brand-soft);border-color:var(--brand);}
+  .ci-chip .sp{font-size:12px;color:var(--ink3);font-weight:500;margin-left:5px;letter-spacing:0;}
+
+  /* ── 闯关 ── */
+  .quiz-top{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .prog{flex:1;height:14px;background:var(--line);border-radius:10px;overflow:hidden;}
+  .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--green),#7ee2ab);border-radius:10px;transition:width .3s ease;}
+  .prog-txt{font-size:13px;font-weight:700;color:var(--ink3);flex:none;}
+  /* 🔴 答题屏要「题目 + 答案 + 确定」一屏装得下，不能让 8 岁的孩子来回滚动——
+     竖式屏原来就得滚，滚下去就看不见题干了。以下尺寸是按 400×860 实测压出来的。 */
+  .q-stem{background:var(--card);border-radius:var(--r);padding:14px 14px;box-shadow:var(--shadow);text-align:center;margin-bottom:12px;}
+  .q-big{font-size:40px;font-weight:800;line-height:1.22;letter-spacing:2px;}
+  .q-big.hz{font-size:96px;}
+  .q-sub{font-size:14px;color:var(--ink2);margin-top:6px;line-height:1.55;}
+  .q-emoji{font-size:28px;letter-spacing:3px;line-height:1.45;word-break:break-all;}
+  .choices{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .choices.one{grid-template-columns:1fr;}
+  .choices.three{grid-template-columns:repeat(3,1fr);}
+  .choice{
+    min-height:68px;border:none;border-radius:var(--r);background:var(--card);
+    font-size:30px;font-weight:800;font-family:inherit;color:var(--ink);
+    box-shadow:var(--shadow);cursor:pointer;display:flex;align-items:center;justify-content:center;
+    gap:6px;transition:transform .1s ease;padding:6px;
+  }
+  .choice.hz{font-size:48px;}
+  .choice.txt{font-size:22px;}
+  .choice.sym{font-size:46px;min-height:84px;}
+  .choice:active{transform:scale(.96);}
+  .choice.right{background:var(--green);color:#fff;animation:pop .3s ease;}
+  .choice.wrong{background:var(--red);color:#fff;animation:shake .32s ease;}
+  .choice.dim{opacity:.4;}
+  @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.09)}100%{transform:scale(1)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}22%{transform:translateX(-8px)}44%{transform:translateX(8px)}66%{transform:translateX(-5px)}88%{transform:translateX(5px)}}
+
+  .feedback{border-radius:var(--r);padding:14px 16px;margin-top:14px;font-size:16px;line-height:1.6;font-weight:600;}
+  .feedback.ok{background:var(--green-soft);color:#1c7a4b;}
+  .feedback.no{background:var(--red-soft);color:#a8322b;}
+  .feedback .why{display:block;font-size:14px;font-weight:500;margin-top:6px;color:var(--ink2);}
+
+  /* 数字键盘 */
+  .numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+  .numpad button{
+    min-height:54px;border:none;border-radius:16px;background:var(--card);font-size:24px;font-weight:800;
+    font-family:inherit;color:var(--ink);box-shadow:var(--shadow);cursor:pointer;
+  }
+  .numpad button:active{transform:scale(.95);background:var(--brand-soft);}
+  .answer-box{
+    min-height:64px;border-radius:var(--r);background:#fff;border:3px dashed var(--brand);
+    display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;letter-spacing:2px;
+    margin-bottom:4px;
+  }
+  .answer-box .caret{width:3px;height:32px;background:var(--brand);animation:blink 1s steps(1) infinite;border-radius:2px;}
+  @keyframes blink{50%{opacity:0}}
+
+  /* 竖式 */
+  .vert{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:34px;line-height:1.15;text-align:right;display:inline-block;letter-spacing:4px;}
+  .vert .line{border-top:3px solid var(--ink);margin:2px 0 4px;}
+
+  /* 结算 */
+  .result-card{background:var(--card);border-radius:26px;padding:26px 20px;box-shadow:var(--shadow2);text-align:center;}
+  .result-card .big-emoji{font-size:64px;line-height:1;}
+  .result-card h2{font-size:24px;margin:12px 0 4px;}
+  .stars-row{font-size:40px;letter-spacing:6px;margin:8px 0;}
+  .star-off{opacity:.22;}
+  .wrong-list{text-align:left;margin-top:16px;background:var(--bg2);border-radius:16px;padding:12px 14px;}
+  .wrong-list h3{font-size:14px;margin:0 0 8px;color:var(--ink2);}
+  .wrong-list .item{font-size:17px;padding:6px 0;border-bottom:1px dashed var(--line2);}
+  .wrong-list .item:last-child{border:none;}
+
+  /* ── 乘法口诀 ── */
+  .mul-table{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .mul-cell{
+    background:var(--card);border-radius:14px;padding:12px 4px;text-align:center;
+    box-shadow:var(--shadow);cursor:pointer;font-size:13px;font-weight:700;line-height:1.5;
+  }
+  .mul-cell:active{transform:scale(.95);}
+  .mul-cell .r{font-size:20px;font-weight:800;color:var(--brand);display:block;}
+  .mul-cell.learned{background:var(--green-soft);}
+  .mul-big{font-size:38px;font-weight:800;line-height:1.4;}
+  .mul-big .hl{color:var(--brand);}
+
+  /* ── 描红 ── */
+  .trace-wrap{position:relative;width:290px;height:290px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:var(--shadow);border:3px solid var(--brand);overflow:hidden;}
+  .trace-wrap canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;}
+
+  /* ── 限时 ── */
+  .timer-ring{position:relative;width:100%;height:16px;background:var(--line);border-radius:10px;overflow:hidden;margin-bottom:14px;}
+  .timer-ring i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ffc93c,var(--brand));transition:width .95s linear;}
+  .big-count{font-size:80px;font-weight:800;color:var(--brand);line-height:1;}
+
+  /* ── 成就 ── */
+  .achv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .achv{background:var(--card);border-radius:18px;padding:14px 8px;text-align:center;box-shadow:var(--shadow);}
+  .achv.locked{opacity:.42;filter:grayscale(1);}
+  .achv .e{font-size:32px;line-height:1;}
+  .achv .t{font-size:12px;font-weight:700;margin-top:6px;}
+
+  .sect-title{font-size:15px;font-weight:800;margin:20px 0 10px;display:flex;align-items:center;gap:6px;}
+  .sect-title .hint{font-size:11px;font-weight:500;color:var(--ink3);margin-left:auto;}
+  .card{background:var(--card);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);}
+  .list-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:16px;}
+  .list-row:last-child{border:none;}
+  .list-row .k{flex:1;color:var(--ink2);font-size:14px;}
+  .list-row .v{font-weight:800;color:var(--brand);}
+  .empty-tip{text-align:center;color:var(--ink3);font-size:14px;padding:24px 10px;line-height:1.7;}
+
+  /* 撒花 */
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:99;}
+  .cf{position:absolute;font-size:22px;will-change:transform,opacity;animation:cfFall linear forwards;}
+  @keyframes cfFall{from{transform:translateY(-10vh) rotate(0);opacity:1}to{transform:translateY(105vh) rotate(540deg);opacity:.1}}
+
+  .toast{
+    position:fixed;left:50%;bottom:12%;transform:translateX(-50%);
+    background:rgba(47,42,36,.92);color:#fff;font-size:15px;font-weight:600;
+    padding:11px 20px;border-radius:16px;z-index:200;pointer-events:none;opacity:0;transition:opacity .25s ease;
+  }
+  .toast.on{opacity:1;}
+  .foot-note{text-align:center;font-size:11px;color:var(--ink4);margin-top:22px;line-height:1.7;}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+<!-- ═══════════ 1. 选小朋友 ═══════════ -->
+<div class="screen on" id="screen-kid">
+  <div class="center" style="margin:26px 0 6px">
+    <div style="font-size:60px;line-height:1">🐣</div>
+    <h1 style="font-size:27px;margin:12px 0 6px">汉字 · 数学 大冒险</h1>
+    <p style="font-size:14px;color:var(--ink3);margin:0">今天是谁来闯关呀？</p>
+  </div>
+  <div class="kid-grid" id="kid-grid"></div>
+  <p class="foot-note">两个小朋友各有各的进度，互不影响<br>数据只存在这台设备上</p>
+</div>
+
+<!-- ═══════════ 2. 首页 ═══════════ -->
+<div class="screen" id="screen-home">
+  <div class="hello">
+    <div class="av" id="home-av">🧒</div>
+    <div style="min-width:0">
+      <div class="nm" id="home-name">小朋友</div>
+      <div class="sub" id="home-sub">今天还没开始哦</div>
+    </div>
+    <button class="switch" id="home-switch">换人</button>
+  </div>
+
+  <div class="stat-strip">
+    <div class="stat"><div class="n" id="st-min">0<span class="u">分</span></div><div class="l">今日学习</div></div>
+    <div class="stat"><div class="n" id="st-star">0</div><div class="l">星星 ⭐</div></div>
+    <div class="stat"><div class="n" id="st-streak">0<span class="u">天</span></div><div class="l">连续打卡</div></div>
+  </div>
+
+  <div class="mod-grid" id="home-mods"></div>
+
+  <div class="sect-title">👀 今天练过什么</div>
+  <div class="card" id="home-today"><div class="empty-tip">还没开始，随便挑一个玩吧 👆</div></div>
+  <p class="foot-note">汉字数学大冒险 · 给麟轩和曾强做的<br>离线可用，断网也能学</p>
+</div>
+
+<!-- ═══════════ 3. 认字卡（学习） ═══════════ -->
+<div class="screen" id="screen-learn">
+  <div class="topbar">
+    <button class="icon-btn" data-back="screen-home">←</button>
+    <div class="tb-title" id="learn-title">认字卡</div>
+    <button class="icon-btn" id="learn-sound">🔊</button>
+  </div>
+  <div style="text-align:center">
+    <div class="big-pic" id="learn-pic"></div>
+    <div class="tian"><span class="hz kai" id="learn-hz">字</span></div>
+    <div class="py" id="learn-py">zì</div>
+    <div class="hz-info" id="learn-info"></div>
+    <div class="example-line" id="learn-ju"></div>
+  </div>
+  <div class="btn-row" style="margin-top:20px">
+    <button class="btn ghost" id="learn-prev">◀ 上一个</button>
+    <button class="btn primary" id="learn-next">下一个 ▶</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn blue" id="learn-trace">✍️ 写一写这个字</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn green" id="learn-quiz">⚡ 认字闯关</button>
+  </div>
+  <p class="foot-note" id="learn-pos">1 / 1</p>
+</div>
+
+<!-- ═══════════ 4. 通用答题（闯关 / 口算 / 应用题 / 比大小 / 数一数） ═══════════ -->
+<div class="screen" id="screen-quiz">
+  <div class="topbar">
+    <button class="icon-btn" id="quiz-back">←</button>
+    <div class="tb-title" id="quiz-title">闯关</div>
+    <button class="icon-btn" id="quiz-sound">🔊</button>
+  </div>
+
+  <!-- 答题区 -->
+  <div id="quiz-body">
+    <div class="quiz-top">
+      <div class="prog"><i id="quiz-bar"></i></div>
+      <div class="prog-txt" id="quiz-count">1/10</div>
+    </div>
+    <div class="q-stem">
+      <div class="q-big" id="q-big"></div>
+      <div class="q-emoji" id="q-emoji"></div>
+      <div class="q-sub" id="q-sub"></div>
+    </div>
+
+    <div id="q-answer-area" class="hide">
+      <div class="answer-box" id="answer-box"></div>
+      <div class="numpad" id="numpad"></div>
+      <div class="btn-row"><button class="btn green" id="answer-ok">确定 ✓</button></div>
+    </div>
+
+    <div class="choices" id="q-choices"></div>
+
+    <div class="feedback hide" id="q-feedback"></div>
+    <button class="btn primary hide" id="q-next" style="margin-top:14px">下一题 →</button>
+  </div>
+
+  <!-- 结算区 -->
+  <div id="quiz-result" class="hide">
+    <div class="result-card">
+      <div class="big-emoji" id="rs-emoji">🎉</div>
+      <h2 id="rs-title">太棒了！</h2>
+      <div class="stars-row" id="rs-stars"></div>
+      <div style="font-size:15px;color:var(--ink2)" id="rs-detail"></div>
+      <div class="wrong-list hide" id="rs-wrong">
+        <h3>这几题再看看 👇</h3>
+        <div id="rs-wrong-items"></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn ghost" id="rs-home">🏠 回家</button>
+      <button class="btn primary" id="rs-again">🔁 再来一次</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 5. 限时口算 ═══════════ -->
+<div class="screen" id="screen-timed">
+  <div class="topbar">
+    <button class="icon-btn" id="timed-back">←</button>
+    <div class="tb-title">⏱️ 限时口算</div>
+    <div class="prog-txt" id="timed-left">60</div>
+  </div>
+  <div class="timer-ring"><i id="timed-bar"></i></div>
+  <div id="timed-run">
+    <div class="q-stem"><div class="q-big" id="timed-q">1 + 1 = ?</div></div>
+    <div class="answer-box" id="timed-ans"></div>
+    <div class="numpad" id="timed-pad"></div>
+    <div class="btn-row"><button class="btn green" id="timed-ok">确定 ✓</button></div>
+    <div style="text-align:center;margin-top:14px;font-size:15px;color:var(--ink2)">
+      答对 <b id="timed-right" style="color:var(--green);font-size:20px">0</b> 题 ·
+      答错 <b id="timed-wrong" style="color:var(--red);font-size:20px">0</b> 题
+    </div>
+  </div>
+  <div id="timed-result" class="hide">
+    <div class="result-card">
+      <div class="big-emoji">⏱️</div>
+      <h2>时间到！</h2>
+      <div class="big-count" id="timed-score">0</div>
+      <div style="font-size:15px;color:var(--ink2)">秒内答对 <b id="timed-final-right">0</b> 题</div>
+      <div class="wrong-list hide" id="timed-wrong-list">
+        <h3>这几题再看看 👇</h3>
+        <div id="timed-wrong-items"></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn ghost" id="timed-home">🏠 回家</button>
+      <button class="btn primary" id="timed-again">🔁 再来一局</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 6. 乘法口诀表 ═══════════ -->
+<div class="screen" id="screen-mul">
+  <div class="topbar">
+    <button class="icon-btn" data-back="screen-home">←</button>
+    <div class="tb-title">🔢 乘法口诀</div>
+    <button class="icon-btn" id="mul-sound">🔊</button>
+  </div>
+  <div class="card" style="text-align:center;margin-bottom:14px">
+    <div class="mul-big" id="mul-show">一一得一</div>
+    <div style="font-size:13px;color:var(--ink3);margin-top:6px">点任意一句，听它怎么读</div>
+  </div>
+  <div class="btn-row" style="margin-bottom:14px">
+    <button class="btn blue" id="mul-recite">🎤 从头背一遍</button>
+    <button class="btn green" id="mul-quiz">⚡ 抽背闯关</button>
+  </div>
+  <div class="mul-table" id="mul-table"></div>
+  <p class="foot-note">背熟口诀，乘除法就快一半了</p>
+</div>
+
+<!-- ═══════════ 7. 描红写字 ═══════════ -->
+<div class="screen" id="screen-trace">
+  <div class="topbar">
+    <button class="icon-btn" data-back="screen-home">←</button>
+    <div class="tb-title" id="trace-title">✍️ 写一写</div>
+    <button class="icon-btn" id="trace-sound">🔊</button>
+  </div>
+  <div class="trace-wrap" id="trace-wrap">
+    <canvas id="trace-canvas"></canvas>
+  </div>
+  <div style="text-align:center;margin-top:12px">
+    <span class="py" id="trace-py" style="font-size:22px"></span>
+  </div>
+  <div class="btn-row">
+    <button class="btn ghost" id="trace-clear">🧽 擦掉重写</button>
+    <button class="btn primary" id="trace-next">换一个字 ▶</button>
+  </div>
+  <p class="foot-note">用手指或鼠标沿着淡淡的字写一遍<br>写完点「换一个字」，多写几遍就记住了</p>
+</div>
+
+<!-- ═══════════ 8. 星星 · 家长看进度 ═══════════ -->
+<div class="screen" id="screen-stars">
+  <div class="topbar">
+    <button class="icon-btn" data-back="screen-home">←</button>
+    <div class="tb-title">🏆 星星与进度</div>
+  </div>
+  <div class="card center" style="margin-bottom:14px">
+    <div style="font-size:44px">⭐</div>
+    <div class="big-count" id="achv-star">0</div>
+    <div style="font-size:14px;color:var(--ink2)" id="achv-sub">再攒点星星换奖杯</div>
+  </div>
+  <div class="sect-title">🎖️ 我的奖章</div>
+  <div class="achv-grid" id="achv-grid"></div>
+  <div class="sect-title">📊 学习报告 <span class="hint">给爸爸妈妈看的</span></div>
+  <div class="card" id="report-card"></div>
+  <div class="sect-title">📚 错题本 <span class="hint">答错的题自动收进来</span></div>
+  <div class="card" id="wrongbook-card"></div>
+  <div class="sect-title">⚙️ 设置</div>
+  <div class="card">
+    <div class="list-row"><span class="k">每日目标（分钟）</span><span class="v" id="set-goal">20</span></div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn ghost sm" data-goal="-5">−5</button>
+      <button class="btn ghost sm" data-goal="5">+5</button>
+    </div>
+    <div class="list-row" style="margin-top:10px"><span class="k">朗读语速</span><span class="v" id="set-rate">正常</span></div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn ghost sm" data-rate="0.8">慢一点</button>
+      <button class="btn ghost sm" data-rate="1">正常</button>
+      <button class="btn ghost sm" data-rate="1.2">快一点</button>
+    </div>
+    <div class="list-row" style="margin-top:10px"><span class="k">清空这个小朋友的进度</span>
+      <button class="btn ghost sm" id="set-reset" style="border-color:#ffd0cc;color:var(--red)">清空</button></div>
+  </div>
+  <p class="foot-note">进度只存在这台设备（浏览器本地），不上传</p>
+</div>
+
+<!-- ═══════════ 9. 关卡地图 / 主题选择（认字 + 数学共用） ═══════════ -->
+<div class="screen" id="screen-map">
+  <div class="topbar">
+    <button class="icon-btn" data-back="screen-home">←</button>
+    <div class="tb-title" id="map-title">关卡</div>
+    <div class="prog-txt" id="map-star" style="flex:none">⭐ 0</div>
+  </div>
+  <p style="font-size:13px;color:var(--ink3);margin:0 0 14px;line-height:1.6" id="map-sub"></p>
+  <div class="map-grid" id="map-grid"></div>
+  <p class="foot-note" id="map-foot"></p>
+</div>
+
+<style>
+  .map-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .map-item{
+    position:relative;background:var(--card);border-radius:var(--r);padding:16px 12px 14px;
+    box-shadow:var(--shadow);cursor:pointer;text-align:center;border:3px solid transparent;
+    transition:transform .12s ease;
+  }
+  .map-item:active{transform:scale(.96);}
+  .map-item.done{border-color:#c9f0da;background:linear-gradient(180deg,#f4fdf8,#fff);}
+  .map-item .mi-ico{font-size:34px;line-height:1;margin-bottom:8px;}
+  .map-item .mi-name{font-size:15px;font-weight:800;}
+  .map-item .mi-desc{font-size:11px;color:var(--ink3);margin-top:3px;line-height:1.4;}
+  .map-item .mi-stars{font-size:14px;margin-top:7px;letter-spacing:2px;}
+  .map-item .mi-num{
+    width:38px;height:38px;margin:0 auto 8px;border-radius:12px;
+    background:linear-gradient(135deg,#fff0e2,#ffe0c2);
+    color:var(--brand);font-size:21px;font-weight:900;line-height:38px;
+  }
+  .map-item .mi-sample{font-size:17px;color:var(--ink4);letter-spacing:3px;margin-top:6px;}
+  .map-item .mi-stars .off{opacity:.2;}
+  .map-item.big{grid-column:1 / -1;display:flex;align-items:center;gap:14px;text-align:left;padding:16px;border-color:#ffe1c4;}
+  .map-item.big .mi-ico{font-size:40px;margin:0;}
+  .combo{
+    position:fixed;left:50%;top:22%;transform:translate(-50%,-50%) scale(.6);
+    font-size:34px;font-weight:900;color:#ff8a3d;z-index:120;pointer-events:none;opacity:0;
+    text-shadow:0 2px 0 #fff,0 4px 16px rgba(255,138,61,.4);
+  }
+  .combo.on{animation:comboPop .8s ease;}
+  @keyframes comboPop{
+    0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}
+    30%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}
+    70%{opacity:1;transform:translate(-50%,-60%) scale(1)}
+    100%{opacity:0;transform:translate(-50%,-80%) scale(.95)}
+  }
+  .big-card{
+    background:linear-gradient(135deg,#fff6ea,#ffe9d3);border-radius:var(--r);padding:18px;
+    box-shadow:var(--shadow);text-align:center;margin-bottom:14px;
+  }
+  .big-card .n{font-size:46px;font-weight:900;color:var(--brand);line-height:1;}
+  .big-card .l{font-size:13px;color:var(--ink2);margin-top:6px;}
+  .quiz-emoji{font-size:26px;line-height:1.5;word-break:break-word;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px;}
+  .chip{
+    padding:9px 14px;border-radius:14px;background:var(--card);border:2px solid var(--line2);
+    font-size:14px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;
+  }
+  .chip.on{background:var(--brand);color:#fff;border-color:var(--brand);}
+</style>
+<div class="combo" id="combo"></div>
+<div id="confetti"></div>
+<div class="toast" id="toast"></div>
+<script>
+/* ══════════════════════════════════════════════════════════════
+   汉字数据
+   ─ 启蒙组 HANZI_QI：给 3~4 岁（曾强·小班）的象形·基础独体字
+   ─ 二年级组 HANZI_G2：给小学二年级（曾麟轩）的常用字（tools/ 里生成）
+   🔴 加字规矩：拼音必须带声调且正确；组词必须是真词；例句要口语化、孩子能懂。
+   ══════════════════════════════════════════════════════════════ */
+
+const HANZI_QI = {
+  '我的身体': {
+    icon: '🧒',
+    words: [
+      {z:'人', py:'rén',  pic:'👤', ci:['大人','人们'],     ju:'我们家里有很多人。'},
+      {z:'口', py:'kǒu',  pic:'👄', ci:['开口','门口'],     ju:'张开嘴巴，这就是口。'},
+      {z:'手', py:'shǒu', pic:'✋', ci:['小手','手心'],     ju:'用小手拿东西。'},
+      {z:'目', py:'mù',   pic:'👁️', ci:['目光','耳目'],     ju:'目就是眼睛。'},
+      {z:'耳', py:'ěr',   pic:'👂', ci:['耳朵','木耳'],     ju:'用耳朵听声音。'},
+      {z:'足', py:'zú',   pic:'🦶', ci:['足球','手足'],     ju:'足就是脚。'},
+      {z:'头', py:'tóu',  pic:'😊', ci:['头发','点头'],     ju:'点点头，头会动。'},
+      {z:'心', py:'xīn',  pic:'❤️', ci:['开心','小心'],     ju:'心里真高兴。'},
+      {z:'牙', py:'yá',   pic:'🦷', ci:['牙齿','刷牙'],     ju:'每天早晚要刷牙。'},
+      {z:'舌', py:'shé',  pic:'👅', ci:['舌头','口舌'],     ju:'用舌头尝味道。'}
+    ]
+  },
+  '大自然': {
+    icon: '🌈',
+    words: [
+      {z:'日', py:'rì',   pic:'☀️', ci:['日出','生日'],     ju:'太阳也叫日。'},
+      {z:'月', py:'yuè',  pic:'🌙', ci:['月亮','月光'],     ju:'晚上月亮出来了。'},
+      {z:'山', py:'shān', pic:'⛰️', ci:['大山','山上'],     ju:'山高高的，爬上去很累。'},
+      {z:'水', py:'shuǐ', pic:'💧', ci:['喝水','河水'],     ju:'口渴了要喝水。'},
+      {z:'火', py:'huǒ',  pic:'🔥', ci:['火苗','火车'],     ju:'火很烫，不能用手摸。'},
+      {z:'土', py:'tǔ',   pic:'🟫', ci:['泥土','土地'],     ju:'小草从土里长出来。'},
+      {z:'石', py:'shí',  pic:'🪨', ci:['石头','石子'],     ju:'路边有一块大石头。'},
+      {z:'田', py:'tián', pic:'🌾', ci:['田地','水田'],     ju:'田里种着稻子。'},
+      {z:'云', py:'yún',  pic:'☁️', ci:['白云','云朵'],     ju:'天上有一朵白云。'},
+      {z:'雨', py:'yǔ',   pic:'🌧️', ci:['下雨','雨衣'],     ju:'下雨了要打伞。'},
+      {z:'风', py:'fēng', pic:'🌬️', ci:['大风','风筝'],     ju:'风把树叶吹动了。'},
+      {z:'花', py:'huā',  pic:'🌸', ci:['花朵','开花'],     ju:'花儿开了，真好看。'},
+      {z:'草', py:'cǎo',  pic:'🌿', ci:['小草','草地'],     ju:'草地上有小虫子。'},
+      {z:'木', py:'mù',   pic:'🪵', ci:['木头','树木'],     ju:'桌子是木头做的。'},
+      {z:'天', py:'tiān', pic:'🌈', ci:['天空','白天'],     ju:'天上飘着白云。'},
+      {z:'地', py:'dì',   pic:'🌍', ci:['大地','地上'],     ju:'东西掉在地上了。'}
+    ]
+  },
+  '动物朋友': {
+    icon: '🐰',
+    words: [
+      {z:'牛', py:'niú',   pic:'🐮', ci:['牛奶','小牛'],   ju:'牛会哞哞叫。'},
+      {z:'羊', py:'yáng',  pic:'🐑', ci:['山羊','羊毛'],   ju:'羊咩咩地叫。'},
+      {z:'马', py:'mǎ',    pic:'🐴', ci:['小马','马路'],   ju:'马跑得很快。'},
+      {z:'鸟', py:'niǎo',  pic:'🐦', ci:['小鸟','鸟窝'],   ju:'小鸟在天上飞。'},
+      {z:'鱼', py:'yú',    pic:'🐟', ci:['小鱼','金鱼'],   ju:'鱼在水里游来游去。'},
+      {z:'虫', py:'chóng', pic:'🐛', ci:['小虫','虫子'],   ju:'叶子上有一条小虫。'},
+      {z:'犬', py:'quǎn',  pic:'🐶', ci:['犬牙','牧犬'],   ju:'犬就是小狗。'},
+      {z:'兔', py:'tù',    pic:'🐰', ci:['兔子','白兔'],   ju:'兔子爱吃萝卜。'},
+      {z:'猫', py:'māo',   pic:'🐱', ci:['小猫','花猫'],   ju:'小猫喵喵叫。'},
+      {z:'鸡', py:'jī',    pic:'🐔', ci:['公鸡','母鸡'],   ju:'公鸡早上会打鸣。'}
+    ]
+  },
+  '我的家': {
+    icon: '🏠',
+    words: [
+      {z:'门', py:'mén',    pic:'🚪', ci:['大门','开门'],   ju:'请把门关上。'},
+      {z:'窗', py:'chuāng', pic:'🪟', ci:['窗户','窗外'],   ju:'从窗户看外面。'},
+      {z:'床', py:'chuáng', pic:'🛏️', ci:['小床','起床'],   ju:'晚上要早点上床。'},
+      {z:'灯', py:'dēng',   pic:'💡', ci:['电灯','开灯'],   ju:'天黑了要开灯。'},
+      {z:'伞', py:'sǎn',    pic:'☂️', ci:['雨伞','打伞'],   ju:'下雨要打伞。'},
+      {z:'车', py:'chē',    pic:'🚗', ci:['汽车','火车'],   ju:'爸爸开车去上班。'},
+      {z:'船', py:'chuán',  pic:'⛵', ci:['小船','轮船'],   ju:'船在水上走。'},
+      {z:'书', py:'shū',    pic:'📖', ci:['看书','书本'],   ju:'我每天都看书。'},
+      {z:'笔', py:'bǐ',     pic:'✏️', ci:['铅笔','画笔'],   ju:'用笔画一只小猫。'},
+      {z:'家', py:'jiā',    pic:'🏠', ci:['回家','家人'],   ju:'爸爸妈妈和我是一家人。'},
+      {z:'爸', py:'bà',     pic:'👨', ci:['爸爸','老爸'],   ju:'爸爸力气很大。'},
+      {z:'妈', py:'mā',     pic:'👩', ci:['妈妈','妈咪'],   ju:'妈妈抱抱我。'}
+    ]
+  },
+  '数一数': {
+    icon: '🔢',
+    words: [
+      {z:'一', py:'yī',   pic:'1️⃣', ci:['一个','第一'], ju:'我有一块糖。'},
+      {z:'二', py:'èr',   pic:'2️⃣', ci:['二月','十二'], ju:'一、二，两只手。'},
+      {z:'三', py:'sān',  pic:'3️⃣', ci:['三个','三天'], ju:'数到三就睡觉。'},
+      {z:'四', py:'sì',   pic:'4️⃣', ci:['四季','四个'], ju:'桌子有四条腿。'},
+      {z:'五', py:'wǔ',   pic:'5️⃣', ci:['五个','五月'], ju:'一只手有五个手指。'},
+      {z:'六', py:'liù',  pic:'6️⃣', ci:['六个','六月'], ju:'一共有六个包子。'},
+      {z:'七', py:'qī',   pic:'7️⃣', ci:['七个','七天'], ju:'一星期有七天。'},
+      {z:'八', py:'bā',   pic:'8️⃣', ci:['八个','八月'], ju:'螃蟹有八条腿。'},
+      {z:'九', py:'jiǔ',  pic:'9️⃣', ci:['九月','九个'], ju:'九比八多一个。'},
+      {z:'十', py:'shí',  pic:'🔟', ci:['十个','十月'], ju:'两只手一共十个手指。'}
+    ]
+  },
+  '大和小': {
+    icon: '🐘',
+    words: [
+      {z:'大', py:'dà',    pic:'🐘', ci:['大小','长大'],   ju:'大象很大很大。'},
+      {z:'小', py:'xiǎo',  pic:'🐜', ci:['小心','小雨'],   ju:'蚂蚁很小很小。'},
+      {z:'上', py:'shàng', pic:'⬆️', ci:['上面','上学'],   ju:'小鸟飞到树上去了。'},
+      {z:'下', py:'xià',   pic:'⬇️', ci:['下面','下雨'],   ju:'小猫躲在桌子下面。'},
+      {z:'中', py:'zhōng', pic:'🎯', ci:['中间','中午'],   ju:'我站在爸爸妈妈中间。'},
+      {z:'左', py:'zuǒ',   pic:'👈', ci:['左边','左手'],   ju:'左边是左手。'},
+      {z:'右', py:'yòu',   pic:'👉', ci:['右边','右手'],   ju:'用右手拿筷子。'},
+      {z:'多', py:'duō',   pic:'🤲', ci:['很多','多少'],   ju:'盘子里有很多苹果。'},
+      {z:'少', py:'shǎo',  pic:'🤏', ci:['很少','多少'],   ju:'碗里的饭很少了。'},
+      {z:'好', py:'hǎo',   pic:'👍', ci:['好人','好看'],   ju:'今天天气真好。'}
+    ]
+  },
+  '动一动': {
+    icon: '🏃',
+    words: [
+      {z:'走', py:'zǒu',  pic:'🚶', ci:['走路','走开'],   ju:'我一蹦一跳地走路。'},
+      {z:'跑', py:'pǎo',  pic:'🏃', ci:['跑步','快跑'],   ju:'小狗跑来跑去。'},
+      {z:'看', py:'kàn',  pic:'👀', ci:['看书','看见'],   ju:'我看见一只小鸟。'},
+      {z:'吃', py:'chī',  pic:'🍚', ci:['吃饭','好吃'],   ju:'吃饭前要先洗手。'},
+      {z:'喝', py:'hē',   pic:'🥛', ci:['喝水','喝汤'],   ju:'口渴了要喝水。'},
+      {z:'玩', py:'wán',  pic:'🧸', ci:['玩具','好玩'],   ju:'我们一起玩积木吧。'},
+      {z:'睡', py:'shuì', pic:'😴', ci:['睡觉','午睡'],   ju:'晚上要早点睡觉。'},
+      {z:'笑', py:'xiào', pic:'😄', ci:['笑脸','大笑'],   ju:'宝宝笑起来真好看。'}
+    ]
+  }
+};
+
+/* 二年级字库在 tools/make_g2.py 里生成后注入到 03b_data_g2.js */
+/* ══════════════════════════════════════════════════════════════
+   HANZI_G2 —— 部编版小学二年级生字表（曾麟轩用）
+   🔴 由 tools/build_g2.py 从 tmp/g2_hanzi.json 生成，不要手改这个文件。
+   🔴 数据格式：[汉字, 拼音, 组词1, 组词2]——用数组不用对象，
+      1100 多个字，省下来的每一字节都是孩子手机上少等的一毫秒。
+   🔴 xie=写字表（要会写），shi=识字表（认得就行）。
+   ══════════════════════════════════════════════════════════════ */
+const HANZI_G2 = {
+  books: [
+    {id:'s1', name:'二年级上册', short:'二上', units:[
+      {u:1, name:'第一单元', theme:'大自然的秘密', emoji:'🐸',
+        xie: [
+          ['两','liǎng','两个','两人'],['就','jiù','就是','成就'],['哪','nǎ','哪里','哪儿'],['宽','kuān','宽大','宽阔'],
+          ['顶','dǐng','头顶','山顶'],['睛','jīng','眼睛','目不转睛'],['肚','dù','肚子','肚皮'],['皮','pí','皮球','皮毛'],
+          ['孩','hái','孩子','小孩'],['跳','tiào','跳高','跳远'],['变','biàn','变化','变成'],['极','jí','极了','北极'],
+          ['片','piàn','一片','叶片'],['傍','bàng','傍晚','依傍'],['海','hǎi','大海','海洋'],['洋','yáng','海洋','洋气'],
+          ['作','zuò','作业','工作'],['坏','huài','坏人','好坏'],['给','gěi','送给','交给'],['带','dài','带领','皮带'],
+          ['法','fǎ','办法','方法'],['如','rú','如果','比如'],['脚','jiǎo','小脚','脚步'],['它','tā','它们','它的'],
+          ['娃','wá','娃娃','女娃'],['她','tā','她们','她的'],['毛','máo','毛巾','皮毛'],['更','gèng','更加','更好'],
+          ['知','zhī','知道','知识'],['识','shí','认识','识别'],
+        ],
+        shi: [
+          ['塘','táng','池塘','水塘'],['脑','nǎo','脑袋','电脑'],['袋','dài','口袋','袋子'],['灰','huī','灰色','灰尘'],
+          ['捕','bǔ','捕鱼','捕捉'],['迎','yíng','欢迎','迎接'],['阿','ā','阿姨','阿爸'],['姨','yí','阿姨','姨妈'],
+          ['龟','guī','乌龟','龟壳'],['披','pī','披上','披风'],['鼓','gǔ','打鼓','鼓掌'],['哇','wā','哇哇','哇啦'],
+          ['教','jiāo','教书','教课'],['晒','shài','晒干','晾晒'],['越','yuè','越过','超越'],['滴','dī','水滴','一滴'],
+          ['溪','xī','小溪','溪水'],['奔','bēn','奔跑','飞奔'],['淹','yān','淹没','淹死'],['没','mò','淹没','沉没'],
+          ['冲','chōng','冲水','冲出'],['毁','huǐ','毁坏','冲毁'],['屋','wū','屋子','房屋'],['猜','cāi','猜谜','猜想'],
+          ['植','zhí','植物','种植'],['为','wéi','以为','成为'],['旅','lǚ','旅行','旅游'],['备','bèi','准备','备用'],
+          ['纷','fēn','纷纷','纷飞'],['刺','cì','刺猬','带刺'],['炸','zhà','爆炸','炸开'],['离','lí','离开','分离'],
+          ['经','jīng','经过','已经'],['粗','cū','粗心','粗大'],['察','chá','观察','察觉'],['套','tào','一套','手套'],
+          ['帽','mào','帽子','草帽'],['登','dēng','登山','登记'],['鞋','xié','鞋子','球鞋'],['裤','kù','裤子','长裤'],
+          ['图','tú','图画','地图'],['壶','hú','水壶','茶壶'],['指','zhǐ','手指','指出'],['针','zhēn','打针','针线'],
+        ],
+      },
+      {u:2, name:'第二单元', theme:'自然与生活', emoji:'🌳',
+        xie: [
+          ['处','chù','到处','处处'],['园','yuán','花园','公园'],['桥','qiáo','石桥','小桥'],['群','qún','一群','群众'],
+          ['队','duì','队旗','排队'],['旗','qí','红旗','队旗'],['铜','tóng','铜号','铜钱'],['号','hào','号角','号码'],
+          ['领','lǐng','领巾','带领'],['巾','jīn','毛巾','头巾'],['杨','yáng','杨树','白杨'],['壮','zhuàng','壮丽','粗壮'],
+          ['桐','tóng','梧桐','桐树'],['枫','fēng','枫树','枫叶'],['松','sōng','松树','松果'],['柏','bǎi','柏树','松柏'],
+          ['棉','mián','棉花','木棉'],['杉','shān','水杉','杉树'],['化','huà','化石','变化'],['桂','guì','桂花','桂树'],
+          ['歌','gē','歌声','唱歌'],['丛','cóng','丛林','花丛'],['深','shēn','深处','深浅'],['写','xiě','写字','书写'],
+          ['六','liù','六个','六月'],['熊','xióng','熊猫','黑熊'],['猫','māo','熊猫','小猫'],['九','jiǔ','九个','九月'],
+          ['朋','péng','朋友','亲朋'],['友','yǒu','朋友','友好'],['季','jì','四季','季节'],['吹','chuī','吹风','吹牛'],
+          ['肥','féi','肥料','肥胖'],['农','nóng','农民','农田'],['事','shì','事情','好事'],['忙','máng','忙碌','帮忙'],
+          ['归','guī','归来','回归'],['戴','dài','戴上','穿戴'],['辛','xīn','辛苦','辛勤'],['苦','kǔ','辛苦','苦瓜'],
+        ],
+        shi: [
+          ['滩','tān','沙滩','海滩'],['艘','sōu','一艘','几艘'],['舰','jiàn','军舰','战舰'],['帆','fān','帆船','白帆'],
+          ['稻','dào','稻田','水稻'],['孔','kǒng','石孔','孔雀'],['翠','cuì','翠竹','翠绿'],['掌','zhǎng','手掌','掌声'],
+          ['装','zhuāng','装扮','服装'],['桦','huà','白桦','桦树'],['耐','nài','耐心','耐寒'],['守','shǒu','守卫','看守'],
+          ['疆','jiāng','边疆','新疆'],['银','yín','银色','银河'],['世','shì','世界','世上'],['界','jiè','世界','边界'],
+          ['雀','què','麻雀','孔雀'],['锦','jǐn','锦鸡','锦绣'],['雄','xióng','雄鸡','雄伟'],['鹰','yīng','老鹰','雄鹰'],
+          ['翔','xiáng','飞翔','翱翔'],['雁','yàn','大雁','雁群'],['猛','měng','猛虎','勇猛'],['灵','líng','百灵','灵活'],
+          ['休','xiū','休息','午休'],['蝴','hú','蝴蝶','蝴蝶花'],['蝶','dié','蝴蝶','彩蝶'],['麦','mài','麦苗','小麦'],
+          ['桑','sāng','桑树','蚕桑'],['谷','gǔ','谷子','山谷'],['粒','lì','一粒','米粒'],['虽','suī','虽然','虽说'],
+          ['葡','pú','葡萄','葡萄干'],['萄','táo','葡萄','葡萄园'],['紫','zǐ','紫色','紫红'],['狐','hú','狐狸','狐假虎威'],
+          ['狸','lí','狐狸','狸猫'],['笨','bèn','笨重','笨鸟'],['酸','suān','酸甜','心酸'],
+        ],
+      },
+      {u:3, name:'第三单元', theme:'儿童生活', emoji:'🧒',
+        xie: [
+          ['称','chēng','称象','称呼'],['柱','zhù','柱子','石柱'],['底','dǐ','底下','海底'],['杆','gān','旗杆','木杆'],
+          ['秤','chèng','大秤','台秤'],['做','zuò','做事','做人'],['岁','suì','岁月','几岁'],['站','zhàn','站立','车站'],
+          ['船','chuán','小船','轮船'],['然','rán','然后','果然'],['画','huà','画画','图画'],['幅','fú','一幅','幅度'],
+          ['评','píng','评论','批评'],['奖','jiǎng','奖励','奖状'],['纸','zhǐ','纸张','报纸'],['报','bào','报纸','报告'],
+          ['另','lìng','另外','另一'],['及','jí','及时','及格'],['拿','ná','拿来','拿走'],['并','bìng','并且','合并'],
+          ['封','fēng','一封','信封'],['信','xìn','写信','信封'],['今','jīn','今天','如今'],['支','zhī','一支','支持'],
+          ['圆','yuán','圆圈','团圆'],['珠','zhū','珍珠','水珠'],['笔','bǐ','铅笔','毛笔'],['灯','dēng','电灯','灯火'],
+          ['电','diàn','电灯','闪电'],['影','yǐng','电影','影子'],['哄','hǒng','哄人','哄骗'],['先','xiān','先后','先生'],
+          ['闭','bì','关闭','闭上'],['脸','liǎn','脸蛋','洗脸'],['沉','chén','沉下','沉重'],['发','fā','发现','出发'],
+          ['窗','chuāng','窗户','窗外'],
+        ],
+        shi: [
+          ['曹','cáo','曹操','曹冲'],['员','yuán','队员','人员'],['根','gēn','树根','一根'],['议','yì','议论','建议'],
+          ['论','lùn','议论','讨论'],['重','zhòng','重量','重要'],['砍','kǎn','砍树','砍柴'],['线','xiàn','线条','毛线'],
+          ['止','zhǐ','停止','为止'],['量','liàng','重量','数量'],['玲','líng','玲珑','玲玲'],['详','xiáng','详细','端详'],
+          ['催','cuī','催促','催眠'],['脏','zāng','弄脏','脏话'],['懒','lǎn','懒洋洋','懒惰'],['糟','zāo','糟糕','糟了'],
+          ['肯','kěn','肯定','不肯'],['削','xiāo','削铅笔','削皮'],['锅','guō','铁锅','火锅'],['刮','guā','刮风','刮胡子'],
+          ['胡','hú','胡说','胡须'],['修','xiū','修理','修车'],['冷','lěng','冷清','寒冷'],['肩','jiān','肩膀','双肩'],
+          ['团','tuán','团圆','团结'],['完','wán','完成','完整'],['期','qī','期末','星期'],['束','shù','一束','结束'],
+          ['鲜','xiān','鲜花','新鲜'],['紧','jǐn','紧张','紧密'],['润','rùn','红润','湿润'],['等','děng','等待','等等'],
+          ['吸','xī','呼吸','吸水'],['粘','zhān','粘贴','粘住'],['额','é','额头','名额'],['沙','shā','沙子','沙发'],
+          ['乏','fá','乏力','疲乏'],['弹','tán','弹琴','弹奏'],['钢','gāng','钢琴','钢铁'],['琴','qín','钢琴','弹琴'],
+          ['捏','niē','捏泥','捏住'],['泥','ní','泥土','泥人'],['滚','gǔn','滚动','滚铁环'],['铁','tiě','铁环','钢铁'],
+          ['环','huán','铁环','花环'],['荡','dàng','荡秋千','飘荡'],['滑','huá','滑梯','滑冰'],['梯','tī','滑梯','梯田'],
+        ],
+      },
+      {u:4, name:'第四单元', theme:'家乡美景', emoji:'🏞️',
+        xie: [
+          ['楼','lóu','楼房','高楼'],['依','yī','依靠','依然'],['尽','jìn','尽头','用尽'],['黄','huáng','黄色','黄山'],
+          ['层','céng','层次','云层'],['照','zhào','照亮','照片'],['炉','lú','火炉','香炉'],['烟','yān','烟花','烟雾'],
+          ['挂','guà','挂号','牵挂'],['川','chuān','山川','四川'],['南','nán','南方','南北'],['部','bù','部分','全部'],
+          ['些','xiē','一些','有些'],['巨','jù','巨大','巨人'],['位','wèi','位置','座位'],['每','měi','每天','每人'],
+          ['升','shēng','升起','上升'],['闪','shǎn','闪光','闪电'],['狗','gǒu','小狗','狗熊'],['名','míng','名字','有名'],
+          ['胜','shèng','胜利','名胜'],['迹','jì','足迹','古迹'],['央','yāng','中央','央求'],['丽','lì','美丽','秀丽'],
+          ['华','huá','中华','华丽'],['展','zhǎn','展现','展开'],['现','xiàn','现在','出现'],['披','pī','披上','披风'],
+          ['份','fèn','一份','年份'],['坡','pō','山坡','上坡'],['枝','zhī','树枝','枝叶'],['起','qǐ','起来','起立'],
+          ['客','kè','客人','请客'],['老','lǎo','老人','老师'],['收','shōu','收下','丰收'],['城','chéng','城市','城里'],
+          ['市','shì','城市','市场'],['利','lì','利用','胜利'],
+        ],
+        shi: [
+          ['欲','yù','欲望','食欲'],['穷','qióng','无穷','贫穷'],['瀑','pù','瀑布','飞瀑'],['布','bù','瀑布','布匹'],
+          ['遥','yáo','遥远','遥望'],['闻','wén','闻名','新闻'],['景','jǐng','风景','景色'],['区','qū','地区','山区'],
+          ['省','shěng','省份','节省'],['秀','xiù','秀丽','秀美'],['尤','yóu','尤其','尤为'],['其','qí','其中','尤其'],
+          ['仙','xiān','神仙','仙女'],['著','zhù','著名','著作'],['形','xíng','形状','图形'],['状','zhuàng','形状','状态'],
+          ['潭','tán','水潭','日月潭'],['湖','hú','湖水','西湖'],['绕','rào','围绕','环绕'],['盛','shèng','茂盛','盛开'],
+          ['围','wéi','周围','围绕'],['岛','dǎo','小岛','海岛'],['纱','shā','轻纱','纱巾'],['童','tóng','儿童','童话'],
+          ['境','jìng','环境','仙境'],['引','yǐn','吸引','引路'],['沟','gōu','山沟','水沟'],['梨','lí','鸭梨','梨花'],
+          ['搭','dā','搭建','搭桥'],['淡','dàn','淡水','淡绿'],['够','gòu','足够','能够'],['留','liú','留下','留住'],
+          ['钉','dīng','钉子','图钉'],['分','fēn','分开','十分'],['味','wèi','味道','香味'],['昌','chāng','昌盛','南昌'],
+          ['铺','pù','店铺','卧铺'],['调','tiáo','调皮','调节'],['硬','yìng','坚硬','硬币'],['卧','wò','卧室','卧铺'],
+          ['限','xiàn','限制','无限'],['乘','chéng','乘车','乘坐'],['售','shòu','出售','售票'],
+        ],
+      },
+      {u:5, name:'第五单元', theme:'思维方法', emoji:'💭',
+        xie: [
+          ['井','jǐng','水井','井口'],['观','guān','观看','参观'],['沿','yán','井沿','沿着'],['答','dá','回答','答案'],
+          ['渴','kě','口渴','渴望'],['喝','hē','喝水','喝茶'],['话','huà','说话','童话'],['际','jì','无边无际','国际'],
+          ['面','miàn','面前','水面'],['阵','zhèn','一阵','阵雨'],['朗','lǎng','晴朗','朗读'],['枯','kū','枯黄','干枯'],
+          ['却','què','却是','退却'],['将','jiāng','将来','将要'],['纷','fēn','纷纷','纷飞'],['夜','yè','夜晚','黑夜'],
+          ['棵','kē','一棵','一棵树'],['谢','xiè','谢谢','感谢'],['想','xiǎng','想念','思想'],['盯','dīng','盯着','盯住'],
+          ['言','yán','语言','发言'],['邻','lín','邻居','邻近'],['治','zhì','治理','治病'],['怪','guài','奇怪','怪物'],
+        ],
+        shi: [
+          ['弄','nòng','弄错','弄脏'],['错','cuò','弄错','错误'],['抬','tái','抬头','抬起'],['堵','dǔ','一堵','堵住'],
+          ['缝','fèng','裂缝','门缝'],['鹊','què','喜鹊','鹊桥'],['衔','xián','衔着','衔接'],['劝','quàn','劝告','劝说'],
+          ['趁','chèn','趁早','趁机'],['且','qiě','得过且过','而且'],['腊','là','腊月','腊肉'],['狂','kuáng','狂风','疯狂'],
+          ['吼','hǒu','吼叫','怒吼'],['复','fù','重复','复习'],['哀','āi','哀号','悲哀'],['葫','hú','葫芦','葫芦藤'],
+          ['芦','lú','葫芦','芦花'],['藤','téng','葫芦藤','藤条'],['蚜','yá','蚜虫','棉蚜'],['赛','sài','比赛','赛跑'],
+          ['感','gǎn','感谢','感觉'],['慢','màn','慢车','慢慢'],['锋','fēng','刀锋','锋利'],['蜜','mì','蜜蜂','蜂蜜'],
+          ['蜂','fēng','蜜蜂','蜂王'],['幕','mù','银幕','夜幕'],['墓','mù','墓地','坟墓'],['扫','sǎo','扫地','打扫'],
+          ['慕','mù','羡慕','爱慕'],['抄','chāo','抄写','抄书'],['炒','chǎo','炒菜','炒饭'],
+        ],
+      },
+      {u:6, name:'第六单元', theme:'革命先辈', emoji:'🎖️',
+        xie: [
+          ['洪','hóng','洪水','山洪'],['灾','zāi','灾难','灾害'],['难','nàn','灾难','苦难'],['道','dào','道理','知道'],
+          ['年','nián','年份','过年'],['认','rèn','认识','认真'],['被','bèi','被子','被动'],['业','yè','作业','事业'],
+          ['产','chǎn','生产','产品'],['扁','biǎn','扁担','扁豆'],['担','dàn','扁担','重担'],['志','zhì','同志','志气'],
+          ['伍','wǔ','队伍','入伍'],['师','shī','老师','会师'],['军','jūn','军人','红军'],['战','zhàn','战士','战斗'],
+          ['士','shì','战士','士兵'],['忘','wàng','忘记','难忘'],['泼','pō','泼水','活泼'],['度','dù','度过','温度'],
+          ['龙','lóng','龙舟','长龙'],['炮','pào','大炮','礼炮'],['穿','chuān','穿衣','穿过'],['向','xiàng','方向','向上'],
+          ['令','lìng','命令','口令'],
+        ],
+        shi: [
+          ['毒','dú','毒蛇','中毒'],['蛇','shé','毒蛇','长蛇'],['兽','shòu','野兽','猛兽'],['伤','shāng','伤心','受伤'],
+          ['退','tuì','后退','退步'],['继','jì','继续','继承'],['续','xù','继续','连续'],['训','xùn','教训','训练'],
+          ['恢','huī','恢复','恢宏'],['仍','réng','仍然','仍旧'],['朱','zhū','朱德','朱红'],['德','dé','品德','道德'],
+          ['泽','zé','光泽','恩泽'],['敌','dí','敌人','无敌'],['抽','chōu','抽出','抽水'],['陡','dǒu','陡峭','陡坡'],
+          ['料','liào','料子','材料'],['仗','zhàng','打仗','胜仗'],['疼','téng','心疼','疼痛'],['敬','jìng','敬爱','尊敬'],
+          ['敲','qiāo','敲门','敲鼓'],['民','mín','人民','民族'],['族','zú','民族','家族'],['驶','shǐ','行驶','驾驶'],
+          ['容','róng','容易','笑容'],['踩','cǎi','踩水','踩住'],['碗','wǎn','饭碗','一碗'],['祝','zhù','祝福','祝贺'],
+          ['福','fú','幸福','福气'],['健','jiàn','健康','健壮'],['康','kāng','健康','安康'],['寿','shòu','寿命','寿星'],
+          ['轿','jiào','轿车','花轿'],['救','jiù','救人','急救'],['摩','mó','摩托车','摩天'],['托','tuō','托起','摩托'],
+          ['防','fáng','防止','消防'],['渔','yú','渔夫','渔船'],['货','huò','货物','货车'],['邮','yóu','邮局','邮票'],
+          ['轮','lún','车轮','轮船'],['科','kē','科学','学科'],['考','kǎo','考试','思考'],
+        ],
+      },
+      {u:7, name:'第七单元', theme:'想象之美', emoji:'✨',
+        xie: [
+          ['危','wēi','危险','危害'],['敢','gǎn','勇敢','敢于'],['惊','jīng','惊动','吃惊'],['阴','yīn','阴天','阴云'],
+          ['似','sì','似乎','相似'],['野','yě','野外','田野'],['苍','cāng','苍白','苍天'],['茫','máng','茫茫','苍茫'],
+          ['于','yú','于是','由于'],['论','lùn','议论','讨论'],['岸','àn','岸边','河岸'],['屋','wū','屋子','房屋'],
+          ['切','qiè','一切','亲切'],['久','jiǔ','长久','许久'],['散','sàn','散步','散去'],['步','bù','散步','脚步'],
+          ['唱','chàng','唱歌','歌唱'],['赶','gǎn','赶快','追赶'],['旺','wàng','旺盛','兴旺'],['旁','páng','旁边','两旁'],
+          ['浑','hún','浑身','浑水'],['候','hòu','时候','等候'],['谁','shuí','是谁','谁的'],['轻','qīng','轻松','轻轻'],
+          ['汽','qì','汽车','汽水'],
+        ],
+        shi: [
+          ['宿','sù','住宿','宿舍'],['寺','sì','山寺','寺庙'],['辰','chén','星辰','生辰'],['恐','kǒng','恐怕','惊恐'],
+          ['庐','lú','庐山','茅庐'],['笼','lóng','笼子','鸟笼'],['盖','gài','盖住','瓶盖'],['雾','wù','大雾','雾气'],
+          ['淘','táo','淘气','淘米'],['顽','wán','顽皮','顽强'],['暗','àn','黑暗','暗淡'],['街','jiē','大街','街道'],
+          ['梁','liáng','桥梁','房梁'],['甚','shèn','甚至','甚好'],['至','zhì','甚至','至今'],['躲','duǒ','躲藏','躲开'],
+          ['失','shī','消失','失去'],['累','lèi','劳累','累了'],['添','tiān','添加','增添'],['柴','chái','木柴','柴火'],
+          ['烧','shāo','烧火','燃烧'],['渐','jiàn','渐渐','渐变'],['哎','āi','哎呀','哎哟'],['冒','mào','冒出','感冒'],
+          ['烫','tàng','烫手','滚烫'],['终','zhōng','终于','始终'],['淋','lín','淋雨','淋浴'],['浑','hún','浑身','浑水'],
+          ['灭','miè','灭火','消灭'],['激','jī','激动','激烈'],['椰','yē','椰子','椰树'],['壳','ké','贝壳','果壳'],
+          ['漠','mò','沙漠','冷漠'],['骆','luò','骆驼','骆驼队'],['驼','tuó','骆驼','驼背'],['骏','jùn','骏马','骏马图'],
+          ['悬','xuán','悬崖','悬挂'],['崖','yá','悬崖','山崖'],
+        ],
+      },
+      {u:8, name:'第八单元', theme:'友好相处', emoji:'🤝',
+        xie: [
+          ['食','shí','食物','食品'],['物','wù','食物','动物'],['眼','yǎn','眼光','眼镜'],['爷','yé','爷爷','老爷'],
+          ['爪','zhuǎ','爪子','鸡爪'],['神','shén','神话','精神'],['活','huó','活动','生活'],['猪','zhū','小猪','猪肉'],
+          ['奶','nǎi','奶奶','牛奶'],['始','shǐ','开始','始终'],['吵','chǎo','吵闹','吵架'],['仔','zǐ','仔细','仔猪'],
+          ['急','jí','着急','急忙'],['咬','yǎo','咬住','咬人'],['第','dì','第一','第几'],['公','gōng','公园','公鸡'],
+          ['折','zhé','折纸','打折'],['张','zhāng','一张','张开'],['祝','zhù','祝福','祝贺'],['扎','zā','扎起','包扎'],
+          ['抓','zhuā','抓住','抓紧'],['但','dàn','但是','不但'],['哭','kū','哭泣','哭声'],['车','chē','汽车','火车'],
+          ['得','dé','得到','得意'],['秧','yāng','秧苗','插秧'],['苗','miáo','禾苗','树苗'],['汗','hàn','汗水','出汗'],
+          ['场','chǎng','广场','场地'],['伤','shāng','伤心','受伤'],['路','lù','马路','道路'],
+        ],
+        shi: [
+          ['扯','chě','扯断','拉扯'],['嗓','sǎng','嗓子','嗓门'],['派','pài','派出','气派'],['违','wéi','违抗','违背'],
+          ['抗','kàng','违抗','反抗'],['趟','tàng','一趟','几趟'],['纳','nà','纳闷','容纳'],['酪','lào','奶酪','乳酪'],
+          ['捡','jiǎn','捡起','捡到'],['俩','liǎ','咱俩','他俩'],['拌','bàn','搅拌','拌匀'],['匀','yún','均匀','拌匀'],
+          ['帮','bāng','帮助','帮忙'],['助','zhù','帮助','助手'],['嚷','rǎng','叫嚷','嚷道'],['幸','xìng','幸福','幸运'],
+          ['愿','yuàn','愿意','心愿'],['取','qǔ','取出','取得'],['使','shǐ','使劲','使用'],['劲','jìn','使劲','干劲'],
+          ['哗','huā','哗哗','哗啦'],['秧','yāng','秧苗','插秧'],['拉','lā','拉车','拉住'],['表','biǎo','表示','手表'],
+          ['示','shì','表示','示意'],['摆','bǎi','摆动','摆放'],['翻','fān','翻跟头','翻开'],['栽','zāi','栽树','栽种'],
+          ['责','zé','责任','责备'],['狼','láng','大灰狼','狼群'],
+        ],
+      },
+    ]},
+    {id:'s2', name:'二年级下册', short:'二下', units:[
+      {u:1, name:'第一单元', theme:'春天来了', emoji:'🌸',
+        xie: [
+          ['诗','shī','古诗','诗人'],['村','cūn','农村','村子'],['童','tóng','儿童','童话'],['碧','bì','碧绿','碧玉'],
+          ['妆','zhuāng','化妆','红妆'],['绿','lǜ','绿色','绿叶'],['丝','sī','雨丝','丝瓜'],['剪','jiǎn','剪刀','剪纸'],
+          ['冲','chōng','冲动','冲洗'],['寻','xún','寻找','寻求'],['姑','gū','姑娘','姑姑'],['娘','niáng','姑娘','娘家'],
+          ['吐','tǔ','吐出','吐气'],['柳','liǔ','柳树','柳枝'],['荡','dàng','荡秋千','飘荡'],['桃','táo','桃花','桃树'],
+          ['杏','xìng','杏花','杏子'],['鲜','xiān','鲜花','新鲜'],['邮','yóu','邮局','邮票'],['递','dì','传递','快递'],
+          ['员','yuán','队员','人员'],['原','yuán','原来','草原'],['叔','shū','叔叔','大叔'],['局','jú','邮局','局面'],
+          ['堆','duī','一堆','堆放'],['礼','lǐ','礼物','礼品'],['邓','dèng','邓爷爷','姓邓'],['植','zhí','植树','植物'],
+          ['格','gé','格外','格子'],['引','yǐn','吸引','引路'],['注','zhù','注意','关注'],['满','mǎn','满意','充满'],
+          ['休','xiū','休息','午休'],['息','xī','休息','消息'],
+        ],
+        shi: [
+          ['莺','yīng','黄莺','莺歌'],['拂','fú','吹拂','拂过'],['堤','dī','河堤','堤岸'],['醉','zuì','陶醉','醉酒'],
+          ['咏','yǒng','咏柳','吟咏'],['绦','tāo','丝绦','绦带'],['裁','cái','裁剪','裁纸'],['脱','tuō','脱下','脱衣'],
+          ['袄','ǎo','棉袄','皮袄'],['羞','xiū','害羞','羞耻'],['遮','zhē','遮住','遮挡'],['掩','yǎn','掩盖','遮掩'],
+          ['探','tàn','探头','探索'],['嫩','nèn','嫩芽','嫩绿'],['符','fú','符号','符合'],['解','jiě','解开','解决'],
+          ['触','chù','接触','触动'],['杜','dù','杜鹃','杜绝'],['鹃','juān','杜鹃','杜鹃花'],['裹','guǒ','包裹','裹住'],
+          ['寄','jì','寄信','邮寄'],['破','pò','打破','破坏'],['漏','lòu','漏雨','遗漏'],['懊','ào','懊恼','懊悔'],
+          ['丧','sàng','沮丧','丧失'],['猬','wèi','刺猬','猬毛'],['绚','xuàn','绚丽','绚烂'],['坛','tán','花坛','天坛'],
+          ['龄','líng','年龄','高龄'],['握','wò','握手','握紧'],['致','zhì','致敬','导致'],['勃','bó','生机勃勃','蓬勃'],
+          ['挖','wā','挖土','挖掘'],['选','xuǎn','选择','挑选'],['茁','zhuó','茁壮','茁长'],['移','yí','移动','移植'],
+          ['挥','huī','挥手','指挥'],['填','tián','填空','填土'],['扶','fú','扶起','扶手'],['亭','tíng','凉亭','亭子'],
+          ['询','xún','询问','咨询'],['剧','jù','剧场','京剧'],['管','guǎn','管理','水管'],['理','lǐ','管理','道理'],
+          ['宝','bǎo','宝石','宝贝'],['塔','tǎ','宝塔','电视塔'],['餐','cān','早餐','餐厅'],['厅','tīng','大厅','餐厅'],
+        ],
+      },
+      {u:2, name:'第二单元', theme:'关爱他人', emoji:'❤️',
+        xie: [
+          ['锋','fēng','雷锋','刀锋'],['昨','zuó','昨天','昨日'],['冒','mào','冒出','感冒'],['留','liú','留下','留住'],
+          ['弯','wān','弯弯','弯曲'],['背','bēi','背包','背着'],['洒','sǎ','洒水','洒落'],['温','wēn','温暖','温和'],
+          ['暖','nuǎn','温暖','暖和'],['能','néng','能干','能力'],['桌','zhuō','桌子','书桌'],['味','wèi','味道','香味'],
+          ['买','mǎi','买书','购买'],['具','jù','文具','工具'],['甘','gān','甘甜','甘心'],['甜','tián','甘甜','甜美'],
+          ['菜','cài','白菜','蔬菜'],['劳','láo','劳动','辛劳'],['匹','pǐ','一匹','马匹'],['妹','mèi','妹妹','姐妹'],
+          ['波','bō','波浪','水波'],['纹','wén','波纹','花纹'],['像','xiàng','好像','画像'],['景','jǐng','风景','景色'],
+          ['恋','liàn','留恋','恋爱'],['舍','shě','舍不得','取舍'],['求','qiú','要求','请求'],
+        ],
+        shi: [
+          ['泞','nìng','泥泞','泥泞不堪'],['顺','shùn','顺利','顺序'],['迈','mài','迈步','年迈'],['踏','tà','踏步','踏青'],
+          ['荆','jīng','荆棘','荆条'],['棘','jí','荆棘','棘手'],['瓣','bàn','花瓣','一瓣'],['莹','yíng','晶莹','莹白'],
+          ['觅','mì','寻觅','觅食'],['需','xū','需要','需求'],['献','xiàn','献上','奉献'],['糕','gāo','蛋糕','年糕'],
+          ['嘛','ma','干嘛','是嘛'],['粉','fěn','米粉','粉色'],['糖','táng','白糖','糖果'],['蔗','zhè','甘蔗','蔗糖'],
+          ['汁','zhī','果汁','汁水'],['熬','áo','熬汤','熬夜'],['算','suàn','计算','算数'],['销','xiāo','销售','推销'],
+          ['售','shòu','出售','售票'],['确','què','确实','的确'],['应','yīng','应该','应当'],['郊','jiāo','郊外','郊游'],
+          ['泛','fàn','泛红','广泛'],['葱','cōng','葱花','大葱'],['软','ruǎn','软软','柔软'],['毯','tǎn','地毯','毛毯'],
+          ['异','yì','异常','奇异'],['株','zhū','一株','株距'],['拾','shí','拾起','捡拾'],['骑','qí','骑车','骑马'],
+          ['跨','kuà','跨过','跨步'],['程','chéng','过程','工程'],['魔','mó','魔术','魔法'],['术','shù','魔术','美术'],
+          ['建','jiàn','建立','建设'],['筑','zhù','建筑','筑路'],['演','yǎn','表演','演出'],['营','yíng','营业','军营'],
+          ['务','wù','任务','服务'],['判','pàn','判断','裁判'],['饲','sì','饲养','饲料'],['养','yǎng','饲养','养育'],
+        ],
+      },
+      {u:3, name:'第三单元', theme:'传统文化', emoji:'🏮',
+        xie: [
+          ['州','zhōu','神州','苏州'],['湾','wān','海湾','台湾'],['岛','dǎo','小岛','海岛'],['峡','xiá','海峡','三峡'],
+          ['民','mín','人民','民族'],['族','zú','民族','家族'],['谊','yì','友谊','情谊'],['齐','qí','齐心','整齐'],
+          ['奋','fèn','奋发','奋斗'],['贴','tiē','贴画','张贴'],['街','jiē','大街','街道'],['舟','zhōu','龙舟','小舟'],
+          ['艾','ài','艾叶','艾草'],['敬','jìng','敬爱','尊敬'],['转','zhuǎn','转身','转眼'],['团','tuán','团圆','团结'],
+          ['热','rè','热闹','热水'],['闹','nào','热闹','闹钟'],['贝','bèi','贝壳','宝贝'],['壳','ké','贝壳','果壳'],
+          ['甲','jiǎ','甲骨','甲鱼'],['骨','gǔ','甲骨','骨头'],['钱','qián','金钱','钱包'],['币','bì','钱币','货币'],
+          ['与','yǔ','与其','给与'],['财','cái','财产','发财'],['关','guān','关心','关门'],['烧','shāo','烧火','红烧'],
+          ['茄','qié','茄子','番茄'],['烤','kǎo','烤火','烧烤'],['鸭','yā','鸭子','烤鸭'],['肉','ròu','牛肉','肉丝'],
+          ['鸡','jī','公鸡','母鸡'],['蛋','dàn','鸡蛋','蛋糕'],['炒','chǎo','炒菜','炒饭'],['饭','fàn','米饭','吃饭'],
+        ],
+        shi: [
+          ['涌','yǒng','涌出','汹涌'],['峰','fēng','山峰','高峰'],['耸','sǒng','耸立','高耸'],['隔','gé','隔开','间隔'],
+          ['陆','lù','大陆','陆地'],['浓','nóng','浓绿','浓香'],['繁','fán','繁荣','繁华'],['荣','róng','光荣','繁荣'],
+          ['传','chuán','传说','传播'],['统','tǒng','传统','统一'],['宵','xiāo','元宵','宵夜'],['巷','xiàng','小巷','街巷'],
+          ['祭','jì','祭祀','祭扫'],['堂','táng','堂哥','食堂'],['乞','qǐ','乞巧','乞求'],['巧','qiǎo','灵巧','乞巧'],
+          ['郎','láng','牛郎','郎中'],['饼','bǐng','月饼','大饼'],['赏','shǎng','赏月','观赏'],['菊','jú','菊花','赏菊'],
+          ['类','lèi','人类','种类'],['漂','piào','漂亮','漂漂亮亮'],['珍','zhēn','珍珠','珍贵'],['饰','shì','装饰','饰品'],
+          ['品','pǐn','物品','品尝'],['随','suí','随手','跟随'],['损','sǔn','损坏','损失'],['赚','zhuàn','赚钱','赚取'],
+          ['赔','péi','赔钱','赔礼'],['购','gòu','购物','购买'],['贫','pín','贫穷','贫苦'],['菠','bō','菠菜','菠萝'],
+          ['煎','jiān','煎蛋','煎饼'],['腐','fǔ','豆腐','腐烂'],['煮','zhǔ','煮饭','煮面'],['爆','bào','爆炸','爆炒'],
+          ['炖','dùn','炖肉','炖汤'],['蘑','mó','蘑菇','口蘑'],['菇','gū','蘑菇','香菇'],['蒸','zhēng','蒸饺','蒸汽'],
+          ['饺','jiǎo','饺子','水饺'],['炸','zhá','油炸','炸糕'],['酱','jiàng','酱油','果酱'],['粥','zhōu','米粥','小米粥'],
+          ['津','jīn','津津有味','天津'],['溜','liū','溜走','溜冰'],['辣','là','辣椒','辛辣'],['乎','hū','几乎','在乎'],
+          ['喷','pēn','喷水','喷香'],['腻','nì','油腻','细腻'],['绵','mián','绵羊','绵软'],['脆','cuì','清脆','干脆'],
+          ['邦','bāng','邦国','邻邦'],
+        ],
+      },
+      {u:4, name:'第四单元', theme:'童心童趣', emoji:'🧒',
+        xie: [
+          ['彩','cǎi','彩色','彩虹'],['梦','mèng','做梦','梦想'],['森','sēn','森林','森严'],['拉','lā','拉手','拉住'],
+          ['结','jié','结果','团结'],['苹','píng','苹果','苹果树'],['般','bān','一般','这般'],['精','jīng','精灵','精神'],
+          ['灵','líng','精灵','灵活'],['伞','sǎn','雨伞','打伞'],['姨','yí','阿姨','姨妈'],['弟','dì','弟弟','兄弟'],
+          ['便','biàn','方便','便利'],['教','jiāo','教书','教课'],['游','yóu','游戏','游泳'],['戏','xì','游戏','唱戏'],
+          ['母','mǔ','母亲','母鸡'],['周','zhōu','周围','一周'],['围','wéi','周围','包围'],['句','jù','句子','一句'],
+          ['补','bǔ','补充','缝补'],['充','chōng','补充','充满'],['药','yào','火药','吃药'],['合','hé','合作','合起'],
+          ['死','sǐ','死亡','生死'],['记','jì','记住','忘记'],['屁','pì','屁股','放屁'],['股','gǔ','屁股','一股'],
+          ['尿','niào','尿布','撒尿'],['净','jìng','干净','净水'],['屎','shǐ','屎壳郎','拉屎'],['幸','xìng','幸福','幸运'],
+          ['使','shǐ','使劲','使用'],['劲','jìn','使劲','干劲'],
+        ],
+        shi: [
+          ['盒','hé','盒子','饭盒'],['聊','liáo','聊天','闲聊'],['坪','píng','草坪','坪地'],['郁','yù','葱郁','忧郁'],
+          ['囱','cōng','烟囱','烟囱口'],['叮','dīng','叮咛','叮当'],['咛','níng','叮咛','叮咛声'],['渡','dù','渡口','渡河'],
+          ['荫','yìn','树荫','林荫道'],['蔽','bì','遮蔽','隐蔽'],['撑','chēng','撑伞','支撑'],['拼','pīn','拼图','拼命'],
+          ['冈','gāng','山冈','井冈山'],['懂','dǒng','懂事','听懂'],['案','àn','方案','答案'],['堡','bǎo','城堡','碉堡'],
+          ['插','chā','插图','插上'],['凶','xiōng','凶猛','凶狠'],['狠','hěn','凶狠','狠心'],['攻','gōng','攻打','进攻'],
+          ['商','shāng','商店','商量'],['量','liáng','商量','量一量'],['驾','jià','驾驶','驾车'],['轰','hōng','轰隆','轰动'],
+          ['驳','bó','反驳','驳斥'],['赞','zàn','赞扬','称赞'],['陀','tuó','陀螺','打陀螺'],['螺','luó','陀螺','海螺'],
+          ['倒','dào','倒水','倒下'],['翁','wēng','老翁','渔翁'],['枪','qiāng','手枪','水枪'],['橡','xiàng','橡皮','橡树'],
+          ['控','kòng','控制','遥控'],['坦','tǎn','坦克','坦白'],['克','kè','坦克','克服'],
+        ],
+      },
+      {u:5, name:'第五单元', theme:'开动脑筋', emoji:'💡',
+        xie: [
+          ['亡','wáng','死亡','逃亡'],['牢','láo','牢固','坐牢'],['钻','zuān','钻进','钻研'],['劝','quàn','劝告','劝说'],
+          ['丢','diū','丢失','丢掉'],['告','gào','告诉','告状'],['筋','jīn','筋疲力尽','脑筋'],['疲','pí','疲劳','筋疲力尽'],
+          ['图','tú','图画','地图'],['课','kè','上课','课本'],['摆','bǎi','摆动','摆放'],['座','zuò','座位','一座'],
+          ['交','jiāo','交给','交通'],['哈','hā','哈哈','哈欠'],['页','yè','一页','页面'],['抢','qiǎng','抢走','抢先'],
+          ['嘻','xī','嘻嘻','嘻笑'],['愿','yuàn','愿意','心愿'],['意','yì','愿意','意思'],['麦','mài','麦子','小麦'],
+          ['该','gāi','应该','该当'],['伯','bó','大伯','伯伯'],['刻','kè','刻苦','一刻'],['突','tū','突然','突出'],
+          ['掉','diào','掉下','掉队'],
+        ],
+        shi: [
+          ['寓','yù','寓言','公寓'],['则','zé','寓言二则','规则'],['圈','juàn','羊圈','猪圈'],['叼','diāo','叼走','叼着'],
+          ['悔','huǐ','后悔','悔改'],['焦','jiāo','焦急','烧焦'],['喘','chuǎn','喘气','喘息'],['截','jié','一截','截断'],
+          ['靠','kào','靠近','依靠'],['而','ér','而且','然而'],['班','bān','班级','上班'],['审','shěn','审题','审查'],
+          ['视','shì','电视','视力'],['肃','sù','严肃','肃立'],['晌','shǎng','晌午','半晌'],['悦','yuè','喜悦','悦耳'],
+          ['诲','huì','教诲','诲人不倦'],['棚','péng','凉棚','车棚'],['驮','tuó','驮着','驮运'],['磨','mó','磨面','打磨'],
+          ['挡','dǎng','挡住','阻挡'],['浅','qiǎn','浅水','深浅'],['唉','āi','唉呀','唉声叹气'],['试','shì','尝试','考试'],
+          ['蹄','tí','马蹄','蹄子'],['既','jì','既然','既是'],['厨','chú','厨房','厨师'],['厕','cè','厕所','公厕'],
+          ['厢','xiāng','车厢','厢房'],['厦','shà','大厦','高楼大厦'],['穴','xué','洞穴','穴位'],['窟','kū','石窟','窟窿'],
+          ['窿','lóng','窟窿','小窟窿'],['窑','yáo','窑洞','煤窑'],['窄','zhǎi','窄小','狭窄'],
+        ],
+      },
+      {u:6, name:'第六单元', theme:'大自然的秘密', emoji:'🌦️',
+        xie: [
+          ['湖','hú','湖水','西湖'],['莲','lián','莲花','莲叶'],['穷','qióng','无穷','贫穷'],['荷','hé','荷花','荷叶'],
+          ['绝','jué','绝句','绝对'],['含','hán','包含','含着'],['岭','lǐng','山岭','岭南'],['吴','wú','吴国','姓吴'],
+          ['雷','léi','雷雨','打雷'],['乌','wū','乌云','乌黑'],['黑','hēi','黑色','乌黑'],['压','yā','压力','压下'],
+          ['垂','chuí','垂下','下垂'],['户','hù','窗户','门户'],['迎','yíng','欢迎','迎接'],['扑','pū','扑打','扑来'],
+          ['指','zhǐ','手指','指出'],['针','zhēn','打针','针线'],['帮','bāng','帮助','帮忙'],['助','zhù','帮助','助手'],
+          ['导','dǎo','向导','领导'],['永','yǒng','永远','永久'],['碰','pèng','碰见','碰壁'],['特','tè','特别','特点'],
+          ['积','jī','积累','积雪'],['宇','yǔ','宇宙','宇航'],['宙','zhòu','宇宙','宇宙飞船'],['杯','bēi','杯子','水杯'],
+          ['失','shī','失去','消失'],['板','bǎn','木板','黑板'],['客','kè','客人','请客'],['易','yì','容易','交易'],
+          ['浴','yù','浴室','淋浴'],['室','shì','教室','浴室'],
+        ],
+        shi: [
+          ['晓','xiǎo','春晓','知晓'],['慈','cí','慈爱','慈母'],['毕','bì','毕业','毕竟'],['竟','jìng','毕竟','竟然'],
+          ['映','yìng','映照','倒映'],['鹂','lí','黄鹂','鹂鸟'],['鸣','míng','鸣叫','鸟鸣'],['行','háng','一行','行列'],
+          ['泊','bó','停泊','泊船'],['蝉','chán','蝉鸣','蝉声'],['慌','huāng','慌张','惊慌'],['辨','biàn','分辨','辨别'],
+          ['忠','zhōng','忠实','忠诚'],['实','shí','老实','实在'],['盏','zhǎn','一盏灯','茶盏'],['闯','chuǎng','闯进','闯关'],
+          ['稠','chóu','稠密','稠糊'],['稀','xī','稀少','稀疏'],['渠','qú','沟渠','水渠'],['航','háng','航空','航行'],
+          ['稳','wěn','稳定','安稳'],['饮','yǐn','饮水','饮料'],['稍','shāo','稍微','稍后'],['舱','cāng','船舱','机舱'],
+          ['件','jiàn','一件','事件'],['题','tí','问题','题目'],['密','mì','密切','密封'],['固','gù','牢固','坚固'],
+          ['博','bó','博物馆','博士'],['馆','guǎn','博物馆','图书馆'],['览','lǎn','展览','浏览'],['育','yù','体育','教育'],
+          ['研','yán','研究','科研'],['究','jiū','研究','究竟'],['哨','shào','哨子','口哨'],['诊','zhěn','诊断','门诊'],
+        ],
+      },
+      {u:7, name:'第七单元', theme:'乐于改变', emoji:'🦋',
+        xie: [
+          ['扇','shàn','扇子','电扇'],['慢','màn','慢车','慢慢'],['遇','yù','遇见','遇到'],['兔','tù','兔子','白兔'],
+          ['安','ān','安全','平安'],['根','gēn','树根','一根'],['痛','tòng','头痛','痛苦'],['最','zuì','最好','最多'],
+          ['店','diàn','商店','书店'],['决','jué','决定','决心'],['定','dìng','决定','一定'],['商','shāng','商店','商量'],
+          ['夫','fū','大夫','夫人'],['终','zhōng','终于','始终'],['完','wán','完成','完整'],['换','huàn','换衣','交换'],
+          ['期','qī','星期','期末'],['蛙','wā','青蛙','蛙声'],['卖','mài','卖菜','买卖'],['搬','bān','搬家','搬走'],
+          ['倒','dào','倒水','倒下'],['籽','zǐ','草籽','菜籽'],['泉','quán','泉水','温泉'],['破','pò','打破','破坏'],
+          ['应','yīng','应该','应当'],['整','zhěng','整齐','整理'],['抽','chōu','抽出','抽水'],['纺','fǎng','纺织','纺车'],
+          ['织','zhī','纺织','织布'],['编','biān','编织','编写'],['怎','zěn','怎么','怎样'],['布','bù','布匹','棉布'],
+          ['消','xiāo','消失','消息'],
+        ],
+        shi: [
+          ['耷','dā','耷拉','耷着'],['竖','shù','竖起','竖着'],['竿','gān','竹竿','钓竿'],['舞','wǔ','跳舞','舞蹈'],
+          ['烦','fán','烦恼','麻烦'],['蹲','dūn','蹲下','蹲着'],['寂','jì','寂寞','寂静'],['寞','mò','寂寞','寂寞难耐'],
+          ['罩','zhào','口罩','灯罩'],['顾','gù','照顾','顾客'],['付','fù','付钱','支付'],['颈','jǐng','长颈鹿','颈部'],
+          ['袜','wà','袜子','棉袜'],['匆','cōng','匆忙','匆匆'],['蜈','wú','蜈蚣','蜈蚣草'],['蚣','gōng','蜈蚣','蜈蚣虫'],
+          ['烂','làn','烂泥','灿烂'],['牌','pái','牌子','门牌'],['坑','kēng','水坑','土坑'],['挺','tǐng','挺直','挺立'],
+          ['舒','shū','舒服','舒展'],['集','jí','集合','收集'],['播','bō','播种','广播'],['撒','sǎ','撒种','撒开'],
+          ['茵','yīn','绿茵茵','绿草如茵'],['灌','guàn','灌水','灌溉'],['缺','quē','缺少','缺口'],['泳','yǒng','游泳','泳池'],
+          ['愣','lèng','发愣','愣住'],['昆','kūn','昆虫','昆明'],['怜','lián','可怜','怜爱'],['挪','nuó','挪动','挪开'],
+          ['仿','fǎng','模仿','仿照'],['佛','fú','仿佛','仿佛之中'],['尽','jìn','尽心','用尽'],['任','rèn','任何','任务'],
+          ['何','hé','任何','何必'],['竭','jié','竭力','竭尽'],['规','guī','规则','规定'],['律','lǜ','规律','法律'],
+          ['待','dài','等待','待着'],['挣','zhēng','挣扎','挣开'],['愉','yú','愉快','愉悦'],['绒','róng','绒毛','羽绒'],
+          ['帚','zhǒu','扫帚','笤帚'],['抹','mā','抹布','抹桌子'],['拖','tuō','拖地','拖鞋'],['桶','tǒng','水桶','垃圾桶'],
+          ['簸','bò','簸箕','颠簸'],['箕','jī','簸箕','小簸箕'],['玻','bō','玻璃','玻璃杯'],['璃','lí','玻璃','琉璃'],
+          ['垃','lā','垃圾','垃圾桶'],['圾','jī','垃圾','垃圾箱'],
+        ],
+      },
+      {u:8, name:'第八单元', theme:'世界之初', emoji:'🌏',
+        xie: [
+          ['祖','zǔ','祖国','祖先'],['啊','a','好啊','是啊'],['浓','nóng','浓绿','浓香'],['望','wàng','望着','希望'],
+          ['蓝','lán','蓝天','蓝色'],['摘','zhāi','摘花','采摘'],['掏','tāo','掏出','掏钱'],['赛','sài','比赛','赛跑'],
+          ['忆','yì','回忆','记忆'],['世','shì','世界','世上'],['界','jiè','世界','边界'],['功','gōng','功夫','成功'],
+          ['反','fǎn','反正','反对'],['复','fù','反复','复习'],['式','shì','方式','样式'],['简','jiǎn','简单','简化'],
+          ['弄','nòng','弄错','弄脏'],['由','yóu','自由','由于'],['觉','jué','觉得','感觉'],['值','zhí','值得','价值'],
+          ['类','lèi','人类','种类'],['艰','jiān','艰难','艰苦'],['弓','gōng','弓箭','弯弓'],['炎','yán','炎热','发炎'],
+          ['害','hài','害怕','有害'],['此','cǐ','从此','因此'],['新','xīn','新的','新年'],
+        ],
+        shi: [
+          ['逗','dòu','逗笑','逗号'],['蔷','qiáng','蔷薇','蔷薇花'],['薇','wēi','蔷薇','紫薇'],['逮','dǎi','逮住','逮着'],
+          ['纪','jì','世纪','纪念'],['必','bì','必须','必定'],['须','xū','必须','胡须'],['譬','pì','譬如','譬喻'],
+          ['糙','cāo','粗糙','糙米'],['敏','mǐn','敏捷','敏感'],['睁','zhēng','睁眼','睁开'],['秩','zhì','秩序','维护秩序'],
+          ['序','xù','秩序','顺序'],['射','shè','射箭','发射'],['熔','róng','熔化','熔炉'],['箭','jiàn','射箭','弓箭'],
+          ['裂','liè','裂开','分裂'],['窜','cuàn','窜出','逃窜'],['庄','zhuāng','村庄','庄稼'],['稼','jià','庄稼','庄稼人'],
+          ['滋','zī','滋润','滋生'],['腾','téng','沸腾','腾空'],['钩','gōu','鱼钩','挂钩'],['铲','chǎn','铁铲','铲子'],
+          ['梅','méi','梅花','杨梅'],['柿','shì','柿子','柿子树'],['源','yuán','源头','水源'],['涨','zhǎng','涨价','上涨'],
+          ['炬','jù','火炬','目光如炬'],['灿','càn','灿烂','灿灿'],['垮','kuǎ','垮掉','打垮'],['坟','fén','坟墓','坟头'],
+        ],
+      },
+    ]},
+  ],
+  /* 全部字去重后的池子（认字闯关用），惰性建一次就缓存 */
+  _pool: null,
+  pool() {
+    if (this._pool) return this._pool;
+    const seen = new Set(), out = [];
+    for (const b of this.books) for (const u of b.units) {
+      for (const key of ['xie', 'shi']) for (const r of u[key]) {
+        if (seen.has(r[0])) continue;
+        seen.add(r[0]);
+        out.push({ z: r[0], py: r[1], ci: [r[2], r[3]], book: b.short, unit: u.name });
+      }
+    }
+    this._pool = out;
+    return out;
+  }
+};
+/* ══════════════════════════════════════════════════════════════
+   数学数据 + 出题引擎
+   🔴 设计原则：数学题**不存题库，现场生成**——同一个关卡永远不重样，
+      孩子刷多少遍都不会背答案，家长也不用担心"题做完了"。
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── 乘法口诀（小九九 45 句，和课本一致） ── */
+const MUL_KOUJUE = (() => {
+  const CN = ['','一','二','三','四','五','六','七','八','九'];
+  const out = [];
+  for (let b = 1; b <= 9; b++) {
+    for (let a = 1; a <= b; a++) {
+      const p = a * b;
+      let tail;
+      if (p < 10) tail = '得' + CN[p];
+      else tail = (p < 20 ? '十' : CN[Math.floor(p / 10)] + '十') + (p % 10 ? CN[p % 10] : '');
+      out.push({ a, b, p, txt: CN[a] + CN[b] + tail });
+    }
+  }
+  return out;                                  // 45 句
+})();
+
+/* ── 应用题素材池 ── */
+const WORD_ITEMS = [
+  {n:'苹果', e:'🍎'}, {n:'铅笔', e:'✏️'}, {n:'糖果', e:'🍬'}, {n:'本子', e:'📒'},
+  {n:'气球', e:'🎈'}, {n:'鸡蛋', e:'🥚'}, {n:'橘子', e:'🍊'}, {n:'贴纸', e:'⭐'},
+  {n:'图书', e:'📚'}, {n:'饼干', e:'🍪'}, {n:'弹珠', e:'🔵'}, {n:'草莓', e:'🍓'}
+];
+/* 🔴 人名分两类：主角只能是小朋友（应用题的钱物都发生在孩子身上），
+      长辈只出现在「给他/送他」这一侧。原来混在一起会出「李老师有68元…妈妈又给了他28元」
+      这种别扭句子——老师怎么会从妈妈那儿拿钱？ */
+const WORD_KIDS   = ['麟轩','曾强','小明','小红','丁丁','冬冬'];
+const WORD_ELDERS = ['妈妈','奶奶','外婆','姑姑'];
+const WORD_PLACES = ['超市','学校','家里','书店'];
+
+/* ── 小工具 ── */
+const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));   // [a,b] 整数
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const shuffle = arr => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+/* 把正确答案和一堆干扰项凑成 4 个不重复选项 */
+function options4(ans, extra = [], lo = 0, hi = 400) {
+  const set = new Set([String(ans)]);
+  const cand = shuffle(extra.filter(v => Number.isFinite(v) && v >= lo && v <= hi));
+  for (const c of cand) { if (set.size >= 4) break; set.add(String(c)); }
+  let guard = 0;
+  while (set.size < 4 && guard++ < 200) {
+    const d = ans + (Math.random() < 0.5 ? -1 : 1) * ri(1, Math.max(2, Math.round(Math.abs(ans) * 0.2) + 2));
+    if (d >= lo && d <= hi) set.add(String(d));
+  }
+  while (set.size < 4 && guard++ < 400) { const d = ri(lo, Math.min(hi, lo + 30)); set.add(String(d)); }
+  const arr = shuffle([...set]);
+  return { choices: arr, answer: String(ans) };
+}
+
+/* 干扰项：把两个数做错运算（加变减、乘变加…），这是孩子最常犯的错 */
+function wrongOps(a, b, right) {
+  const cand = [a + b, a - b, a * b, a / b, b - a, a + b + 1, a + b - 1, a * b + a, a * b - a];
+  return cand.map(v => Math.round(v)).filter(v => Number.isInteger(v) && v !== right && v > 0);
+}
+
+/* ══ 看得见的数学：把抽象数字画成实物 ══
+   🔴 老曾 2026-09-18 定调：「都需要是那种孩子能联想的、场景化图片化游戏化的」。
+      所以每个式子旁边都要有「实物图」，让孩子先看见、再算数。 */
+
+// 小棒：十位一捆（10 根扎一起），个位一根
+// 🔴 用 SVG 画，不用 emoji——试过 🎋/🪵，🎋 长得像棵竹子，孩子根本看不出是「一捆小棒」
+const _BARS = Array.from({ length: 10 }, (_, i) =>
+  '<line x1="' + (2.8 + i * 1.6).toFixed(1) + '" y1="4" x2="' + (2.8 + i * 1.6).toFixed(1) + '" y2="24" stroke="#c9a061" stroke-width="0.9"/>').join('');
+const SVG_BUNDLE = '<svg viewBox="0 0 20 28" width="17" height="24" style="vertical-align:-5px">' +
+  '<rect x="1" y="2" width="18" height="24" rx="3.5" fill="#fdf3e3" stroke="#c9a678" stroke-width="1.2"/>' + _BARS + '</svg>';
+const SVG_STICK = '<svg viewBox="0 0 6 28" width="6" height="24" style="vertical-align:-5px">' +
+  '<line x1="3" y1="3" x2="3" y2="25" stroke="#c9a061" stroke-width="3" stroke-linecap="round"/></svg>';
+function sticks(n) {
+  const t = Math.floor(n / 10), o = n % 10;
+  return SVG_BUNDLE.repeat(t) + (t && o ? '<span style="display:inline-block;width:7px"></span>' : '') + SVG_STICK.repeat(o);
+}
+const STICK_LEGEND = SVG_BUNDLE + ' <span style="font-size:12px">一捆 10 根</span>　' +
+                     SVG_STICK + ' <span style="font-size:12px">一根 1</span>';
+// 几个几：rows 行 × cols 列 的点阵（乘法就是「几行几个」）
+function dotArray(rows, cols, e) {
+  return Array.from({ length: rows }, () => e.repeat(cols)).join('<br>');
+}
+// 平均分：几个盘子/几个小朋友的空位
+function plates(n, e) { return e.repeat(n); }
+// 十格阵：把 10 以内的数画进格子里，一眼看出多少
+function tenFrame(n, e) {
+  return Array.from({ length: 10 }, (_, i) => i < n ? e : '⬜').join('');
+}
+/* 比大小的「看得见」：两位数画小棒，三位数改画数位分解。
+   🔴 三位数绝不能用 sticks()——999 要画 99 捆小棒，几百个 SVG 会把页面卡死。 */
+const CN_UNIT = ['百', '十', '一'];
+function cmpPic(n) {
+  if (n <= 99) return sticks(n);
+  const ds = String(n).split('');
+  return '<span style="font-size:15px">' + ds.map((d, i) =>
+    d + ' 个' + CN_UNIT[3 - ds.length + i]).join('　') + '</span>';
+}
+/* 比大小的讲法：先看位数，位数相同再从左往右一位一位比 */
+function cmpWhy(a, b) {
+  const sa = String(a), sb = String(b);
+  if (sa.length !== sb.length) return '先看位数：' + a + ' 是 ' + sa.length + ' 位数，' + b + ' 是 ' + sb.length +
+    ' 位数，位数多的那个大。';
+  for (let i = 0; i < sa.length; i++) {
+    if (sa[i] !== sb[i]) return '位数一样，就从高位比起：' + sa[i] + ' 和 ' + sb[i] + '，' +
+      (Number(sa[i]) > Number(sb[i]) ? sa[i] + ' 大，所以 ' + a + ' 大。' : sb[i] + ' 大，所以 ' + b + ' 大。');
+  }
+  return '每一位都一样，所以两边相等，填「=」。';
+}
+
+/* ══════════════ 各关卡出题器 ══════════════
+   返回 {big, emoji, sub, choices|input, answer, say, why}
+   ═══════════════════════════════════════════ */
+
+const GEN = {
+  /* —— 二宝：数一数 —— */
+  count() {
+    const it = pick(WORD_ITEMS), n = ri(1, 10);
+    const o = options4(n, [n+1, n-1, n+2, n-2, 10-n], 1, 12);
+    return { big: '', emoji: '<div style="letter-spacing:12px;line-height:1.6">' + it.e.repeat(n) + '</div>',
+             sub: '数一数，有几个' + it.n + '？',
+             say: '数一数，一共有几个' + it.n, ...o,
+             why: '一个一个点着数：' + Array.from({length:n},(_,i)=>i+1).join('、'),
+             whyHtml: '<div style="font-size:26px;letter-spacing:8px">' + tenFrame(n, it.e) + '</div><div style="font-size:12px">十格阵：满 10 就是 10 个</div>' };
+  },
+  /* —— 二宝：比多少 —— */
+  more() {
+    let a = ri(2, 8), b = ri(2, 8);
+    if (a === b) b = a + 1;
+    const e1 = pick(WORD_ITEMS).e, e2 = pick(WORD_ITEMS).e;
+    const ans = a > b ? '左边多' : '右边多';
+    return { big: '', emoji: '', sub: '哪一边多？',
+             groups: [{e:e1, n:a, label:'左边'}, {e:e2, n:b, label:'右边'}],
+             choices: shuffle(['左边多','右边多']), answer: ans,
+             say: '哪一边多',
+             why: '左边 ' + a + ' 个，右边 ' + b + ' 个，' + a + ' 比 ' + b + ' ' + (a>b?'大':'小') };
+  },
+  /* —— 二宝：认形状（真的画出形状，不用 emoji） —— */
+  shape() {
+    const SVG = {
+      '圆形':   '<svg viewBox="0 0 100 100" width="150" height="150"><circle cx="50" cy="50" r="44" fill="#ff8a3d"/></svg>',
+      '正方形': '<svg viewBox="0 0 100 100" width="150" height="150"><rect x="8" y="8" width="84" height="84" rx="3" fill="#4d8df6"/></svg>',
+      '三角形': '<svg viewBox="0 0 100 100" width="150" height="150"><polygon points="50,8 94,90 6,90" fill="#37bf7a"/></svg>',
+      '长方形': '<svg viewBox="0 0 100 100" width="150" height="150"><rect x="4" y="22" width="92" height="56" rx="3" fill="#9b6ef3"/></svg>'
+    };
+    const names = Object.keys(SVG);
+    const t = pick(names);
+    return { big: SVG[t], sub: '这是什么形状？',
+             choices: shuffle(names), answer: t, choiceClass: 'txt', say: '这是什么形状',
+             whyHtml: t + '：' + (t==='圆形'?'圆圆的，没有角，会滚':t==='正方形'?'四条边一样长，四个角都是直角':'三条边，三个角'),
+             why: t + (t==='圆形'?' 圆圆的，没有角':t==='正方形'?' 四条边一样长':' 三条边，三个角') };
+  },
+  /* —— 二宝：找规律 —— */
+  pattern() {
+    const A = pick(['🔴','🔵','⭐','🍎','🐟']), B = pick(['🟩','🟨','🌸','🍇','🐤'].filter(x => x !== A));
+    const unit = Math.random() < 0.5 ? [A,B] : [A,A,B];
+    const seq = [];
+    while (seq.length < 7) seq.push(...unit);
+    const ans = seq[7], shown = seq.slice(0, 7);
+    const pool = shuffle([A, B, ...[ '🔺','🟣','🍀' ]]).slice(0, 4);
+    if (!pool.includes(ans)) pool[0] = ans;
+    return { big: '<span style="font-size:44px;letter-spacing:6px">' + shown.join('') + '❓</span>',
+             sub: '接下来应该是什么？', choices: shuffle([...new Set(pool)]), answer: ans,
+             choiceClass: 'txt', say: '接下来应该是什么', why: '它一直按「' + unit.join('') + '」这样重复。' };
+  },
+  /* —— 二宝：10 以内加法（实物 + 十格阵，把「凑十」看见） —— */
+  add10() { return this._as(ri(1,5), ri(1,4)); },
+  add5()  { return this._as(ri(1,3), ri(1,2)); },
+  _as(a, b) {
+    const it = pick(WORD_ITEMS);
+    return { big: '',
+             emoji: '<div style="letter-spacing:6px">' + it.e.repeat(a) + ' ➕ ' + it.e.repeat(b) + '</div>',
+             sub: a + ' 个' + it.n + ' 加上 ' + b + ' 个' + it.n + '，一共几个？',
+             choices: shuffle(options4(a+b, wrongOps(a,b,a+b), 0, 20).choices), answer: String(a+b),
+             say: a + ' 加 ' + b + ' 等于几',
+             why: '把 ' + a + ' 和 ' + b + ' 合起来，一个一个数：' + (a+b) + ' 个。',
+             whyHtml: '<div style="font-size:26px;letter-spacing:3px">' + tenFrame(a, it.e) + '</div>' +
+                      '<div style="font-size:26px;letter-spacing:3px">' + tenFrame(b, it.e) + '</div>' +
+                      '<div style="font-size:13px;margin-top:6px">凑十法：' + a + ' 和 ' + b + ' 合起来就是 ' + (a+b) + '</div>' };
+  },
+  /* —— 二宝：10 以内减法 —— */
+  sub10() { const a = ri(3,10), b = ri(1,a-1); return this._ss(a,b); },
+  _ss(a, b) {
+    const it = pick(WORD_ITEMS);
+    const boxes = Array.from({ length: 10 }, (_, i) => i < a ? it.e : '⬜');
+    for (let i = a - b; i < a; i++) boxes[i] = '❌';
+    return { big: '',
+             emoji: '<div style="letter-spacing:6px">' + it.e.repeat(a) + '</div><div style="font-size:16px;color:#f2544b">划掉 ' + b + ' 个 ❌</div>',
+             sub: a + ' 个' + it.n + '，吃掉 ' + b + ' 个，还剩几个？',
+             choices: shuffle(options4(a-b, wrongOps(a,b,a-b), 0, 20).choices), answer: String(a-b),
+             say: a + ' 减 ' + b + ' 等于几',
+             why: a + ' 个划掉 ' + b + ' 个，还剩 ' + (a-b) + ' 个。',
+             whyHtml: '<div style="font-size:26px;letter-spacing:3px">' + boxes.join('') + '</div>' +
+                      '<div style="font-size:13px;margin-top:6px">划掉的 ' + b + ' 个不算，剩下 ' + (a-b) + ' 个</div>' };
+  },
+  /* —— 大宝：100 以内加法 —— */
+  add100() {
+    const carry = Math.random() < 0.6;
+    let a, b;
+    if (carry) { a = ri(11, 88); b = ri(10, 99 - a); if ((a%10)+(b%10) < 10) a += (10 - (a%10)); if (a > 89) a = 35; }
+    else { a = ri(10, 60); b = ri(10, 80 - a); if ((a%10)+(b%10) >= 10) b -= ((a%10)+(b%10)) - 9; }
+    const s = a + b;
+    return { big: '', input: true, answer: String(s),
+             emoji: '<div style="font-size:19px;line-height:1.9">' + sticks(a) + '<br>➕<br>' + sticks(b) + '</div>',
+             sub: STICK_LEGEND + '<div style="margin-top:6px">一共有多少根小棒？</div>',
+             say: a + ' 加 ' + b + ' 等于几',
+             why: '个位 ' + (a%10) + '+' + (b%10) + ('=' + ((a%10)+(b%10))) + '，十位 ' + Math.floor(a/10) + '+' + Math.floor(b/10) + '，得 ' + s + '。',
+             whyHtml: '<div style="font-size:22px;line-height:1.8">' + sticks(s) + '</div>' +
+                      '<div style="font-size:13px;margin-top:4px">' + a + ' 根加 ' + b + ' 根，一共 ' + s + ' 根。</div>' };
+  },
+  /* —— 大宝：100 以内减法 —— */
+  sub100() {
+    const borrow = Math.random() < 0.6;
+    let a, b;
+    if (borrow) { a = ri(31, 95); b = ri(12, a - 10); if ((a%10) >= (b%10)) { a = a - (a%10) + ri(1,8); if (a <= b) a = b + ri(11,30); } }
+    else { a = ri(30, 99); b = ri(10, a - 5); if ((a%10) < (b%10)) b = b - (b%10); if (b < 10) b = 10; }
+    const s = a - b;
+    return { big: '', input: true, answer: String(s),
+             emoji: '<div style="font-size:19px;line-height:1.9">' + sticks(a) + '<br>➖ ' + b + ' 根<br>' + sticks(b) + '</div>',
+             sub: STICK_LEGEND + '<div style="margin-top:6px">拿走 ' + b + ' 根，还剩多少根？</div>',
+             say: a + ' 减 ' + b + ' 等于几',
+             why: '个位不够减就向十位借 1 个十：' + a + ' − ' + b + ' = ' + s + '。',
+             whyHtml: '<div style="font-size:22px;line-height:1.8">' + sticks(s) + '</div>' +
+                      '<div style="font-size:13px;margin-top:4px">个位不够减，就把一捆拆开当 10 根。</div>' };
+  },
+  /* —— 大宝：表内乘法（画成「几行几个」，乘法就不再是死记） —— */
+  mul() {
+    const a = ri(2,9), b = ri(2,9), p = a*b;
+    const it = pick(WORD_ITEMS);
+    const k = MUL_KOUJUE.find(x => x.a === Math.min(a,b) && x.b === Math.max(a,b));
+    const show = p <= 36
+      ? '<div style="font-size:22px;line-height:1.35;letter-spacing:2px">' + dotArray(b, a, it.e) + '</div>' +
+        '<div style="font-size:13px;color:#8a8177;margin-top:6px">' + b + ' 行，每行 ' + a + ' 个</div>'
+      : '<div style="font-size:22px;letter-spacing:2px">' + it.e.repeat(a) + '</div>' +
+        '<div style="font-size:13px;color:#8a8177;margin-top:6px">这样的 ' + b + ' 组（图太小画不下，自己数数看）</div>';
+    return { big: '', input: true, answer: String(p),
+             emoji: show,
+             sub: '每行 ' + a + ' 个' + it.n + '，一共 ' + b + ' 行，一共有多少个？',
+             say: a + ' 乘 ' + b + ' 等于几',
+             why: '口诀：' + k.txt + ' → ' + p + '。',
+             whyHtml: '<div style="font-size:20px;line-height:1.3;letter-spacing:2px">' + dotArray(b, a, it.e) + '</div>' +
+                      '<div style="font-size:14px;margin-top:6px">口诀「' + k.txt + '」，' + a + ' × ' + b + ' = ' + p + '</div>' };
+  },
+  /* —— 大宝：有余数的除法（二年级下册的重头，也最容易马虎） ——
+     画成「往盘子里分，分不下的剩在一边」，商和余数一眼看得见。 */
+  rem() {
+    const b = ri(3, 9), q = ri(2, 8), r = ri(1, b - 1), a = b * q + r;
+    const it = pick(WORD_ITEMS);
+    /* 图就按「每 b 个一行」画：一行正好是一袋，最后那行不满 b 个的，一眼就是余数。
+       🔴 原来画成一长串，孩子光看数字看不出「几袋」，量词才对上。 */
+    const rows = Array.from({ length: Math.ceil(a / b) }, (_, i) =>
+      it.e.repeat(Math.min(b, a - i * b)));
+    const full = Array.from({ length: b }, () => it.e.repeat(q)).join('　');
+    const left = it.e.repeat(r);
+    return { big: '', input: true, padSep: true, answer: String(q) + '……' + String(r),
+             emoji: '<div style="font-size:20px;letter-spacing:3px;line-height:1.5">' + rows.join('<br>') + '</div>' +
+                    '<div style="font-size:13px;color:#8a8177;margin-top:6px">每 ' + b + ' 个一行，最后一行不够 ' + b + ' 个的就是剩下的</div>',
+             sub: a + ' 个' + it.n + '，每 ' + b + ' 个装一袋，能装几袋？还剩几个？<br>' +
+                  '<span style="font-size:13px;color:#8a8177">答案写成「几……几」，比如 5……2</span>',
+             say: a + ' 除以 ' + b + '，商几余几',
+             why: '想口诀：' + (b * q) + ' 比 ' + a + ' 小，' + (b * (q + 1)) + ' 又比 ' + a + ' 大了，' +
+                  '所以商是 ' + q + '，剩下 ' + a + ' − ' + (b * q) + ' = ' + r + '。答：' + q + '……' + r + '。',
+             whyHtml: '<div style="font-size:17px;line-height:1.9">' + full + '</div>' +
+                      '<div style="font-size:17px;line-height:1.9;color:#ff8a3d">剩下 ' + left + '（' + r + ' 个）</div>' +
+                      '<div style="font-size:13px;margin-top:4px">' + b + ' × ' + q + ' = ' + (b * q) + '，还多 ' + r + ' 个，不够再装一袋。</div>' };
+  },
+  /* —— 大宝：表内除法（画成「平均分到盘子里」） —— */
+  div() {
+    const b = ri(2,9), q = ri(2,9), a = b*q;
+    const it = pick(WORD_ITEMS);
+    const k = MUL_KOUJUE.find(x => x.a === Math.min(b,q) && x.b === Math.max(b,q));
+    return { big: '', input: true, answer: String(q),
+             emoji: '<div style="font-size:20px;letter-spacing:3px;line-height:1.8">' + it.e.repeat(a) + '</div>' +
+                    '<div style="font-size:34px;letter-spacing:10px;margin-top:6px">' + plates(b, '🍽️') + '</div>',
+             sub: a + ' 个' + it.n + '平均放到 ' + b + ' 个盘子里，每盘几个？',
+             say: a + ' 除以 ' + b + ' 等于几',
+             why: '想口诀：' + k.txt + '，所以 ' + a + ' ÷ ' + b + ' = ' + q + '。',
+             whyHtml: '<div style="font-size:22px;letter-spacing:2px;line-height:1.5">' + dotArray(b, q, it.e) + '</div>' +
+                      '<div style="font-size:13px;margin-top:6px">每盘放 ' + q + ' 个，一共 ' + b + ' 盘，正好 ' + a + ' 个。</div>' };
+  },
+  /* —— 大宝：混合运算（先买盒装再买散的，生活场景） —— */
+  mix() {
+    const a = ri(2,9), b = ri(2,9), c = ri(2,20);
+    const it = pick(WORD_ITEMS);
+    if (Math.random() < 0.5) {
+      const s = a*b + c;
+      return { big: '', input: true, answer: String(s),
+               emoji: '<div style="font-size:20px;letter-spacing:2px;line-height:1.4">' + dotArray(b, a, it.e) + '</div>' +
+                      '<div style="font-size:22px;margin-top:6px">➕ ' + it.e.repeat(Math.min(c,10)) + (c>10?'…':'') + '</div>',
+               sub: '每盒 ' + a + ' 个' + it.n + '，买了 ' + b + ' 盒，又另外买了 ' + c + ' 个，一共几个？',
+               say: a + ' 乘 ' + b + ' 加 ' + c + ' 等于几',
+               why: '先算盒子里的：' + a + '×' + b + '=' + (a*b) + '，再加散的 ' + c + ' 个 = ' + s + '。' };
+    }
+    const p = a*b, s = p - c > 0 ? p - c : p + c, op = p - c > 0 ? '−' : '+';
+    return { big: '', input: true, answer: String(s),
+             emoji: '<div style="font-size:20px;letter-spacing:2px;line-height:1.4">' + dotArray(b, a, it.e) + '</div>' +
+                    '<div style="font-size:18px;margin-top:6px">' + op + ' ' + it.e.repeat(Math.min(c,10)) + (c>10?'…':'') + ' （' + c + ' 个）</div>',
+             sub: '一共 ' + p + ' 个' + it.n + '，' + (op==='−'?'吃掉':'又得到') + ' ' + c + ' 个，现在几个？',
+             say: a + ' 乘 ' + b + (op === '−' ? ' 减 ' : ' 加 ') + c + ' 等于几',
+             why: '先算乘法 ' + a + '×' + b + '=' + p + '，再' + (op === '−' ? '减' : '加') + c + ' = ' + s + '。' };
+  },
+  /* —— 大宝：口诀填空（抽背） —— */
+  mj() {
+    const k = pick(MUL_KOUJUE);
+    const it = pick(WORD_ITEMS);
+    const CN = ['','一','二','三','四','五','六','七','八','九'];
+    const pic = '<div style="font-size:19px;line-height:1.3;letter-spacing:2px">' + dotArray(Math.min(k.b,9), Math.min(k.a,9), it.e) + '</div>';
+    if (Math.random() < 0.5) {
+      const o = options4(k.p, [k.a+k.b, k.p+k.a, k.p-k.a, k.p+1, k.p-1], 1, 90);
+      return { big: '<span style="font-size:34px">' + CN[k.a] + CN[k.b] + '（　）</span>',
+               sub: '口诀里应该填几？', ...o, whyHtml: pic,
+               say: CN[k.a] + CN[k.b] + '，括号里是几', why: '口诀是「' + k.txt + '」，填 ' + k.p + '。' };
+    }
+    const show = Math.random() < 0.5 ? k.a : k.b, other = show === k.a ? k.b : k.a;
+    const o = options4(other, [other+1, other-1, other+2, 9-other], 1, 9);
+    return { big: '<span style="font-size:34px">' + CN[show] + '（　）' + k.txt.slice(2) + '</span>',
+             sub: '括号里是几？', ...o, whyHtml: pic,
+             say: CN[show] + '几' + k.txt.slice(2) + '，括号里是几',
+             why: '完整口诀是「' + k.txt + '」，括号里是 ' + other + '。' };
+  },
+  /* —— 大宝：比大小填符号（配小棒图，一眼看出谁多） —— */
+  cmpnum() {
+    const a = ri(10, 999);
+    /* 🔴 有 1/5 的机会故意出「相等」——不然孩子做一百遍也见不到「=」，
+       会默认「=」是废选项，而课本里「=」是必考的一种。 */
+    const b = Math.random() < 0.2 ? a : ri(10, 999);
+    const ans = a > b ? '>' : a < b ? '<' : '=';
+    const why = cmpWhy(a, b);
+    return { big: a + '　○　' + b, sub: '○ 里填什么？',
+             emoji: '<div style="font-size:17px;line-height:1.9">' + cmpPic(a) + '<br>' + cmpPic(b) + '</div>',
+             choices: ['>','<','='], answer: ans, choiceClass: 'sym',
+             say: a + ' 和 ' + b + ' 哪个大',
+             why: why };
+  },
+  /* —— 大宝：单位换算 —— */
+  unit() {
+    const U = [
+      {q:'1 米 = （　）厘米', a:100, pic:'📏', why:'1 米 = 100 厘米。尺子上从 0 到 100 厘米，正好 1 米。'},
+      {q:'2 米 = （　）厘米', a:200, pic:'📏', why:'1 米 = 100 厘米，2 米就是 200 厘米。'},
+      {q:'1 元 = （　）角',   a:10,  pic:'💰', why:'1 元 = 10 角，就像 1 张 1 元能换 10 个 1 角硬币。'},
+      {q:'3 元 = （　）角',   a:30,  pic:'💰', why:'1 元 = 10 角，3 元就是 30 角。'},
+      {q:'1 时 = （　）分',   a:60,  pic:'⏰', why:'1 时 = 60 分，分针走一整圈就是 1 小时。'},
+      {q:'1 分 = （　）秒',   a:60,  pic:'⏰', why:'1 分 = 60 秒，秒针走一整圈就是 1 分钟。'},
+      /* 🔴 「千米」是三年级内容，二年级不教——超纲的东西只会让孩子以为自己笨 */
+      {q:'1 千克 = （　）克', a:1000,pic:'⚖️', why:'1 千克 = 1000 克，1 千克差不多是两瓶矿泉水的重量。'},
+      {q:'60 分 = （　）时',  a:1,   pic:'⏰', why:'60 分 = 1 时。'},
+      {q:'100 厘米 = （　）米', a:1, pic:'📏', why:'100 厘米 = 1 米。'}
+    ];
+    const u = pick(U);
+    const o = options4(u.a, [u.a*10, u.a/10, u.a+10, u.a-1, u.a+1, u.a*2], 1, 2000);
+    return { big: u.pic + '<div style="font-size:30px;margin-top:6px">' + u.q.replace('（　）','<span style="color:#ff8a3d">（　）</span>') + '</div>',
+             sub: '括号里填几？', ...o, say: u.q.replace('（　）','几'), why: u.why };
+  },
+  /* —— 大宝：列竖式（配小棒图，看得见进位和借位） —— */
+  vert() {
+    const isAdd = Math.random() < 0.5;
+    let a, b, s;
+    if (isAdd) { a = ri(105, 480); b = ri(105, 460); s = a + b; }
+    else { a = ri(320, 950); b = ri(105, a - 100); s = a - b; }
+    const w = String(Math.max(a, b)).length;
+    const pad = v => String(v).padStart(w + 1, ' ');
+    const html = '<div class="vert">' + pad(a) + '<br>' +
+      (isAdd ? '+ ' : '− ') + pad(b) + '<div class="line"></div></div>';
+    return { big: html, sub: '列竖式算一算，得多少？', input: true, answer: String(s),
+             emoji: '<div style="font-size:17px;line-height:1.9">' + sticks(a) + '<br>' + (isAdd ? '➕' : '➖') + '<br>' + sticks(b) + '</div>' +
+                    '<div style="margin-top:4px">' + STICK_LEGEND + '</div>',
+             say: (isAdd ? a + ' 加 ' + b : a + ' 减 ' + b) + ' 等于几',
+             why: (isAdd ? '个位对个位、十位对十位相加' : '个位不够减就向前一位借 1') + '：' + a + (isAdd ? ' + ' : ' − ') + b + ' = ' + s + '。',
+             whyHtml: '<div style="font-size:20px;line-height:1.8">' + sticks(s) + '</div>' +
+                      '<div style="font-size:13px;margin-top:4px">' + (isAdd ? '满 10 根就捆成一捆，搬到十位去。' : '个位不够减，就拆开一捆当 10 根。') + '</div>' };
+  },
+  /* —— 大宝：应用题（每题都配一张「看得见的场景」） —— */
+  word() {
+    const it = pick(WORD_ITEMS), who = pick(WORD_KIDS);
+    /* 第二个人：从「别的小朋友 + 长辈」里挑，且不能跟主角同名。
+       🔴 句子一律重复姓名、不用「他/她」——主角可能是小红，写「他」就错了。 */
+    const others = WORD_KIDS.filter(k => k !== who).concat(WORD_ELDERS);
+    const who2 = pick(others);
+    const t = ri(1, 7);
+    const many = (n, e, cap) => { cap = cap || 12; return e.repeat(Math.min(n, cap)) + (n > cap ? '<span style="font-size:14px;color:#8a8177"> …共 ' + n + ' 个</span>' : ''); };
+    const Q = '📖 读一读，算一算';
+    if (t === 1) { const a = ri(15,45), b = ri(12,40), s = a+b;
+      return { big:'', sub:Q, story: who + '有 ' + a + ' 个' + it.n + '，' + who2 + '又给了' + who + ' ' + b + ' 个，现在一共有多少个？',
+               emoji:'<div style="font-size:19px;line-height:1.7">' + many(a,it.e) + '<br>➕ ' + many(b,it.e) + '</div>',
+               input:true, answer:String(s), say: who + '有 ' + a + ' 个' + it.n + '，' + who2 + '又给了' + who + ' ' + b + ' 个，现在一共有多少个',
+               why:'求一共，用加法：' + a + ' + ' + b + ' = ' + s + '（个）' }; }
+    if (t === 2) { const a = ri(30,80), b = ri(10,25), s = a-b;
+      return { big:'', sub:Q, story: who + '有 ' + a + ' 个' + it.n + '，送给同学 ' + b + ' 个，还剩多少个？',
+               emoji:'<div style="font-size:19px;line-height:1.7">' + many(a,it.e) + '<br><span style="font-size:15px;color:#f2544b">送走 ' + b + ' 个 ➖</span></div>',
+               input:true, answer:String(s), say: who + '有 ' + a + ' 个' + it.n + '，送给同学 ' + b + ' 个，还剩多少个',
+               why:'求还剩，用减法：' + a + ' − ' + b + ' = ' + s + '（个）' }; }
+    if (t === 3) { const a = ri(3,9), b = ri(3,9), s = a*b;
+      return { big:'', sub:Q, story: '每盒有 ' + a + ' 个' + it.n + '，' + b + ' 盒一共有多少个？',
+               emoji:'<div style="font-size:20px;line-height:1.45;letter-spacing:2px">' + dotArray(b, a, it.e) + '</div><div style="font-size:13px;color:#8a8177;margin-top:4px">' + b + ' 盒，每盒 ' + a + ' 个</div>',
+               input:true, answer:String(s), say: '每盒有 ' + a + ' 个' + it.n + '，' + b + ' 盒一共有多少个',
+               why:'求几个几，用乘法：' + a + ' × ' + b + ' = ' + s + '（个）' }; }
+    if (t === 4) { const b = ri(3,8), q = ri(3,9), a = b*q;
+      return { big:'', sub:Q, story: a + ' 个' + it.n + '平均分给 ' + b + ' 个小朋友，每人分到几个？',
+               emoji:'<div style="font-size:19px;line-height:1.7">' + many(a,it.e,16) + '<br>' + '👦'.repeat(b) + '</div>',
+               input:true, answer:String(q), say: a + ' 个' + it.n + '平均分给 ' + b + ' 个小朋友，每人分到几个',
+               why:'平均分，用除法：' + a + ' ÷ ' + b + ' = ' + q + '（个）' }; }
+    if (t === 5) { const a = ri(40,90), b = ri(10,30), c = ri(10,40), s = a-b+c;
+      return { big:'', sub:Q, story: who + '有 ' + a + ' 元，买' + it.n + '花了 ' + b + ' 元，' + pick(WORD_ELDERS) + '又给了' + who + ' ' + c + ' 元，现在有多少元？',
+               emoji:'<div style="font-size:22px;line-height:1.8">💰 × ' + a + '<br><span style="font-size:15px;color:#f2544b">花了 ' + b + ' ➖</span>　<span style="font-size:15px;color:#37bf7a">又得到 ' + c + ' ➕</span></div>',
+               input:true, answer:String(s), say: who + '有 ' + a + ' 元，花了 ' + b + ' 元，又得到 ' + c + ' 元，现在有多少元',
+               why:'先减后加：' + a + ' − ' + b + ' + ' + c + ' = ' + s + '（元）' }; }
+    if (t === 6) { const b = ri(10,40); const a = b + ri(5,30);
+      return { big:'', sub:Q, story: who + '摘了 ' + a + ' 个' + it.n + '，' + who2 + '摘了 ' + b + ' 个，' + who + '比' + who2 + '多摘几个？',
+               emoji:'<div style="font-size:18px;line-height:1.8">' + who + '：' + many(a,it.e) + '<br>' + who2 + '：' + many(b,it.e) + '</div>',
+               input:true, answer:String(a-b), say: who + '摘了 ' + a + ' 个，' + who2 + '摘了 ' + b + ' 个，多几个',
+               why:'求多几个，用大数减小数：' + a + ' − ' + b + ' = ' + (a-b) + '（个）' }; }
+    const a = ri(3,9), k = ri(2,6), s = a*k;
+    return { big:'', sub:Q, story: who + '有 ' + a + ' 个' + it.n + '，' + who2 + '的个数是' + who + '的 ' + k + ' 倍，' + who2 + '有多少个？',
+             emoji:'<div style="font-size:19px;line-height:1.6">' + who + '：' + it.e.repeat(a) + '<br>' + who2 + '：' + '❓'.repeat(k) + '（是他的 ' + k + ' 倍）</div>',
+             input:true, answer:String(s), say: who + '有 ' + a + ' 个' + it.n + '，' + who2 + '是他的 ' + k + ' 倍，' + who2 + '有多少个',
+             why:'几倍就是几个几：' + a + ' × ' + k + ' = ' + s + '（个）' };
+  }
+};
+
+/* ══════════════ 关卡表 ══════════════ */
+const LEVELS = {
+  er: {                                     // 二宝 · 幼儿园小班（3岁半）
+    hanzi: 'qi',
+    math: [
+      { id:'count',  icon:'🍎', name:'数一数',   desc:'1~10 数一数',        gen:'count',  n:8,  choice:true },
+      { id:'more',   icon:'⚖️', name:'比多少',   desc:'哪边多呀',           gen:'more',   n:8,  story:true },
+      { id:'shape',  icon:'🔺', name:'认形状',   desc:'圆形 正方形 三角形', gen:'shape',  n:8 },
+      { id:'pattern',icon:'🎨', name:'找规律',   desc:'接下来是什么',       gen:'pattern',n:8 },
+      { id:'add5',   icon:'➕', name:'5以内加法',desc:'先数手指头',         gen:'add5',   n:8 },
+      { id:'add10',  icon:'🔟', name:'10以内加法',desc:'凑一凑就出来了',    gen:'add10',  n:8 },
+      { id:'sub10',  icon:'➖', name:'10以内减法',desc:'去掉几个还剩几个',   gen:'sub10',  n:8 }
+    ]
+  },
+  da: {                                     // 大宝 · 小学二年级
+    hanzi: 'g2',
+    math: [
+      { id:'add100', icon:'➕', name:'100以内加法', desc:'进位加法',        gen:'add100', n:10, star:true },
+      { id:'sub100', icon:'➖', name:'100以内减法', desc:'退位减法',        gen:'sub100', n:10, star:true },
+      { id:'mul',    icon:'✖️', name:'表内乘法',   desc:'乘法口诀要熟',    gen:'mul',    n:10, star:true },
+      { id:'div',    icon:'➗', name:'表内除法',   desc:'想口诀就会了',    gen:'div',    n:10 },
+      { id:'rem',    icon:'🍽️', name:'有余数除法', desc:'分不完剩几个',    gen:'rem',    n:8 },
+      { id:'mix',    icon:'🧮', name:'混合运算',   desc:'先乘除后加减',    gen:'mix',    n:8 },
+      { id:'mj',     icon:'🔢', name:'口诀抽背',   desc:'填括号里的数',    gen:'mj',     n:10 },
+      { id:'cmpnum', icon:'⚖️', name:'比大小',     desc:'填 > < =',        gen:'cmpnum', n:8, choice:true },
+      { id:'vert',   icon:'📐', name:'列竖式',     desc:'两位三位数加减',  gen:'vert',   n:8 },
+      { id:'unit',   icon:'📏', name:'单位换算',   desc:'米厘米 元角分',   gen:'unit',   n:8, choice:true },
+      { id:'word',   icon:'📖', name:'应用题',     desc:'读懂题再动笔',    gen:'word',   n:6 }
+    ]
+  }
+};
+
+/* ── 限时口算的难度档 ── */
+const TIMED_MODES = {
+  er: [ {id:'t10', name:'10以内加减', gens:['add10','sub10']} ],
+  da: [
+    { id:'t100', name:'100以内加减', gens:['add100','sub100'] },
+    { id:'tmul', name:'表内乘除',    gens:['mul','div'] },
+    { id:'tmix', name:'全都来',      gens:['add100','sub100','mul','div','mix'] }
+  ]
+};
+
+/* ── 奖章 ── */
+const ACHIEVEMENTS = [
+  {id:'first',  e:'🌱', t:'第一次闯关',  test:s => s.totalPlays >= 1},
+  {id:'p10',    e:'🔥', t:'闯关 10 次',  test:s => s.totalPlays >= 10},
+  {id:'p50',    e:'🚀', t:'闯关 50 次',  test:s => s.totalPlays >= 50},
+  {id:'s20',    e:'⭐', t:'攒够 20 星',  test:s => s.stars >= 20},
+  {id:'s60',    e:'🌟', t:'攒够 60 星',  test:s => s.stars >= 60},
+  {id:'s150',   e:'💫', t:'攒够 150 星', test:s => s.stars >= 150},
+  {id:'d3',     e:'📅', t:'连续 3 天',   test:s => s.streak >= 3},
+  {id:'d7',     e:'🗓️', t:'连续 7 天',   test:s => s.streak >= 7},
+  {id:'d30',    e:'🏅', t:'连续 30 天',  test:s => s.streak >= 30},
+  {id:'hz50',   e:'📖', t:'认字 50 个',  test:s => s.hanziLearned >= 50},
+  {id:'mult',   e:'✖️', t:'口诀全通关',  test:s => s.mulPassed >= 45},
+  {id:'perfect',e:'💯', t:'一次全对',    test:s => s.perfectCount >= 1}
+];
+/* ══════════════════════════════════════════════════════════════
+   汉字数学大冒险 · 主逻辑
+   数据层（进度/星星/打卡）和界面层都在这里，通过 localStorage 持久化。
+   ══════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  /* ─────────── 常量 ─────────── */
+  const LS = 'hm_state_v1';
+  const KIDS = {
+    da: { id: 'da', name: '曾麟轩', av: '🧒', tag: '小学二年级', lv: 'da' },
+    er: { id: 'er', name: '曾强',   av: '👶', tag: '幼儿园小班 · 3岁半', lv: 'er' }
+  };
+  const STUDY_SCREENS = ['screen-learn', 'screen-quiz', 'screen-timed', 'screen-mul', 'screen-trace'];
+
+  /* ─────────── 状态 ─────────── */
+  function blankProfile() {
+    return {
+      stars: 0, totalPlays: 0, perfectCount: 0, mulPassed: 0, hanziLearned: 0,
+      days: {},                    // 'YYYY-MM-DD' → 学习秒数
+      lastDay: '',
+      levelStars: {},              // 关卡id → 历史最高星
+      hanziSeen: {},               // 认过的字
+      mulDone: {},                 // 背熟的乘法口诀 key
+      wrong: [],                   // 错题本 [{q,a,why,t}]
+      stats: {}                    // 关卡id → {right,total}
+    };
+  }
+  function blankState() {
+    return { cur: null, goal: 20, rate: 1, profiles: { da: blankProfile(), er: blankProfile() } };
+  }
+  let S = blankState();
+  function load() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(LS) || 'null');
+      if (raw && raw.profiles) {
+        S = Object.assign(blankState(), raw);
+        ['da', 'er'].forEach(k => { S.profiles[k] = Object.assign(blankProfile(), S.profiles[k] || {}); });
+      }
+    } catch (e) { /* 存档坏了就从零开始，不能白屏 */ }
+  }
+  function save() { try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} }
+  const ME = () => S.profiles[S.cur] || blankProfile();
+  const KID = () => KIDS[S.cur] || KIDS.da;
+
+  /* ─────────── 日期 / 打卡 ─────────── */
+  const dayKey = (d) => { const x = d || new Date(); return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0'); };
+  function todaySec() { return ME().days[dayKey()] || 0; }
+  function touchDay() {
+    const p = ME(), k = dayKey();
+    if (p.lastDay !== k) { p.lastDay = k; save(); }
+  }
+  function streak() {
+    const p = ME(); let n = 0; const d = new Date();
+    for (let i = 0; i < 400; i++) {
+      const k = dayKey(d);
+      if ((p.days[k] || 0) >= 60) { n++; d.setDate(d.getDate() - 1); }
+      else if (i === 0) { d.setDate(d.getDate() - 1); }     // 今天还没学，不算断
+      else break;
+    }
+    return n;
+  }
+  function addSec(n) {
+    const p = ME(), k = dayKey();
+    p.days[k] = (p.days[k] || 0) + n;
+    p.lastDay = k;
+    save();
+  }
+
+  /* ─────────── 声音 ─────────── */
+  let VOICE = null;
+  function pickVoice() {
+    if (!('speechSynthesis' in window)) return;
+    const vs = speechSynthesis.getVoices() || [];
+    const zh = vs.filter(v => /zh|cmn|Chinese/i.test(v.lang + ' ' + v.name));
+    if (!zh.length) return;
+    const best = ['Tingting', '婷婷', 'Ting-Ting', 'Xiaoxiao', '晓晓', 'Meijia', 'Sinji', 'Yaoyao']
+      .map(n => zh.find(v => v.name.includes(n))).find(Boolean);
+    VOICE = best || zh.find(v => /zh[-_]CN/i.test(v.lang)) || zh[0];
+  }
+  if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+  function speak(text, rate) {
+    if (!text || !('speechSynthesis' in window)) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(String(text));
+      u.lang = 'zh-CN'; if (VOICE) u.voice = VOICE;
+      u.rate = rate || S.rate || 1;
+      u.pitch = 1.05;
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+
+  /* 音效：Web Audio 现场合成，零文件 */
+  let AC = null;
+  function ac() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } return AC; }
+  function beep(freq, dur, type, vol, delay) {
+    const c = ac(); if (!c) return;
+    const t0 = c.currentTime + (delay || 0);
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = type || 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(vol || 0.16, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+  }
+  const sfx = {
+    ok()  { beep(880, 0.12, 'sine', 0.14); beep(1320, 0.16, 'sine', 0.12, 0.09); },
+    no()  { beep(240, 0.18, 'sawtooth', 0.10); beep(180, 0.22, 'sawtooth', 0.09, 0.1); },
+    tap() { beep(660, 0.05, 'square', 0.05); },
+    win() { [523, 659, 784, 1047].forEach((f, i) => beep(f, 0.22, 'sine', 0.13, i * 0.11)); }
+  };
+
+  /* ─────────── 撒花 / 提示 ─────────── */
+  function confetti(n) {
+    const box = document.getElementById('confetti');
+    if (!box) return;
+    const emo = ['🎉','⭐','✨','🌟','🎊','💛','🏆'];
+    for (let i = 0; i < (n || 14); i++) {
+      const s = document.createElement('span');
+      s.className = 'cf';
+      s.textContent = emo[Math.floor(Math.random() * emo.length)];
+      s.style.left = Math.random() * 100 + '%';
+      s.style.animationDuration = (1.6 + Math.random() * 1.2) + 's';
+      s.style.animationDelay = (Math.random() * 0.3) + 's';
+      s.style.fontSize = (16 + Math.random() * 18) + 'px';
+      box.appendChild(s);
+      setTimeout(() => s.remove(), 3200);
+    }
+  }
+  let toastT = null;
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg; t.classList.add('on');
+    clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 1600);
+  }
+  function combo(n) {
+    if (n < 2) return;
+    const c = document.getElementById('combo');
+    if (!c) return;
+    c.textContent = n >= 5 ? '🔥 连对 ' + n + ' 题！' : '👍 连对 ' + n + ' 题';
+    c.classList.remove('on'); void c.offsetWidth; c.classList.add('on');
+  }
+
+  /* ─────────── 屏幕切换 ─────────── */
+  let curScreen = 'screen-kid';
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(el => el.classList.toggle('on', el.id === id));
+    curScreen = id;
+    window.scrollTo(0, 0);
+  }
+  let lastAct = Date.now();
+  document.addEventListener('pointerdown', () => { lastAct = Date.now(); }, true);
+
+  /* 打卡计时：只在学习界面、页面可见、且 2 分钟内有操作时才算 */
+  setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    if (STUDY_SCREENS.indexOf(curScreen) < 0) return;
+    if (Date.now() - lastAct > 120000) return;
+    addSec(5);
+  }, 5000);
+
+  /* ═══════════ 选小朋友 ═══════════ */
+  function renderKids() {
+    const box = document.getElementById('kid-grid');
+    box.innerHTML = '';
+    Object.values(KIDS).forEach(k => {
+      const p = S.profiles[k.id];
+      const st = Object.values(p.levelStars).reduce((a, b) => a + b, 0);
+      const el = document.createElement('div');
+      el.className = 'kid-card ' + k.id;
+      el.innerHTML = '<div class="kid-avatar">' + k.av + '</div>' +
+        '<div class="kid-name">' + k.name + '</div>' +
+        '<div class="kid-tag">' + k.tag + '</div>' +
+        '<div class="kid-tag" style="margin-top:8px;color:var(--brand);font-weight:700">⭐ ' + st + '</div>';
+      el.onclick = () => { S.cur = k.id; save(); sfx.tap(); goHome(); };
+      box.appendChild(el);
+    });
+  }
+
+  /* ═══════════ 首页 ═══════════ */
+  const qiCount = () => Object.values(HANZI_QI).reduce((a, g) => a + g.words.length, 0);
+  const HOME_MODS = {
+    da: [
+      /* 关卡数现算，别写死——加了关卡忘了改文案，首页就会说假话 */
+      { goto: 'math',   wide: true, ico: '🚀', tt: '数学闯关',
+        ds: LEVELS.da.math.length + ' 个关卡，答对拿星星', color: 'blue' },
+      { goto: 'timed',  ico: '⏱️', tt: '限时口算', ds: '60 秒，看能答对几题' },
+      { goto: 'mul',    ico: '🔢', tt: '乘法口诀', ds: '点一句听一句' },
+      { goto: 'hanzi',  ico: '🔤', tt: '认汉字', ds: '二年级字库 · 拼音组词' },
+      { goto: 'trace',  ico: '✍️', tt: '写一写', ds: '手指描红练笔画' },
+      { goto: 'stars',  ico: '🏆', tt: '星星奖章', ds: '看攒了多少颗' }
+    ],
+    er: [
+      { goto: 'hanzi',  wide: true, ico: '🔤', tt: '认字卡',
+        ds: qiCount() + ' 个字，每个都配图配声音', color: 'orange' },
+      { goto: 'math',   ico: '🚀', tt: '数学游戏', ds: '数一数 · 比多少 · 找规律' },
+      { goto: 'mul',    ico: '🔢', tt: '数到十', ds: '一、二、三…十' },
+      { goto: 'trace',  ico: '✍️', tt: '描一描', ds: '用手指写大字' },
+      { goto: 'stars',  ico: '🏆', tt: '我的星星', ds: '看看攒了几颗' }
+    ]
+  };
+  function goHome() {
+    if (!S.cur) { showScreen('screen-kid'); return; }
+    const k = KID(), p = ME();
+    document.getElementById('home-av').textContent = k.av;
+    document.getElementById('home-name').textContent = k.name;
+    const mins = Math.round(todaySec() / 60);
+    document.getElementById('home-sub').textContent = mins > 0
+      ? '今天已经学了 ' + mins + ' 分钟，真棒！'
+      : '今天还没开始哦，挑一个玩吧';
+    document.getElementById('st-min').innerHTML = mins + '<span class="u">分</span>';
+    document.getElementById('st-star').textContent = p.stars;
+    document.getElementById('st-streak').innerHTML = streak() + '<span class="u">天</span>';
+
+    const grid = document.getElementById('home-mods');
+    grid.innerHTML = '';
+    (HOME_MODS[S.cur] || []).forEach(m => {
+      const el = document.createElement('div');
+      el.className = 'mod' + (m.wide ? ' wide' : '');
+      el.innerHTML = '<div class="ico">' + m.ico + '</div>' +
+        '<div class="' + (m.wide ? 'txt' : '') + '"><div class="tt">' + m.tt + '</div><div class="ds">' + m.ds + '</div></div>';
+      el.onclick = () => { sfx.tap(); route(m.goto); };
+      grid.appendChild(el);
+    });
+
+    const td = document.getElementById('home-today');
+    const rows = Object.keys(p.days).sort().slice(-7).reverse()
+      .filter(d => p.days[d] > 0)
+      .map(d => '<div class="list-row"><span class="k">' + d + '</span><span class="v">' +
+        Math.max(1, Math.round(p.days[d] / 60)) + ' 分钟</span></div>');
+    td.innerHTML = rows.length ? rows.join('') : '<div class="empty-tip">还没开始，随便挑一个玩吧 👆</div>';
+    showScreen('screen-home');
+  }
+
+  function route(g) {
+    if (g === 'math')  return openMathMap();
+    if (g === 'hanzi') return openHanziMap();
+    if (g === 'timed') return openTimedMenu();
+    if (g === 'mul')   return openMul();
+    if (g === 'trace') return openTrace();
+    if (g === 'stars') return openStars();
+  }
+
+  /* ═══════════ 关卡地图 / 主题选择 ═══════════ */
+  let MAP_CTX = null;   // {kind:'math'|'hanzi', ...}
+  function openMathMap() {
+    const lv = LEVELS[S.cur];
+    MAP_CTX = { kind: 'math', lv };
+    document.getElementById('map-title').textContent = '🚀 数学闯关';
+    const p = ME();
+    const total = lv.math.length;
+    const got = lv.math.filter(m => (p.levelStars[m.id] || 0) > 0).length;
+    document.getElementById('map-star').textContent = '⭐ ' + p.stars;
+    document.getElementById('map-sub').textContent = '已通关 ' + got + ' / ' + total +
+      ' 关。每关 3 星，全对才能拿满 ⭐⭐⭐。点哪个都可以，没有锁。';
+    document.getElementById('map-foot').textContent = '答错的题会自动进错题本，回家可以复习';
+    const grid = document.getElementById('map-grid');
+    grid.innerHTML = '';
+    lv.math.forEach(m => {
+      const st = p.levelStars[m.id] || 0;
+      const el = document.createElement('div');
+      el.className = 'map-item' + (st > 0 ? ' done' : '');
+      el.innerHTML = '<div class="mi-ico">' + m.icon + '</div><div class="mi-name">' + m.name + '</div>' +
+        '<div class="mi-desc">' + m.desc + '</div>' +
+        '<div class="mi-stars">' + [1,2,3].map(i => i <= st ? '⭐' : '<span class="off">⭐</span>').join('') + '</div>';
+      el.onclick = () => { sfx.tap(); startMath(m); };
+      grid.appendChild(el);
+    });
+    showScreen('screen-map');
+  }
+
+  /* ═══════════ 认汉字：两套数据，统一成一种「字表」 ═══════════
+     二宝 HANZI_QI = { 主题: {icon, words:[{z,py,pic,ci,ju}]} }
+     大宝 HANZI_G2 = { books:[{short, units:[{u,name,theme,emoji,xie,shi}]}] }，xie/shi 是
+                     [汉字,拼音,组词1,组词2] 的紧凑数组（1100 多个字，省字节）
+     统一成：{ key, name, icon, sub, words:[{z,py,ci,pic,ju,book,unit,kind}] }
+     🔴 只在 hanziGroups() 这一处转换——下游（地图/认字卡/闯关/描红）都吃同一种结构，
+        免得四处各解各的、改一处漏三处。 */
+  let G2_BOOK = 's1';                       // 大宝当前在看哪一册
+  function hanziGroups() {
+    if (S.cur === 'er') {
+      return Object.keys(HANZI_QI).map(k => {
+        const g = HANZI_QI[k];
+        return { key: k, name: k, icon: g.icon || '📖', sub: '', words: g.words,
+                 kind: 'theme', book: 'qi' };
+      });
+    }
+    const b = HANZI_G2.books.find(x => x.id === G2_BOOK) || HANZI_G2.books[0];
+    const out = [];
+    for (const kind of ['xie', 'shi']) {
+      for (const u of b.units) {
+        const rows = u[kind];
+        if (!rows || !rows.length) continue;
+        out.push({
+          key: b.id + '-' + kind + '-' + u.u,
+          name: u.name,
+          u: u.u,
+          /* 🔴 单元卡上不重复写「要会写的字」——上面那行「✍️ 写字表」已经说过了，
+             卡片上再写一遍就是三行废话。有主题名就显示主题名，没有就留空。 */
+          icon: u.emoji || '',
+          sub: u.theme || '',
+          kind: kind,
+          book: b.short,
+          words: rows.map(r => ({ z: r[0], py: r[1], ci: [r[2], r[3]], book: b.short, unit: u.name, kind: kind }))
+        });
+      }
+    }
+    return out;
+  }
+  const countHanzi = list => list.reduce((a, g) => a + g.words.length, 0);
+  const hanziPool = () => (S.cur === 'er')
+    ? Object.values(HANZI_QI).reduce((a, x) => a.concat(x.words), [])
+    : HANZI_G2.pool();
+
+  function openHanziMap() {
+    MAP_CTX = { kind: 'hanzi' };
+    const er = S.cur === 'er';
+    const groups = hanziGroups();
+    const all = hanziPool();
+    document.getElementById('map-title').textContent = '🔤 认汉字';
+    document.getElementById('map-star').textContent = '📖 ' + ME().hanziLearned;
+    document.getElementById('map-sub').textContent = er
+      ? '一共 ' + groups.length + ' 组、' + countHanzi(groups) + ' 个字，都是能看图联想的基础字。'
+      : '部编版二年级上册 + 下册，' + all.length + ' 个不重复的生字。✍️是第一遍要会写的，👀是认得就行的。';
+    document.getElementById('map-foot').textContent = '点一组进去，一个一个认，认完记得点 🔊 听一遍';
+    const grid = document.getElementById('map-grid');
+    grid.innerHTML = '';
+
+    const testBtn = document.createElement('div');
+    testBtn.className = 'map-item big';
+    testBtn.innerHTML = '<div class="mi-ico">⚡</div><div style="flex:1"><div class="mi-name">认字闯关</div>' +
+      '<div class="mi-desc">' + (er ? '看图选字 · 看拼音选字' : '看拼音选字 · 看字选拼音 · 看字选词') + '</div></div>';
+    testBtn.onclick = () => { sfx.tap(); startHanziQuiz(all, null); };
+    grid.appendChild(testBtn);
+
+    if (!er) {
+      /* 册切换：一次只显示一册，否则 16 个单元铺一屏太乱 */
+      const bar = document.createElement('div');
+      bar.style.cssText = 'grid-column:1/-1;display:flex;gap:8px;margin:2px 0 2px';
+      HANZI_G2.books.forEach(b => {
+        const c = document.createElement('button');
+        c.className = 'chip' + (b.id === G2_BOOK ? ' on' : '');
+        c.textContent = b.name;
+        c.onclick = () => { sfx.tap(); G2_BOOK = b.id; openHanziMap(); };
+        bar.appendChild(c);
+      });
+      grid.appendChild(bar);
+    }
+
+    let lastKind = null;
+    groups.forEach(g => {
+      if (!er && g.kind !== lastKind) {
+        lastKind = g.kind;
+        const h = document.createElement('div');
+        h.className = 'sect-title';
+        h.style.cssText = 'grid-column:1/-1;margin:14px 0 2px';
+        h.innerHTML = g.kind === 'xie'
+          ? '✍️ 写字表 <span class="hint">第一遍要会写的字</span>'
+          : '👀 识字表 <span class="hint">认得出来就行</span>';
+        grid.appendChild(h);
+      }
+      const n = g.words.length;
+      const seen = g.words.filter(w => ME().hanziSeen[w.z]).length;
+      const el = document.createElement('div');
+      el.className = 'map-item' + (seen >= n ? ' done' : '');
+      /* 有主题就显示主题 emoji，没有就用单元号——16 张卡片全顶一个 ✍️ 既认不出谁是谁，
+         也白占一行高度。再露出 4 个样字，孩子一眼知道这单元学啥。 */
+      const head = g.icon ? '<div class="mi-ico">' + g.icon + '</div>'
+                          : '<div class="mi-num">' + (g.u || '') + '</div>';
+      const sample = g.words.slice(0, 4).map(w => w.z).join(' ');
+      el.innerHTML = head + '<div class="mi-name">' + g.name + '</div>' +
+        '<div class="mi-desc">' + (g.sub ? g.sub + '<br>' : '') + n + ' 个字 · 认了 ' + seen + '</div>' +
+        '<div class="mi-sample kai">' + sample + '</div>';
+      el.onclick = () => { sfx.tap(); openLearn(g.key); };
+      grid.appendChild(el);
+    });
+    showScreen('screen-map');
+  }
+
+  /* ═══════════ 认字卡（学习模式） ═══════════ */
+  let LEARN = null;
+  function openLearn(key, idx) {
+    const g = hanziGroups().find(x => x.key === key);
+    if (!g) return;
+    LEARN = { g, key, list: g.words, i: idx || 0 };
+    document.getElementById('learn-title').textContent = g.name + (g.book && g.book !== 'qi' ? '（' + g.book + '）' : '');
+    renderLearn();
+    showScreen('screen-learn');
+  }
+  function renderLearn() {
+    const w = LEARN.list[LEARN.i];
+    const pic = document.getElementById('learn-pic');
+    pic.textContent = w.pic || '';
+    document.getElementById('learn-hz').textContent = w.z;
+    document.getElementById('learn-py').textContent = w.py;
+    /* 组词做成能点的按钮：二年级的字大多没法配图，「词」就是它的场景，
+       点一下就念出来，孩子听得到这个词怎么用。 */
+    const info = document.getElementById('learn-info');
+    info.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'ci-wrap';
+    (w.ci || []).forEach(c => {
+      const b = document.createElement('button');
+      b.className = 'ci-chip';
+      b.innerHTML = c + '<span class="sp">🔊</span>';
+      b.onclick = () => speak(c);
+      wrap.appendChild(b);
+    });
+    info.appendChild(wrap);
+    const ju = document.getElementById('learn-ju');
+    if (w.ju) { ju.innerHTML = w.ju; ju.classList.remove('hide'); }
+    else if (w.book && w.book !== 'qi') {
+      /* 没有例句就不编——编错了比不写更糟。改成告诉孩子在课本的哪儿 */
+      ju.innerHTML = '📚 部编版二年级' + (w.book === '二上' ? '上册' : '下册') + ' · ' + w.unit +
+        (w.kind === 'xie' ? ' · 写字表' : ' · 识字表');
+      ju.classList.remove('hide');
+    } else { ju.innerHTML = ''; ju.classList.add('hide'); }
+    document.getElementById('learn-pos').textContent = (LEARN.i + 1) + ' / ' + LEARN.list.length;
+    // 记录认过的字
+    const p = ME();
+    if (w.z && !p.hanziSeen[w.z]) {
+      p.hanziSeen[w.z] = 1;
+      p.hanziLearned = Object.keys(p.hanziSeen).length;
+      save();
+    }
+    speak(w.z);
+  }
+
+  /* ═══════════ 通用闯关引擎 ═══════════ */
+  let Q = null;
+  function startQuiz(cfg) {
+    // cfg: {title, n, make, key, backFn}
+    Q = { cfg, i: 0, right: 0, wrongs: [], combo: 0, list: [] };
+    for (let i = 0; i < cfg.n; i++) Q.list.push(cfg.make());
+    document.getElementById('quiz-title').textContent = cfg.title;
+    document.getElementById('quiz-result').classList.add('hide');
+    document.getElementById('quiz-body').classList.remove('hide');
+    showScreen('screen-quiz');
+    renderQ();
+  }
+  function renderQ() {
+    if (!Q) return;
+    if (Q.i >= Q.list.length) return showResult();
+    const q = Q.list[Q.i];
+    document.getElementById('quiz-count').textContent = (Q.i + 1) + '/' + Q.list.length;
+    document.getElementById('quiz-bar').style.width = (Q.i / Q.list.length * 100) + '%';
+    const big = document.getElementById('q-big'), em = document.getElementById('q-emoji'), sub = document.getElementById('q-sub');
+    big.innerHTML = q.big || '';
+    big.classList.toggle('hide', !q.big);
+    big.classList.toggle('hz', !!q.bigHz);
+    em.innerHTML = q.emoji || '';
+    em.classList.toggle('hide', !q.emoji);
+    sub.innerHTML = q.story ? '<b>' + (q.sub || '') + '</b><div style="margin-top:8px;font-size:17px;color:var(--ink)">' + q.story + '</div>' : (q.sub || '');
+    document.getElementById('q-feedback').classList.add('hide');
+    document.getElementById('q-feedback').innerHTML = '';
+    document.getElementById('q-next').classList.add('hide');
+
+    const chBox = document.getElementById('q-choices');
+    const ansBox = document.getElementById('q-answer-area');
+    if (q.input) {
+      chBox.innerHTML = ''; chBox.classList.add('hide');
+      ansBox.classList.remove('hide');
+      Q.typed = '';
+      renderTyped();
+      renderPad();
+    } else {
+      ansBox.classList.add('hide');
+      chBox.classList.remove('hide');
+      /* 3 个短符号（> < =）横排三列，别排成一竖列白白占掉半屏 */
+      chBox.className = 'choices' +
+        (q.choices.length <= 3 ? (q.choiceClass === 'sym' ? ' three' : ' one') : '');
+      chBox.innerHTML = '';
+      q.choices.forEach(c => {
+        const b = document.createElement('button');
+        b.className = 'choice' + (q.choiceClass ? ' ' + q.choiceClass : (isHanzi(c) ? ' hz' : ''));
+        b.innerHTML = c;
+        b.onclick = () => answer(c, b);
+        chBox.appendChild(b);
+      });
+    }
+    speakQ(q);
+  }
+  const isHanzi = s => /^[一-龥]$/.test(String(s).replace(/<[^>]+>/g, ''));
+  function speakQ(q) {
+    const t = q.say || String(q.big || '').replace(/<[^>]+>/g, '');
+    if (t) speak(t);
+  }
+  function renderTyped() {
+    const box = document.getElementById('answer-box');
+    box.innerHTML = Q.typed ? Q.typed : '<span class="caret"></span>';
+  }
+  function renderPad() {
+    const pad = document.getElementById('numpad');
+    pad.innerHTML = '';
+    /* 有余数的除法要写「5……2」，键盘上得给一个「……」键；
+       普通口算不需要，就把这一格还给「⌫」（底下本来就有独立的「确定」按钮）。 */
+    const sep = !!(Q.list[Q.i] && Q.list[Q.i].padSep);
+    const keys = ['1','2','3','4','5','6','7','8','9',
+                  sep ? '……' : '⌫', '0', sep ? '⌫' : '✓'];
+    keys.forEach(k => {
+      const b = document.createElement('button');
+      b.textContent = k;
+      if (k === '……') b.style.fontSize = '30px';   // 省略号本身小，不放大根本看不清
+      b.onclick = () => {
+        sfx.tap();
+        if (k === '⌫') Q.typed = Q.typed.slice(0, -1);
+        else if (k === '✓') return answer(Q.typed);
+        else if (k === '……') { if (Q.typed.indexOf('……') < 0) Q.typed += '……'; }
+        else if (Q.typed.length < 6) Q.typed += k;
+        renderTyped();
+      };
+      pad.appendChild(b);
+    });
+  }
+  function answer(val, btn) {
+    if (!Q || Q.locked) return;
+    const q = Q.list[Q.i];
+    if (q.input && !val) { toast('先写上答案哦'); return; }
+    Q.locked = true;
+    const ok = String(val) === String(q.answer);
+    const fb = document.getElementById('q-feedback');
+    if (ok) {
+      Q.right++; Q.combo++;
+      sfx.ok(); confetti(8); combo(Q.combo);
+      if (btn) btn.classList.add('right');
+      fb.className = 'feedback ok';
+      fb.innerHTML = '✅ 答对啦！' + (q.why ? '<span class="why">' + q.why + '</span>' : '') + (q.whyHtml || '');
+      fb.classList.remove('hide');
+      record(q, true);
+      setTimeout(() => { Q.locked = false; Q.i++; renderQ(); }, q.whyHtml ? 1900 : 1000);
+    } else {
+      Q.combo = 0;
+      sfx.no();
+      if (btn) btn.classList.add('wrong');
+      document.querySelectorAll('#q-choices .choice').forEach(b => {
+        if (b.textContent.trim() === String(q.answer).trim()) b.classList.add('right');
+        else if (b !== btn) b.classList.add('dim');
+      });
+      fb.className = 'feedback no';
+      fb.innerHTML = '再想想～ 正确答案是 <b>' + q.answer + '</b>' +
+        (q.why ? '<span class="why">' + q.why + '</span>' : '') + (q.whyHtml || '');
+      fb.classList.remove('hide');
+      record(q, false);
+      addWrong(q, val);
+      const nx = document.getElementById('q-next');
+      nx.classList.remove('hide');
+      nx.onclick = () => { sfx.tap(); Q.locked = false; Q.i++; renderQ(); };
+    }
+  }
+  function record(q, ok) {
+    const p = ME(), key = q._key || 'misc';
+    const s = p.stats[key] = p.stats[key] || { right: 0, total: 0 };
+    s.total++; if (ok) s.right++;
+    save();
+  }
+  function addWrong(q, val) {
+    const p = ME();
+    const label = (q.story || q.sub || String(q.big || '').replace(/<[^>]+>/g, ' ')).slice(0, 40).trim();
+    p.wrong.unshift({ q: label, you: String(val), a: String(q.answer), why: q.why || '', t: Date.now() });
+    if (p.wrong.length > 60) p.wrong.length = 60;
+    save();
+  }
+  function showResult() {
+    const cfg = Q.cfg, n = Q.list.length, right = Q.right;
+    const pct = right / n;
+    const stars = pct >= 1 ? 3 : pct >= 0.8 ? 2 : pct >= 0.6 ? 1 : 0;
+    document.getElementById('quiz-body').classList.add('hide');
+    document.getElementById('quiz-result').classList.remove('hide');
+    document.getElementById('quiz-bar').style.width = '100%';
+    document.getElementById('quiz-count').textContent = n + '/' + n;
+
+    const p = ME();
+    p.totalPlays++;
+    if (right === n) p.perfectCount++;
+    if (cfg.key) {
+      const prev = p.levelStars[cfg.key] || 0;
+      if (stars > prev) { p.stars += (stars - prev); p.levelStars[cfg.key] = stars; }
+    } else {
+      p.stars += stars;
+    }
+    if (Q.mulKeys) { Q.mulKeys.forEach(k => { if (!p.mulDone[k]) { p.mulDone[k] = 1; } }); p.mulPassed = Object.keys(p.mulDone).length; }
+    save();
+    touchDay();
+
+    const emo = stars === 3 ? '🏆' : stars === 2 ? '🎉' : stars === 1 ? '👍' : '💪';
+    const ttl = stars === 3 ? '全对！太厉害了' : stars === 2 ? '很稳，就差一点' : stars === 1 ? '过关啦' : '再练一次会更好';
+    document.getElementById('rs-emoji').textContent = emo;
+    document.getElementById('rs-title').textContent = ttl;
+    document.getElementById('rs-stars').innerHTML = [1,2,3].map(i => i <= stars ? '⭐' : '<span class="star-off">⭐</span>').join('');
+    /* 🔴 「这一关历史最好：」后面一个星星都没有的那次，是第一次玩且没拿到星——
+       光秃秃一个冒号看着像 App 坏了。没拿到星就直说，别留个空标签。 */
+    const best = p.levelStars[cfg.key] || 0;
+    document.getElementById('rs-detail').innerHTML = '答对 <b>' + right + '</b> / ' + n + ' 题' +
+      (cfg.key ? '<br><span style="font-size:13px;color:var(--ink3)">' +
+        (best > 0 ? '这一关历史最好：' + '⭐'.repeat(best) : '这一关还没拿到星星，再来一次就有了') +
+        '</span>' : '');
+    const wl = document.getElementById('rs-wrong');
+    if (Q.wrongs.length) {
+      wl.classList.remove('hide');
+      document.getElementById('rs-wrong-items').innerHTML = Q.wrongs.map(w =>
+        '<div class="item"><b>' + w.label + '</b> → 正确：<b style="color:var(--green)">' + w.answer + '</b></div>').join('');
+    } else wl.classList.add('hide');
+    if (stars >= 2) { sfx.win(); confetti(30); } else if (stars >= 1) { sfx.ok(); confetti(10); }
+  }
+
+  /* ═══════════ 数学关卡 ═══════════ */
+  function startMath(m) {
+    startQuiz({
+      title: m.icon + ' ' + m.name,
+      n: m.n,
+      key: m.id,
+      backFn: () => openMathMap(),
+      make: () => { const q = GEN[m.gen](); q._key = m.id; return q; }
+    });
+  }
+  function openTimedMenu() {
+    MAP_CTX = { kind: 'timed' };
+    document.getElementById('map-title').textContent = '⏱️ 限时口算';
+    document.getElementById('map-star').textContent = '⏱️ 60秒';
+    document.getElementById('map-sub').textContent = '60 秒内尽量多答对。答对越多星星越多，答错不扣分，放心冲。';
+    document.getElementById('map-foot').textContent = 'iPad 上可以横过来，键盘更大';
+    const grid = document.getElementById('map-grid');
+    grid.innerHTML = '';
+    TIMED_MODES[S.cur].forEach(m => {
+      const el = document.createElement('div');
+      el.className = 'map-item big';
+      el.innerHTML = '<div class="mi-ico">⏱️</div><div style="flex:1"><div class="mi-name">' + m.name + '</div>' +
+        '<div class="mi-desc">60 秒挑战</div></div>';
+      el.onclick = () => { sfx.tap(); startTimed(m); };
+      grid.appendChild(el);
+    });
+    showScreen('screen-map');
+  }
+
+  /* ═══════════ 限时口算 ═══════════ */
+  let T = null;
+  function startTimed(mode) {
+    T = { mode, i: 0, right: 0, wrong: 0, typed: '', wrongs: [], t: 60 };
+    showScreen('screen-timed');
+    document.getElementById('timed-result').classList.add('hide');
+    document.getElementById('timed-run').classList.remove('hide');
+    document.getElementById('timed-right').textContent = '0';
+    document.getElementById('timed-wrong').textContent = '0';
+    nextTimed();
+    clearInterval(T.timer);
+    T.timer = setInterval(() => {
+      T.t--;
+      document.getElementById('timed-left').textContent = T.t;
+      document.getElementById('timed-bar').style.width = (T.t / 60 * 100) + '%';
+      if (T.t <= 0) endTimed();
+    }, 1000);
+    document.getElementById('timed-left').textContent = '60';
+    document.getElementById('timed-bar').style.width = '100%';
+  }
+  function nextTimed() {
+    T.q = GEN[pick(T.mode.gens)]();
+    T.typed = '';
+    const b = document.getElementById('timed-q');
+    b.innerHTML = T.q.sub && !T.q.big ? T.q.sub : (T.q.big || T.q.sub || '');
+    b.style.fontSize = (T.q.big || '').length > 16 ? '30px' : '';
+    document.getElementById('timed-ans').innerHTML = '<span class="caret"></span>';
+    const pad = document.getElementById('timed-pad');
+    if (!pad.dataset.built) {
+      pad.dataset.built = '1';
+      ['1','2','3','4','5','6','7','8','9','⌫','0','✓'].forEach(k => {
+        const b2 = document.createElement('button');
+        b2.textContent = k;
+        b2.onclick = () => {
+          if (k === '⌫') T.typed = T.typed.slice(0, -1);
+          else if (k === '✓') return checkTimed();
+          else if (T.typed.length < 6) T.typed += k;
+          document.getElementById('timed-ans').innerHTML = T.typed || '<span class="caret"></span>';
+          // 限时模式：位数够了就自动判，省得每次都点确定
+          if (T.typed.length >= String(T.q.answer).length) checkTimed();
+        };
+        pad.appendChild(b2);
+      });
+    }
+  }
+  function checkTimed() {
+    if (!T || T.done) return;
+    const ok = String(T.typed) === String(T.q.answer);
+    if (ok) { T.right++; sfx.ok(); beep(1200, 0.08, 'sine', 0.1); }
+    else { T.wrong++; sfx.no(); T.wrongs.push({ label: (T.q.sub || T.q.big || '').replace(/<[^>]+>/g, ' ').slice(0, 30), answer: T.q.answer }); }
+    document.getElementById('timed-right').textContent = T.right;
+    document.getElementById('timed-wrong').textContent = T.wrong;
+    nextTimed();
+  }
+  function endTimed() {
+    clearInterval(T.timer);
+    T.done = true;
+    document.getElementById('timed-run').classList.add('hide');
+    document.getElementById('timed-result').classList.remove('hide');
+    document.getElementById('timed-score').textContent = T.right;
+    document.getElementById('timed-final-right').textContent = T.right;
+    const p = ME();
+    const stars = T.right >= 25 ? 3 : T.right >= 15 ? 2 : T.right >= 8 ? 1 : 0;
+    p.stars += stars; p.totalPlays++;
+    if (T.wrong === 0 && T.right > 0) p.perfectCount++;
+    const key = 'timed_' + T.mode.id;
+    if (stars > (p.levelStars[key] || 0)) p.levelStars[key] = stars;
+    save(); touchDay();
+    const wl = document.getElementById('timed-wrong-list');
+    if (T.wrongs.length) {
+      wl.classList.remove('hide');
+      document.getElementById('timed-wrong-items').innerHTML = T.wrongs.slice(0, 12).map(w =>
+        '<div class="item">' + w.label + ' → <b style="color:var(--green)">' + w.answer + '</b></div>').join('');
+    } else wl.classList.add('hide');
+    if (stars >= 2) { sfx.win(); confetti(30); } else { sfx.ok(); confetti(8); }
+    document.getElementById('timed-left').textContent = '0';
+  }
+
+  /* ═══════════ 乘法口诀 ═══════════ */
+  let MUL = { reciting: false, i: 0 };
+  function openMul() {
+    const box = document.getElementById('mul-table');
+    box.innerHTML = '';
+    if (S.cur === 'er') {
+      // 二宝：数到十
+      document.getElementById('mul-show').innerHTML = '一二三四五…';
+      const CN = ['一','二','三','四','五','六','七','八','九','十'];
+      CN.forEach((c, i) => {
+        const el = document.createElement('div');
+        el.className = 'mul-cell';
+        el.innerHTML = '<span class="r">' + (i + 1) + '</span>' + c;
+        el.onclick = () => { speak(c); speak(String(i + 1)); };
+        box.appendChild(el);
+      });
+      document.getElementById('mul-title') || null;
+      document.querySelector('#screen-mul .tb-title').textContent = '🔢 数到十';
+      document.getElementById('mul-recite').onclick = () => reciteCount();
+      document.getElementById('mul-quiz').onclick = () => { sfx.tap(); startNumQuiz(); };
+      showScreen('screen-mul');
+      return;
+    }
+    document.querySelector('#screen-mul .tb-title').textContent = '🔢 乘法口诀';
+    MUL_KOUJUE.forEach((k, i) => {
+      const el = document.createElement('div');
+      el.className = 'mul-cell' + (ME().mulDone[k.a + 'x' + k.b] ? ' learned' : '');
+      el.innerHTML = '<span class="r">' + k.a + '×' + k.b + '=' + k.p + '</span>' + k.txt;
+      el.onclick = () => {
+        document.getElementById('mul-show').innerHTML = k.txt.replace(String(k.p), '<span class="hl">' + k.p + '</span>');
+        speak(k.txt);
+        const p = ME();
+        if (!p.mulDone[k.a + 'x' + k.b]) { p.mulDone[k.a + 'x' + k.b] = 1; p.mulPassed = Object.keys(p.mulDone).length; save(); }
+        el.classList.add('learned');
+      };
+      box.appendChild(el);
+    });
+    document.getElementById('mul-recite').onclick = () => reciteMul();
+    document.getElementById('mul-quiz').onclick = () => {
+      startQuiz({
+        title: '🔢 口诀抽背', n: 10, key: 'mul_quiz', backFn: () => openMul(),
+        make: () => { const q = GEN.mj(); q._key = 'mul_quiz'; return q; }
+      });
+    };
+    showScreen('screen-mul');
+  }
+  function reciteMul() {
+    if (MUL.reciting) { speechSynthesis.cancel(); MUL.reciting = false; toast('停下来了'); return; }
+    MUL.reciting = true;
+    let i = 0;
+    const step = () => {
+      if (!MUL.reciting || i >= MUL_KOUJUE.length) { MUL.reciting = false; return; }
+      const k = MUL_KOUJUE[i];
+      document.getElementById('mul-show').innerHTML = k.txt.replace(String(k.p), '<span class="hl">' + k.p + '</span>');
+      speak(k.txt);
+      const cells = document.querySelectorAll('#mul-table .mul-cell');
+      cells.forEach((c, ci) => c.style.outline = ci === i ? '3px solid var(--brand)' : '');
+      i++;
+      setTimeout(step, 2100);
+    };
+    step();
+  }
+  function reciteCount() {
+    const CN = ['一','二','三','四','五','六','七','八','九','十'];
+    if (MUL.reciting) { speechSynthesis.cancel(); MUL.reciting = false; return; }
+    MUL.reciting = true;
+    let i = 0;
+    const step = () => {
+      if (!MUL.reciting || i >= 10) { MUL.reciting = false; return; }
+      document.getElementById('mul-show').innerHTML = '<span class="hl">' + CN[i] + '</span>　' + (i + 1);
+      speak(CN[i]); speak(String(i + 1));
+      i++; setTimeout(step, 2000);
+    };
+    step();
+  }
+  function startNumQuiz() {
+    const CN = ['一','二','三','四','五','六','七','八','九','十'];
+    startQuiz({
+      title: '⚡ 认数字', n: 8, key: 'num10', backFn: () => goHome(),
+      make: () => {
+        const n = ri(1, 10), e = pick(WORD_ITEMS).e;
+        const o = options4(n, [n+1, n-1, n+2], 1, 12);
+        return { big: '<span style="font-size:40px">' + CN[n-1] + '</span>', sub: '这个字是几？',
+                 choices: o.choices.map(c => String(c)), answer: o.answer, choiceClass: 'txt',
+                 say: '这个字是几', why: CN[n-1] + ' 就是 ' + n };
+      }
+    });
+  }
+
+  /* ═══════════ 认字闯关 ═══════════ */
+  /* ═══════════ 认字闯关 ═══════════
+     🔴 干扰项有两条硬规矩，破了就出「两个正确答案」的烂题：
+        ① 干扰字的拼音不能跟答案相同（她/它 都读 tā，同时出现就成了双黄蛋）
+        ② 看字选拼音时，干扰拼音也必须两两不同
+     🔴 故意不做「组词填空（古▢）」这类题——没法保证干扰字组不出真词（古书/古诗），
+        会出歧义题。宁可少一种题型，也不给孩子出没有唯一答案的题。 */
+  /* 出题器单独抽出来，是为了让自动化测试能直接跑几千道题查「有没有两个正确答案」
+     （测试跑的就是线上这一份代码，不是另写一套判据） */
+  function hanziQFactory(all) {
+    const er = S.cur === 'er';
+    const pool = all.length >= 8 ? all : all.concat(all, all);
+    return () => {
+        const w = pick(all);
+        const others = shuffle(pool.filter(x => x.z !== w.z && x.py !== w.py)).slice(0, 3);
+        /* 看字选拼音专用的干扰项：拼音必须两两不同，还得跟答案不同。
+           🔴 这里踩过真坑——只保证「干扰字拼音≠答案拼音」不够，
+              两个干扰字自己撞音（住 zhù / 助 zhù）会渲染出两个一模一样的按钮，
+              孩子点哪个都对（或都错），这题就废了。 */
+        const pyOthers = (() => {
+          const seen = new Set([w.py]), out = [];
+          for (const o of shuffle(pool.filter(x => x.z !== w.z))) {
+            if (out.length >= 3) break;
+            if (seen.has(o.py)) continue;
+            seen.add(o.py); out.push(o);
+          }
+          return out;
+        })();
+        let type = er ? pick(w.pic ? ['pic', 'py'] : ['py'])
+                      : pick(['py', 'zi', 'ci']);
+        if (type === 'zi' && pyOthers.length < 3) type = 'ci';   // 同音字太多凑不齐 4 个读音，换题型
+        if (type === 'pic') {
+          return { big: '<span style="font-size:80px">' + w.pic + '</span>', sub: '这是哪个字？',
+                   choices: shuffle([w.z].concat(others.map(o => o.z))), answer: w.z,
+                   say: '这个图是哪个字', why: w.z + '（' + w.py + '）' + (w.ci ? '　组词：' + w.ci.join('、') : '') };
+        }
+        if (type === 'py') {
+          return { big: '<span style="font-size:44px;color:var(--brand)">' + w.py + '</span>',
+                   sub: '这个拼音是哪个字？',
+                   choices: shuffle([w.z].concat(others.map(o => o.z))), answer: w.z,
+                   say: '这个拼音是哪个字', why: w.z + ' 读作 ' + w.py +
+                   (w.ci ? '，组词：' + w.ci.join('、') : '') };
+        }
+        if (type === 'zi') {
+          const pys = shuffle([w.py].concat(pyOthers.map(o => o.py)));
+          return { big: '<span style="font-size:96px" class="kai">' + w.z + '</span>',
+                   sub: '这个字读什么？', choices: pys, answer: w.py, choiceClass: 'txt',
+                   say: '这个字读什么', why: w.z + ' 读作 ' + w.py +
+                   (w.ci ? '，组词：' + w.ci.join('、') : '') };
+        }
+        // 看字选词：正确项必须含这个字，干扰项都不含（含了就也是对的）
+        const rightWord = pick(w.ci || [w.z]);
+        const notMine = c => c.indexOf(w.z) < 0 && c !== rightWord;
+        const wordsOf = list => list.filter(x => x.z !== w.z && x.ci).map(x => pick(x.ci)).filter(notMine);
+        let bads = shuffle([...new Set(wordsOf(all))]).slice(0, 3);
+        /* 从认字卡点进来的闯关，手上只有一组字（30 来个），干扰词可能凑不满 3 个，
+           这时从全库借——总比只给孩子 2 个选项强。 */
+        if (bads.length < 3) {
+          const extra = shuffle([...new Set(wordsOf(hanziPool()))]).filter(c => bads.indexOf(c) < 0);
+          bads = bads.concat(extra).slice(0, 3);
+        }
+        return { big: '<span style="font-size:86px" class="kai">' + w.z + '</span>', sub: '哪个词里有这个字？',
+                 choices: shuffle([rightWord].concat(bads)), answer: rightWord, choiceClass: 'txt',
+                 say: w.z + '，哪个词里有这个字',
+                 why: '「' + rightWord + '」里面有「' + w.z + '」。' + w.z + ' 读作 ' + w.py + '。' };
+    };
+  }
+  function startHanziQuiz(all) {
+    startQuiz({
+      title: '⚡ 认字闯关', n: 10, key: 'hanzi_quiz',
+      backFn: () => openHanziMap(),
+      make: hanziQFactory(all)
+    });
+  }
+
+  /* ═══════════ 描红 ═══════════ */
+  let TRACE = null;
+  function openTrace(startWord) {
+    const pool = hanziPool();
+    const w = (startWord && typeof startWord === 'object') ? startWord : pick(pool);
+    TRACE = { pool, w };
+    document.getElementById('trace-title').textContent = '✍️ 写「' + w.z + '」';
+    document.getElementById('trace-py').textContent = w.py;
+    showScreen('screen-trace');
+    setupCanvas();
+    speak(w.z);
+  }
+  function setupCanvas() {
+    const cv = document.getElementById('trace-canvas');
+    const wrap = document.getElementById('trace-wrap');
+    const dpr = window.devicePixelRatio || 1;
+    const size = wrap.clientWidth || 290;
+    wrap.style.height = size + 'px';
+    cv.width = size * dpr; cv.height = size * dpr;
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawTraceBase(ctx, size);
+    let drawing = false;
+    const pos = e => {
+      const r = cv.getBoundingClientRect();
+      const p = e.touches ? e.touches[0] : e;
+      return { x: p.clientX - r.left, y: p.clientY - r.top };
+    };
+    const start = e => { drawing = true; e.preventDefault(); ctx.beginPath(); const p = pos(e); ctx.moveTo(p.x, p.y); };
+    const move = e => {
+      if (!drawing) return; e.preventDefault();
+      const p = pos(e);
+      ctx.strokeStyle = '#4d8df6'; ctx.lineWidth = 12; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.lineTo(p.x, p.y); ctx.stroke();
+    };
+    const end = () => { drawing = false; };
+    cv.onpointerdown = start; cv.onpointermove = move; cv.onpointerup = end; cv.onpointerleave = end;
+    cv.onpointercancel = end;
+    TRACE.reset = () => { ctx.clearRect(0, 0, size, size); drawTraceBase(ctx, size); };
+  }
+  function drawTraceBase(ctx, size) {
+    ctx.clearRect(0, 0, size, size);
+    ctx.save();
+    ctx.strokeStyle = '#ffd9bd'; ctx.lineWidth = 2; ctx.setLineDash([7, 7]);
+    ctx.beginPath();
+    ctx.moveTo(size / 2, size * 0.06); ctx.lineTo(size / 2, size * 0.94);
+    ctx.moveTo(size * 0.06, size / 2); ctx.lineTo(size * 0.94, size / 2);
+    ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.fillStyle = '#f0ece5';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = (size * 0.72) + 'px "Kaiti SC","STKaiti","KaiTi",serif';
+    ctx.fillText(TRACE.w.z, size / 2, size / 2 + size * 0.03);
+    ctx.restore();
+  }
+
+  /* ═══════════ 星星 / 报告 / 错题本 / 设置 ═══════════ */
+  function openStars() {
+    const p = ME();
+    document.getElementById('achv-star').textContent = p.stars;
+    document.getElementById('achv-sub').textContent = p.stars >= 150 ? '星星王！' : '再攒 ' + Math.max(0, 20 - p.stars) + ' 颗就能换第一个大奖章';
+    const ag = document.getElementById('achv-grid');
+    ag.innerHTML = '';
+    ACHIEVEMENTS.forEach(a => {
+      const unlocked = a.test(Object.assign({ streak: streak() }, p));
+      const el = document.createElement('div');
+      el.className = 'achv' + (unlocked ? '' : ' locked');
+      el.innerHTML = '<div class="e">' + a.e + '</div><div class="t">' + a.t + '</div>';
+      ag.appendChild(el);
+    });
+
+    // 学习报告
+    const totalMin = Object.values(p.days).reduce((a, b) => a + b, 0) / 60;
+    const days = Object.keys(p.days).length;
+    const lv = LEVELS[S.cur];
+    const rows = [];
+    rows.push(['今天学了', Math.round(todaySec() / 60) + ' 分钟']);
+    rows.push(['一共学了', Math.round(totalMin) + ' 分钟 · ' + days + ' 天']);
+    rows.push(['连续打卡', streak() + ' 天']);
+    rows.push(['闯关次数', p.totalPlays + ' 次']);
+    rows.push(['认过的字', p.hanziLearned + ' 个']);
+    if (S.cur === 'da') rows.push(['背熟口诀', p.mulPassed + ' / 45 句']);
+    const scored = lv.math.map(m => ({ m, s: p.stats[m.id] })).filter(x => x.s && x.s.total >= 3);
+    const weak = scored.map(x => ({ n: x.m.name, r: x.s.right / x.s.total })).sort((a, b) => a.r - b.r);
+    document.getElementById('report-card').innerHTML = rows.map(r =>
+      '<div class="list-row"><span class="k">' + r[0] + '</span><span class="v">' + r[1] + '</span></div>').join('') +
+      (weak.length ? '<div style="margin-top:12px;font-size:13px;color:var(--ink2)">各关正确率（低→高）：</div>' +
+        weak.map(w => '<div class="list-row"><span class="k">' + w.n + '</span><span class="v" style="color:' +
+          (w.r >= 0.8 ? 'var(--green)' : w.r >= 0.6 ? 'var(--brand)' : 'var(--red)') + '">' +
+          Math.round(w.r * 100) + '%</span></div>').join('') : '');
+
+    // 错题本
+    const wb = document.getElementById('wrongbook-card');
+    if (!p.wrong.length) {
+      wb.innerHTML = '<div class="empty-tip">还没有错题，继续保持 👍</div>';
+    } else {
+      wb.innerHTML = p.wrong.slice(0, 12).map((w, i) =>
+        '<div class="list-row"><span class="k">' + w.q + '<br><span style="color:var(--red);font-size:12px">你写的：' + (w.you || '—') + '</span></span>' +
+        '<span class="v">' + w.a + '</span></div>').join('') +
+        '<div class="btn-row"><button class="btn ghost sm" id="wb-clear">清空错题本</button></div>';
+      const c = document.getElementById('wb-clear');
+      if (c) c.onclick = () => { p.wrong = []; save(); openStars(); toast('错题本清空了'); };
+    }
+
+    document.getElementById('set-goal').textContent = S.goal;
+    document.getElementById('set-rate').textContent = S.rate < 1 ? '慢' : S.rate > 1 ? '快' : '正常';
+    showScreen('screen-stars');
+  }
+
+  /* ═══════════ 事件绑定 ═══════════ */
+  function bind() {
+    document.querySelectorAll('[data-back]').forEach(b => {
+      b.onclick = () => {
+        const t = b.getAttribute('data-back');
+        if (t === 'screen-map' && MAP_CTX) { sfx.tap(); if (MAP_CTX.kind === 'hanzi') openHanziMap(); else openMathMap(); return; }
+        sfx.tap(); goHome();
+      };
+    });
+    document.getElementById('home-switch').onclick = () => { sfx.tap(); S.cur = null; save(); renderKids(); showScreen('screen-kid'); };
+
+    /* 认字卡 */
+    document.getElementById('learn-prev').onclick = () => { if (LEARN) { sfx.tap(); LEARN.i = (LEARN.i - 1 + LEARN.list.length) % LEARN.list.length; renderLearn(); } };
+    document.getElementById('learn-next').onclick = () => { if (LEARN) { sfx.tap(); LEARN.i = (LEARN.i + 1) % LEARN.list.length; renderLearn(); } };
+    document.getElementById('learn-sound').onclick = () => { if (LEARN) speak(LEARN.list[LEARN.i].z); };
+    document.getElementById('learn-trace').onclick = () => { if (LEARN) openTrace(LEARN.list[LEARN.i]); };
+    /* 从认字卡点「认字闯关」：先考刚学的这一组，孩子刚看完就有反馈 */
+    document.getElementById('learn-quiz').onclick = () => {
+      sfx.tap();
+      const list = (LEARN && LEARN.list && LEARN.list.length >= 8)
+        ? LEARN.list : hanziPool();
+      startHanziQuiz(list, null);
+    };
+
+    /* 闯关 */
+    document.getElementById('quiz-back').onclick = () => { sfx.tap(); if (Q && Q.cfg.backFn) Q.cfg.backFn(); else goHome(); };
+    document.getElementById('quiz-sound').onclick = () => { if (Q && Q.list[Q.i]) speakQ(Q.list[Q.i]); };
+    document.getElementById('answer-ok').onclick = () => answer(Q && Q.typed);
+
+    /* 结算 */
+    document.getElementById('rs-home').onclick = () => { sfx.tap(); goHome(); };
+    document.getElementById('rs-again').onclick = () => {
+      sfx.tap();
+      const cfg = Q.cfg;
+      startQuiz(cfg);
+    };
+
+    /* 限时 */
+    document.getElementById('timed-back').onclick = () => { sfx.tap(); clearInterval(T && T.timer); openTimedMenu(); };
+    document.getElementById('timed-ok').onclick = () => checkTimed();
+    document.getElementById('timed-home').onclick = () => { sfx.tap(); goHome(); };
+    document.getElementById('timed-again').onclick = () => { sfx.tap(); startTimed(T.mode); };
+
+    /* 乘法口诀 */
+    document.getElementById('mul-sound').onclick = () => {
+      const t = document.getElementById('mul-show').textContent;
+      if (t) speak(t);
+    };
+
+    /* 描红 */
+    document.getElementById('trace-clear').onclick = () => { if (TRACE && TRACE.reset) TRACE.reset(); };
+    document.getElementById('trace-sound').onclick = () => { if (TRACE) speak(TRACE.w.z); };
+    document.getElementById('trace-next').onclick = () => {
+      if (!TRACE) return;
+      let w = pick(TRACE.pool);
+      let guard = 0;
+      while (w.z === TRACE.w.z && guard++ < 20) w = pick(TRACE.pool);
+      openTrace(w);
+    };
+
+    /* 设置 */
+    document.querySelectorAll('[data-goal]').forEach(b => b.onclick = () => {
+      S.goal = Math.max(5, Math.min(120, S.goal + Number(b.getAttribute('data-goal'))));
+      save(); document.getElementById('set-goal').textContent = S.goal;
+    });
+    document.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => {
+      S.rate = Number(b.getAttribute('data-rate'));
+      save(); document.getElementById('set-rate').textContent = S.rate < 1 ? '慢' : S.rate > 1 ? '快' : '正常';
+      toast('语速调好了，读一句听听');
+    });
+    document.getElementById('set-reset').onclick = () => {
+      if (!confirm('确定清空「' + KID().name + '」的全部进度吗？（另一个小朋友不受影响）')) return;
+      S.profiles[S.cur] = blankProfile(); save(); goHome(); toast('已经清空');
+    };
+  }
+
+  /* ═══════════ 启动 ═══════════ */
+  load();
+  bind();
+  renderKids();
+  if (S.cur) goHome(); else showScreen('screen-kid');
+
+  // 暴露给自动化测试用（只读，不改界面行为）
+  window.__hm = {
+    GEN, LEVELS, MUL_KOUJUE, HANZI_QI, HANZI_G2, hanziPool: () => hanziPool(),
+    hanziGroups: () => hanziGroups(),
+    hanziQFactory: (all) => hanziQFactory(all),
+    state: () => S, blankProfile,
+    quiz: () => Q, learn: () => LEARN, screen: () => curScreen
+  };
+})();
+</script>
+</div><!-- /.app -->
+<script>
+/* 离线缓存：把 App 本体存进浏览器，断网也能打开（sw.js 就在同目录）。
+   🔴 本机双击 index.html（file://）时浏览器不允许注册 service worker，
+      注册会失败——这不是错误，双击照样能玩，只是不享受离线缓存。
+      所以这里先判协议，失败也静默，绝不让它弹个红字吓到小孩。 */
+if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+  addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
+  });
+}
+</script>
+</body>
+</html>

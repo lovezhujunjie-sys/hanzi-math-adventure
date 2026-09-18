@@ -1,0 +1,287 @@
+<!-- ═══════════ 1. 选小朋友 ═══════════ -->
+<div class="screen on" id="screen-kid">
+  <div class="center" style="margin:26px 0 6px">
+    <div style="font-size:60px;line-height:1">🐣</div>
+    <h1 style="font-size:27px;margin:12px 0 6px">汉字 · 数学 大冒险</h1>
+    <p style="font-size:14px;color:var(--ink3);margin:0">今天是谁来闯关呀？</p>
+  </div>
+  <div class="kid-grid" id="kid-grid"></div>
+  <p class="foot-note">两个小朋友各有各的进度，互不影响<br>数据只存在这台设备上</p>
+</div>
+
+<!-- ═══════════ 2. 首页 ═══════════ -->
+<div class="screen" id="screen-home">
+  <div class="hello">
+    <div class="av" id="home-av">🧒</div>
+    <div style="min-width:0">
+      <div class="nm" id="home-name">小朋友</div>
+      <div class="sub" id="home-sub">今天还没开始哦</div>
+    </div>
+    <button class="switch" id="home-switch">换人</button>
+  </div>
+
+  <div class="stat-strip">
+    <div class="stat"><div class="n" id="st-min">0<span class="u">分</span></div><div class="l">今日学习</div></div>
+    <div class="stat"><div class="n" id="st-star">0</div><div class="l">星星 ⭐</div></div>
+    <div class="stat"><div class="n" id="st-streak">0<span class="u">天</span></div><div class="l">连续打卡</div></div>
+  </div>
+
+  <div class="mod-grid" id="home-mods"></div>
+
+  <div class="sect-title">👀 今天练过什么</div>
+  <div class="card" id="home-today"><div class="empty-tip">还没开始，随便挑一个玩吧 👆</div></div>
+  <p class="foot-note">汉字数学大冒险 · 给麟轩和曾强做的<br>离线可用，断网也能学</p>
+</div>
+
+<!-- ═══════════ 3. 认字卡（学习） ═══════════ -->
+<div class="screen" id="screen-learn">
+  <div class="topbar">
+    <button class="icon-btn" data-back="screen-home">←</button>
+    <div class="tb-title" id="learn-title">认字卡</div>
+    <button class="icon-btn" id="learn-sound">🔊</button>
+  </div>
+  <div style="text-align:center">
+    <div class="big-pic" id="learn-pic"></div>
+    <div class="tian"><span class="hz kai" id="learn-hz">字</span></div>
+    <div class="py" id="learn-py">zì</div>
+    <div class="hz-info" id="learn-info"></div>
+    <div class="example-line" id="learn-ju"></div>
+  </div>
+  <div class="btn-row" style="margin-top:20px">
+    <button class="btn ghost" id="learn-prev">◀ 上一个</button>
+    <button class="btn primary" id="learn-next">下一个 ▶</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn blue" id="learn-trace">✍️ 写一写这个字</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn green" id="learn-quiz">⚡ 认字闯关</button>
+  </div>
+  <p class="foot-note" id="learn-pos">1 / 1</p>
+</div>
+
+<!-- ═══════════ 4. 通用答题（闯关 / 口算 / 应用题 / 比大小 / 数一数） ═══════════ -->
+<div class="screen" id="screen-quiz">
+  <div class="topbar">
+    <button class="icon-btn" id="quiz-back">←</button>
+    <div class="tb-title" id="quiz-title">闯关</div>
+    <button class="icon-btn" id="quiz-sound">🔊</button>
+  </div>
+
+  <!-- 答题区 -->
+  <div id="quiz-body">
+    <div class="quiz-top">
+      <div class="prog"><i id="quiz-bar"></i></div>
+      <div class="prog-txt" id="quiz-count">1/10</div>
+    </div>
+    <div class="q-stem">
+      <div class="q-big" id="q-big"></div>
+      <div class="q-emoji" id="q-emoji"></div>
+      <div class="q-sub" id="q-sub"></div>
+    </div>
+
+    <div id="q-answer-area" class="hide">
+      <div class="answer-box" id="answer-box"></div>
+      <div class="numpad" id="numpad"></div>
+      <div class="btn-row"><button class="btn green" id="answer-ok">确定 ✓</button></div>
+    </div>
+
+    <div class="choices" id="q-choices"></div>
+
+    <div class="feedback hide" id="q-feedback"></div>
+    <button class="btn primary hide" id="q-next" style="margin-top:14px">下一题 →</button>
+  </div>
+
+  <!-- 结算区 -->
+  <div id="quiz-result" class="hide">
+    <div class="result-card">
+      <div class="big-emoji" id="rs-emoji">🎉</div>
+      <h2 id="rs-title">太棒了！</h2>
+      <div class="stars-row" id="rs-stars"></div>
+      <div style="font-size:15px;color:var(--ink2)" id="rs-detail"></div>
+      <div class="wrong-list hide" id="rs-wrong">
+        <h3>这几题再看看 👇</h3>
+        <div id="rs-wrong-items"></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn ghost" id="rs-home">🏠 回家</button>
+      <button class="btn primary" id="rs-again">🔁 再来一次</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 5. 限时口算 ═══════════ -->
+<div class="screen" id="screen-timed">
+  <div class="topbar">
+    <button class="icon-btn" id="timed-back">←</button>
+    <div class="tb-title">⏱️ 限时口算</div>
+    <div class="prog-txt" id="timed-left">60</div>
+  </div>
+  <div class="timer-ring"><i id="timed-bar"></i></div>
+  <div id="timed-run">
+    <div class="q-stem"><div class="q-big" id="timed-q">1 + 1 = ?</div></div>
+    <div class="answer-box" id="timed-ans"></div>
+    <div class="numpad" id="timed-pad"></div>
+    <div class="btn-row"><button class="btn green" id="timed-ok">确定 ✓</button></div>
+    <div style="text-align:center;margin-top:14px;font-size:15px;color:var(--ink2)">
+      答对 <b id="timed-right" style="color:var(--green);font-size:20px">0</b> 题 ·
+      答错 <b id="timed-wrong" style="color:var(--red);font-size:20px">0</b> 题
+    </div>
+  </div>
+  <div id="timed-result" class="hide">
+    <div class="result-card">
+      <div class="big-emoji">⏱️</div>
+      <h2>时间到！</h2>
+      <div class="big-count" id="timed-score">0</div>
+      <div style="font-size:15px;color:var(--ink2)">秒内答对 <b id="timed-final-right">0</b> 题</div>
+      <div class="wrong-list hide" id="timed-wrong-list">
+        <h3>这几题再看看 👇</h3>
+        <div id="timed-wrong-items"></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn ghost" id="timed-home">🏠 回家</button>
+      <button class="btn primary" id="timed-again">🔁 再来一局</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 6. 乘法口诀表 ═══════════ -->
+<div class="screen" id="screen-mul">
+  <div class="topbar">
+    <button class="icon-btn" data-back="screen-home">←</button>
+    <div class="tb-title">🔢 乘法口诀</div>
+    <button class="icon-btn" id="mul-sound">🔊</button>
+  </div>
+  <div class="card" style="text-align:center;margin-bottom:14px">
+    <div class="mul-big" id="mul-show">一一得一</div>
+    <div style="font-size:13px;color:var(--ink3);margin-top:6px">点任意一句，听它怎么读</div>
+  </div>
+  <div class="btn-row" style="margin-bottom:14px">
+    <button class="btn blue" id="mul-recite">🎤 从头背一遍</button>
+    <button class="btn green" id="mul-quiz">⚡ 抽背闯关</button>
+  </div>
+  <div class="mul-table" id="mul-table"></div>
+  <p class="foot-note">背熟口诀，乘除法就快一半了</p>
+</div>
+
+<!-- ═══════════ 7. 描红写字 ═══════════ -->
+<div class="screen" id="screen-trace">
+  <div class="topbar">
+    <button class="icon-btn" data-back="screen-home">←</button>
+    <div class="tb-title" id="trace-title">✍️ 写一写</div>
+    <button class="icon-btn" id="trace-sound">🔊</button>
+  </div>
+  <div class="trace-wrap" id="trace-wrap">
+    <canvas id="trace-canvas"></canvas>
+  </div>
+  <div style="text-align:center;margin-top:12px">
+    <span class="py" id="trace-py" style="font-size:22px"></span>
+  </div>
+  <div class="btn-row">
+    <button class="btn ghost" id="trace-clear">🧽 擦掉重写</button>
+    <button class="btn primary" id="trace-next">换一个字 ▶</button>
+  </div>
+  <p class="foot-note">用手指或鼠标沿着淡淡的字写一遍<br>写完点「换一个字」，多写几遍就记住了</p>
+</div>
+
+<!-- ═══════════ 8. 星星 · 家长看进度 ═══════════ -->
+<div class="screen" id="screen-stars">
+  <div class="topbar">
+    <button class="icon-btn" data-back="screen-home">←</button>
+    <div class="tb-title">🏆 星星与进度</div>
+  </div>
+  <div class="card center" style="margin-bottom:14px">
+    <div style="font-size:44px">⭐</div>
+    <div class="big-count" id="achv-star">0</div>
+    <div style="font-size:14px;color:var(--ink2)" id="achv-sub">再攒点星星换奖杯</div>
+  </div>
+  <div class="sect-title">🎖️ 我的奖章</div>
+  <div class="achv-grid" id="achv-grid"></div>
+  <div class="sect-title">📊 学习报告 <span class="hint">给爸爸妈妈看的</span></div>
+  <div class="card" id="report-card"></div>
+  <div class="sect-title">📚 错题本 <span class="hint">答错的题自动收进来</span></div>
+  <div class="card" id="wrongbook-card"></div>
+  <div class="sect-title">⚙️ 设置</div>
+  <div class="card">
+    <div class="list-row"><span class="k">每日目标（分钟）</span><span class="v" id="set-goal">20</span></div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn ghost sm" data-goal="-5">−5</button>
+      <button class="btn ghost sm" data-goal="5">+5</button>
+    </div>
+    <div class="list-row" style="margin-top:10px"><span class="k">朗读语速</span><span class="v" id="set-rate">正常</span></div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn ghost sm" data-rate="0.8">慢一点</button>
+      <button class="btn ghost sm" data-rate="1">正常</button>
+      <button class="btn ghost sm" data-rate="1.2">快一点</button>
+    </div>
+    <div class="list-row" style="margin-top:10px"><span class="k">清空这个小朋友的进度</span>
+      <button class="btn ghost sm" id="set-reset" style="border-color:#ffd0cc;color:var(--red)">清空</button></div>
+  </div>
+  <p class="foot-note">进度只存在这台设备（浏览器本地），不上传</p>
+</div>
+
+<!-- ═══════════ 9. 关卡地图 / 主题选择（认字 + 数学共用） ═══════════ -->
+<div class="screen" id="screen-map">
+  <div class="topbar">
+    <button class="icon-btn" data-back="screen-home">←</button>
+    <div class="tb-title" id="map-title">关卡</div>
+    <div class="prog-txt" id="map-star" style="flex:none">⭐ 0</div>
+  </div>
+  <p style="font-size:13px;color:var(--ink3);margin:0 0 14px;line-height:1.6" id="map-sub"></p>
+  <div class="map-grid" id="map-grid"></div>
+  <p class="foot-note" id="map-foot"></p>
+</div>
+
+<style>
+  .map-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .map-item{
+    position:relative;background:var(--card);border-radius:var(--r);padding:16px 12px 14px;
+    box-shadow:var(--shadow);cursor:pointer;text-align:center;border:3px solid transparent;
+    transition:transform .12s ease;
+  }
+  .map-item:active{transform:scale(.96);}
+  .map-item.done{border-color:#c9f0da;background:linear-gradient(180deg,#f4fdf8,#fff);}
+  .map-item .mi-ico{font-size:34px;line-height:1;margin-bottom:8px;}
+  .map-item .mi-name{font-size:15px;font-weight:800;}
+  .map-item .mi-desc{font-size:11px;color:var(--ink3);margin-top:3px;line-height:1.4;}
+  .map-item .mi-stars{font-size:14px;margin-top:7px;letter-spacing:2px;}
+  .map-item .mi-num{
+    width:38px;height:38px;margin:0 auto 8px;border-radius:12px;
+    background:linear-gradient(135deg,#fff0e2,#ffe0c2);
+    color:var(--brand);font-size:21px;font-weight:900;line-height:38px;
+  }
+  .map-item .mi-sample{font-size:17px;color:var(--ink4);letter-spacing:3px;margin-top:6px;}
+  .map-item .mi-stars .off{opacity:.2;}
+  .map-item.big{grid-column:1 / -1;display:flex;align-items:center;gap:14px;text-align:left;padding:16px;border-color:#ffe1c4;}
+  .map-item.big .mi-ico{font-size:40px;margin:0;}
+  .combo{
+    position:fixed;left:50%;top:22%;transform:translate(-50%,-50%) scale(.6);
+    font-size:34px;font-weight:900;color:#ff8a3d;z-index:120;pointer-events:none;opacity:0;
+    text-shadow:0 2px 0 #fff,0 4px 16px rgba(255,138,61,.4);
+  }
+  .combo.on{animation:comboPop .8s ease;}
+  @keyframes comboPop{
+    0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}
+    30%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}
+    70%{opacity:1;transform:translate(-50%,-60%) scale(1)}
+    100%{opacity:0;transform:translate(-50%,-80%) scale(.95)}
+  }
+  .big-card{
+    background:linear-gradient(135deg,#fff6ea,#ffe9d3);border-radius:var(--r);padding:18px;
+    box-shadow:var(--shadow);text-align:center;margin-bottom:14px;
+  }
+  .big-card .n{font-size:46px;font-weight:900;color:var(--brand);line-height:1;}
+  .big-card .l{font-size:13px;color:var(--ink2);margin-top:6px;}
+  .quiz-emoji{font-size:26px;line-height:1.5;word-break:break-word;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px;}
+  .chip{
+    padding:9px 14px;border-radius:14px;background:var(--card);border:2px solid var(--line2);
+    font-size:14px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;
+  }
+  .chip.on{background:var(--brand);color:#fff;border-color:var(--brand);}
+</style>
+<div class="combo" id="combo"></div>
+<div id="confetti"></div>
+<div class="toast" id="toast"></div>
