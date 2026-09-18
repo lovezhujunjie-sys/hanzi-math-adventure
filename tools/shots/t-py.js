@@ -81,10 +81,25 @@ function run() {
   function clickAt(x, y) {
     const el = document.elementFromPoint(x, y);
     if (!el) return null;
-    el.dispatchEvent(new MouseEvent('click',
-      { clientX: x, clientY: y, bubbles: true, cancelable: true }));
+    fireTap(el, x, y);   // 🔴 真用户＝先 pointerdown 再 click（注音现在要求 pointerdown 配套；fireTap 来自前置的 _lib.js）
     return el;
   }
+
+  /* ── 0. ghost click 防护：打开链接的残留点击（没有本页 pointerdown 配套）不许弹气泡 ──
+     🔴 老曾 2026-09-18 报的 bug：手机/iPad/微信里点链接打开本页时，浏览器会在加载完成后、
+        于「原触摸坐标」补发一个 click。它坐标非零、又不是按钮，注音就误弹一个莫名其妙的字
+        并朗读出来（老曾看到的是「星」字）。真点击必是「本页 pointerdown → click」成对出现，
+        所以只认「近期有过本页按下」的 click。这条断言在修复前会失败（＝复现 bug），修复后通过。
+     🔴 必须放在任何真实 pointerdown 之前跑：前面 kid()/pickMod().click() 都是裸 .click()（不派
+        pointerdown），所以此刻内部 lastDown 仍是初始值，正好模拟「距上次按下已过很久」。 */
+  L.push('== ghost click 防护（打开链接的残留点击，无 pointerdown 配套）==');
+  const cg = centerOf(probe.firstChild, 4);          // 探针「数」字的真坐标
+  pop.classList.remove('on');
+  const ghostEl = document.elementFromPoint(cg.x, cg.y);
+  ok(ghostEl === probe, 'ghost click 坐标确实落在探针上（命中 ' + (ghostEl ? ghostEl.tagName + '#' + ghostEl.id : 'None') + '）');
+  if (ghostEl) ghostEl.dispatchEvent(new MouseEvent('click',
+    { clientX: cg.x, clientY: cg.y, bubbles: true, cancelable: true }));   // 🔴 只 click、不 pointerdown ＝ 残留点击
+  ok(!pop.classList.contains('on'), '无 pointerdown 配套的 click（＝打开链接的残留点击）→ 气泡不弹、不朗读');
 
   const tn = probe.firstChild;                       // 那个文字节点
   ok(tn && tn.nodeType === 3, '探针文字节点就位：' + (tn ? tn.nodeValue : '(没有)'));

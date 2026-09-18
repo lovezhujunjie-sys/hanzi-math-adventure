@@ -12,6 +12,16 @@ function pickMap(name){
 }
 function kid(k){ const c=document.querySelector('.kid-card.'+k); if(c) c.click(); }
 
+/* 🔴 真用户点一下＝先 pointerdown 再 click。App 的点字注音现在要求「click 必须由本页近期
+   pointerdown 引发」（防打开链接的残留 ghost click 误弹字并朗读），所以驱动脚本也得成对派发，
+   否则注音测试会因为「没有配套按下」而全部点不响。 */
+function fireTap(el, x, y){
+  const opt = { clientX: x, clientY: y, bubbles: true, cancelable: true };
+  if (typeof PointerEvent === 'function') el.dispatchEvent(new PointerEvent('pointerdown', opt));
+  else el.dispatchEvent(new MouseEvent('pointerdown', opt));
+  el.dispatchEvent(new MouseEvent('click', opt));
+}
+
 /* 「把屏幕上一个真字点一下」——算出该字的屏幕坐标，走真命中测试派发真事件。
    截图脚本用：要看的正是「孩子点下去之后屏幕上长什么样」。 */
 function findCharNode(ch){
@@ -34,8 +44,7 @@ function tapCharAt(ch){
   const x = c.rect.left + c.rect.width / 2, y = c.rect.top + c.rect.height / 2;
   const el = document.elementFromPoint(x, y);
   if (!el) return '坐标没命中任何元素';
-  el.dispatchEvent(new MouseEvent('click',
-    { clientX: x, clientY: y, bubbles: true, cancelable: true }));
+  fireTap(el, x, y);
   return el.tagName + (el.className ? '.' + el.className : '');
 }
 /* 屏幕上第一段「足够长的中文」里的第 i 个字（用来在认字卡/组词上随便挑个真字点） */
@@ -52,8 +61,7 @@ function tapFirstCjk(i){
     if (b.width > 0 && b.height > 0 && b.top >= 0 && b.bottom <= window.innerHeight) {
       const x = b.left + b.width / 2, y = b.top + b.height / 2;
       const el = document.elementFromPoint(x, y);
-      if (el) el.dispatchEvent(new MouseEvent('click',
-        { clientX: x, clientY: y, bubbles: true, cancelable: true }));
+      if (el) fireTap(el, x, y);
       return v.slice(m.index, m.index + 6) + ' 第' + i + '字 → ' + (el ? el.tagName : 'None');
     }
   }
@@ -98,8 +106,7 @@ function tapCharIn(sel, i){
       const x = b.left + b.width / 2, y = b.top + b.height / 2;
       const el = document.elementFromPoint(x, y);
       if (!el) return '坐标没命中';
-      el.dispatchEvent(new MouseEvent('click',
-        { clientX: x, clientY: y, bubbles: true, cancelable: true }));
+      fireTap(el, x, y);
       return '点了「' + v[k] + '」（' + sel + ' 里第' + i + '个中文字）→ ' + el.tagName;
     }
   }

@@ -47,7 +47,12 @@
 //                   #F3F7FF、果冻卡片、漂浮/摇摆动画）。顺带修一处 UI 语义：答错按钮原来用粉红
 //                   （--grad-pink），改回红色（--grad-red #FF5C7A）——「错=红」是孩子的通用信号，
 //                   也和 .feedback.no 的红底一致，粉红读起来像「可爱/中性」而非「答错」。
-const VERSION = 'hm-2026-09-18.9';
+//    2026-09-18 v10：修一个「一打开就吓一跳」的 bug——手机/iPad/微信里点链接打开本页时，浏览器
+//                   会在加载完成后于原触摸坐标补发一个 click（ghost click），点字注音把它当成真
+//                   点击，就凭空弹出一个字的拼音气泡还朗读出来（老曾看到的是「星」字）。修法：注音
+//                   只认「本页 pointerdown → click」成对的事件，残留点击没有配套按下一律忽略；正常
+//                   点字注音不受影响。已用「放回 bug → 断言叫」验证过（t-py.js 的 ghost 断言）。
+const VERSION = 'hm-2026-09-18.10';
 const INDEX = new URL('./index.html', self.location.href).href;
 
 self.addEventListener('install', e => {

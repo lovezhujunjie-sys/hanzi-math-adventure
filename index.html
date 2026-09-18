@@ -3160,7 +3160,16 @@ var PY_AMB = "一不个中为乐仔伯似作倒兴几卡发只号呀和咱哇啦
     pyTimer = setTimeout(() => pop.classList.remove('on'), 7000);
   }
   function bindPyTap() {
+    /* 🔴 防「打开链接的残留点击（ghost click）」：手机/iPad/微信里点链接打开本页时，浏览器会在
+       加载完成后、于「原触摸坐标」补发一个 click——它坐标非零、又不是按钮，却能让点字注音误弹
+       一个莫名其妙的字并朗读出来（老曾 2026-09-18 报的 bug：一打开就冒出个「星」字还念出声）。
+       真点击一定是「本页 pointerdown → click」成对出现；那次残留点击没有本页 pointerdown 配套。
+       所以只认「800ms 内本页真按下过」的 click：阈值很宽松（真按到 click 通常 <100ms），而残留
+       点击距上次按下是「从未」（lastDown=0，差值极大）必被挡，也不误伤正常的点字注音。 */
+    let lastDown = 0;
+    document.addEventListener('pointerdown', () => { lastDown = Date.now(); }, true);
     document.addEventListener('click', e => {
+      if (Date.now() - lastDown > 800) return;                    // 没有配套的本页按下 → 残留点击，忽略
       if (!e.clientX && !e.clientY) return;                       // 键盘触发的假点击
       if (e.target.closest && e.target.closest(PY_SKIP)) return;  // 能点的东西有自己的活干
       const info = pyReadAt(e.clientX, e.clientY);
