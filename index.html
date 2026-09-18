@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>汉字数学大冒险</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--pri:#FF6B6B;--sec:#4ECDC4;--acc:#FFE66D;--bg:#F0F8FF;--card:#fff;--txt:#2D3436;--shadow:0 6px 20px rgba(0,0,0,.08);--radius:20px}
+body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden}
+.screen{display:none;min-height:100vh;padding:20px;padding-bottom:40px;animation:fadeIn .4s}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeIn{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bounce{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes pop{0%{transform:scale(0)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-5deg)}75%{transform:rotate(5deg)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+h1{font-size:1.8em;margin-bottom:8px;text-align:center}
+h2{font-size:1.4em;margin-bottom:12px;text-align:center}
+.subtitle{color:#636E72;text-align:center;margin-bottom:16px;font-size:.95em}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 28px;border:none;border-radius:50px;font-size:1.05em;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:var(--shadow)}
+.btn:active{transform:scale(.93)}
+.btn-pri{background:linear-gradient(135deg,#FF6B6B,#EE5A24);color:#fff}
+.btn-sec{background:linear-gradient(135deg,#4ECDC4,#00B894);color:#fff}
+.btn-acc{background:linear-gradient(135deg,#FFE66D,#FDCB6E);color:#333}
+.btn-outline{background:#fff;color:var(--txt);border:2px solid #E0E0E0}
+.card{background:var(--card);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);width:100%;max-width:500px;margin-bottom:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;max-width:500px}
+.welcome-scene{font-size:4em;text-align:center;margin:20px 0;animation:float 3s infinite}
+.profile-card{text-align:center;padding:24px 16px;cursor:pointer;transition:all .3s;border:3px solid #F0F0F0}
+.profile-card:hover{border-color:var(--sec);transform:translateY(-3px)}
+.profile-avatar{font-size:3.5em;margin-bottom:8px;animation:wiggle 2s infinite}
+.profile-name{font-size:1.2em;font-weight:700}
+.profile-grade{color:#636E72;font-size:.85em;margin-top:4px}
+.profile-scene{font-size:1.5em;margin-top:8px}
+.mode-card{text-align:center;padding:20px 12px;cursor:pointer;transition:all .25s;border:2px solid #F5F5F5}
+.mode-card:hover{border-color:var(--sec);transform:translateY(-2px);box-shadow:0 8px 25px rgba(78,205,196,.2)}
+.mode-card:active{transform:scale(.96)}
+.mode-scene{font-size:2.8em;margin-bottom:6px;display:block}
+.mode-title{font-weight:700;font-size:.95em}
+.mode-desc{font-size:.75em;color:#636E72;margin-top:4px}
+.hanzi-visual{text-align:center;padding:20px}
+.hanzi-emoji{font-size:5em;display:block;margin-bottom:10px;animation:pop .5s}
+.hanzi-char{font-size:4.5em;font-family:'Kaiti SC','STKaiti',serif;color:#333;display:block;margin:10px 0}
+.hanzi-pinyin{font-size:1.4em;color:var(--pri);font-weight:600}
+.hanzi-story{background:linear-gradient(135deg,#FFF9E6,#FFFDE7);border-radius:16px;padding:16px;margin-top:15px;text-align:left;border-left:4px solid var(--acc);font-size:.95em;line-height:1.6}
+.hanzi-story-title{font-weight:700;margin-bottom:6px;color:#F39C12}
+.hanzi-words{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.hanzi-word{background:#F0FFF4;padding:8px 16px;border-radius:25px;font-size:.9em;border:1px solid #C6F6D5;cursor:pointer;transition:all .2s}
+.hanzi-word:active{background:#C6F6D5;transform:scale(.95)}
+.quiz-scene{font-size:4em;text-align:center;margin:15px 0;animation:pop .4s}
+.quiz-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:500px;margin-top:15px}
+.quiz-opt{padding:18px 12px;border:3px solid #F0F0F0;border-radius:var(--radius);text-align:center;font-size:1.2em;cursor:pointer;transition:all .2s;background:#fff}
+.quiz-opt:hover{border-color:#B2DFDB;background:#E0F7FA}
+.quiz-opt.correct{border-color:#00B894;background:#D4EFDF;animation:bounce .5s}
+.quiz-opt.wrong{border-color:#E74C3C;background:#FADBD8;animation:shake .4s}
+.math-scene{background:linear-gradient(135deg,#E8F8F5,#D1F2EB);border-radius:var(--radius);padding:20px;text-align:center;margin:10px 0;width:100%;max-width:500px;min-height:80px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px}
+.math-item{font-size:2.2em;animation:pop .3s;display:inline-block}
+.math-story{background:#FFF8E1;border-radius:16px;padding:16px;margin:10px 0;width:100%;max-width:500px;text-align:center;font-size:1.05em;line-height:1.6;border:2px dashed #FFD54F}
+.math-problem{font-size:2.5em;text-align:center;margin:15px 0;font-weight:700}
+.math-input{width:100px;height:55px;font-size:2em;text-align:center;border:3px solid #E0E0E0;border-radius:14px;outline:none;transition:all .3s}
+.math-input:focus{border-color:var(--sec);box-shadow:0 0 0 3px rgba(78,205,196,.2)}
+.math-input.correct{border-color:#00B894;background:#D4EFDF}
+.math-input.wrong{border-color:#E74C3C;background:#FADBD8;animation:shake .4s}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:260px;margin:15px auto}
+.numpad-btn{padding:14px;font-size:1.4em;border:none;border-radius:14px;background:#F5F5F5;cursor:pointer;font-weight:700;transition:all .15s}
+.numpad-btn:active{background:var(--sec);color:#fff;transform:scale(.9)}
+.hud{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:500px;padding:8px 0;margin-bottom:8px}
+.hud-item{display:flex;align-items:center;gap:4px;font-weight:600;font-size:.9em;background:#fff;padding:6px 12px;border-radius:20px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.back-btn{position:fixed;top:15px;left:15px;background:#fff;border:none;font-size:1.3em;cursor:pointer;padding:10px 14px;border-radius:50%;box-shadow:0 2px 10px rgba(0,0,0,.1);z-index:100}
+.progress-bar{width:100%;height:14px;background:#F0F0F0;border-radius:7px;overflow:hidden;margin:10px 0}
+.progress-fill{height:100%;background:linear-gradient(90deg,#4ECDC4,#44BD9E);border-radius:7px;transition:width .6s}
+.stars{display:flex;gap:6px;justify-content:center;margin:10px 0}
+.star-icon{font-size:2em;opacity:.25;transition:all .3s}
+.star-icon.earned{opacity:1;animation:pop .5s}
+.result-emoji{font-size:5em;text-align:center;margin:20px 0;animation:bounce 1s infinite}
+.match-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:100%;max-width:400px;margin:15px auto}
+.match-card{aspect-ratio:1;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.8em;cursor:pointer;transition:all .3s;border:3px solid #E0E0E0;background:#fff}
+.match-card.flipped{border-color:var(--sec);background:#E0F7FA}
+.match-card.matched{border-color:#00B894;background:#D4EFDF;pointer-events:none}
+.guide{display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:12px 16px;margin-bottom:15px;width:100%;max-width:500px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.guide-avatar{font-size:2.2em;animation:wiggle 3s infinite}
+.guide-text{font-size:.9em;line-height:1.4;color:#555}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(45,52,54,.9);color:#fff;padding:14px 28px;border-radius:50px;font-weight:600;z-index:999;animation:slideUp .3s;backdrop-filter:blur(10px)}
+.achievement{display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;background:#F8F9FA;margin-bottom:10px;width:100%}
+.achievement.unlocked{background:linear-gradient(135deg,#FFF9E6,#FFFDE7);border:1px solid #FFE082}
+.achievement-icon{font-size:2em}
+.achievement-name{font-weight:600}.achievement-desc{font-size:.8em;color:#636E72}
+@media(max-width:380px){.hanzi-char{font-size:3.5em}.hanzi-emoji{font-size:4em}.math-item{font-size:1.8em}.mode-scene{font-size:2.2em}}
+</style>
+</head>
+<body>
+<div id="screen-profile" class="screen active">
+  <div style="margin-top:40px"></div>
+  <div class="welcome-scene">🏰✨📚</div>
+  <h1>汉字数学大冒险</h1>
+  <p class="subtitle">选一个小勇士，开始冒险吧！</p>
+  <div class="grid-2" style="margin-top:20px">
+    <div class="card profile-card" onclick="selectProfile('dabao')"><div class="profile-avatar">🦸‍♂️</div><div class="profile-name">大宝</div><div class="profile-grade">曾麟轩 · 二年级</div><div class="profile-scene">🚀⚔️🧙‍♂️</div></div>
+    <div class="card profile-card" onclick="selectProfile('erbao')"><div class="profile-avatar">🧒</div><div class="profile-name">二宝</div><div class="profile-grade">曾强 · 幼儿园小班</div><div class="profile-scene">🌈🧸🎠</div></div>
+  </div>
+</div>
+<div id="screen-menu" class="screen">
+  <div class="hud"><span class="hud-item" id="hud-profile">🦸‍♂️</span><span class="hud-item" id="hud-stars">⭐ 0</span><span class="hud-item" id="hud-streak">🔥 0天</span></div>
+  <div class="guide" id="menu-guide"><span class="guide-avatar">🧙‍♂️</span><span class="guide-text" id="guide-text">欢迎！选一个乐园开始闯关吧～</span></div>
+  <div style="width:100%;max-width:500px"><h3 style="margin-bottom:10px">🏝️ 汉字冒险岛</h3><div class="grid-2" id="hanzi-modes"></div></div>
+  <div style="width:100%;max-width:500px;margin-top:20px"><h3 style="margin-bottom:10px">🎪 数学游乐场</h3><div class="grid-2" id="math-modes"></div></div>
+  <div style="margin-top:20px;display:flex;gap:12px"><button class="btn btn-outline" onclick="showScreen('screen-achievements')">🏆 成就墙</button><button class="btn btn-outline" onclick="showScreen('screen-profile')">👤 换人</button></div>
+</div>
+<div id="screen-hanzi-card" class="screen">
+  <button class="back-btn" onclick="showScreen('screen-menu')">←</button>
+  <div class="hud" style="margin-top:10px"><span class="hud-item" id="hz-card-progress">📍 1/10</span><span class="hud-item" id="hz-card-stars">⭐ 0</span></div>
+  <div class="card hanzi-visual" id="hz-flashcard">
+    <span class="hanzi-emoji" id="hz-emoji">⛰️</span>
+    <span class="hanzi-char" id="hz-char">山</span>
+    <span class="hanzi-pinyin" id="hz-pinyin">shān</span>
+    <div class="hanzi-story" id="hz-story" style="display:none"><div class="hanzi-story-title">💡 记忆小故事</div><div id="hz-story-text"></div></div>
+    <div class="hanzi-words" id="hz-words" style="display:none"></div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:15px;flex-wrap:wrap;justify-content:center">
+    <button class="btn btn-acc" onclick="speakCurrent()">🔊 听一听</button>
+    <button class="btn btn-sec" onclick="flipCard()">💡 看故事</button>
+    <button class="btn btn-pri" onclick="nextCard()">下一个 →</button>
+  </div>
+</div>
+<div id="screen-hanzi-quiz" class="screen">
+  <button class="back-btn" onclick="endQuiz()">←</button>
+  <div class="hud" style="margin-top:10px"><span class="hud-item" id="hz-quiz-progress">📍 1/10</span><span class="hud-item" id="hz-quiz-score">✅ 0</span></div>
+  <div class="card" style="text-align:center"><p id="hz-quiz-hint" style="color:#636E72;font-size:.9em"></p><div class="quiz-scene" id="hz-quiz-scene"></div><div id="hz-quiz-extra"></div></div>
+  <div class="quiz-options" id="hz-quiz-options"></div>
+</div>
+<div id="screen-match" class="screen">
+  <button class="back-btn" onclick="endMatch()">←</button>
+  <div class="hud" style="margin-top:10px"><span class="hud-item" id="match-moves">👆 0步</span><span class="hud-item" id="match-pairs">🎯 0/6对</span></div>
+  <div class="guide"><span class="guide-avatar">🧩</span><span class="guide-text">翻开卡片，找到汉字和图片的配对！</span></div>
+  <div class="match-grid" id="match-grid"></div>
+</div>
+<div id="screen-result" class="screen">
+  <div style="margin-top:60px"></div>
+  <div class="result-emoji" id="result-emoji">🎉</div>
+  <h1 id="result-title">太棒了！</h1>
+  <div class="card" style="text-align:center"><div class="stars" id="result-stars"></div><p style="font-size:1.1em;margin-top:10px" id="result-text"></p><div class="progress-bar" style="margin-top:12px"><div class="progress-fill" id="result-bar"></div></div></div>
+  <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;justify-content:center"><button class="btn btn-pri" id="result-retry">🔁 再来一次</button><button class="btn btn-outline" onclick="showScreen('screen-menu')">🏠 回首页</button></div>
+</div>
+<div id="screen-math" class="screen">
+  <button class="back-btn" onclick="endMath()">←</button>
+  <div class="hud" style="margin-top:10px"><span class="hud-item" id="math-progress">📍 1/10</span><span class="hud-item" id="math-score">✅ 0</span></div>
+  <div class="math-story" id="math-story"></div>
+  <div class="math-scene" id="math-scene"></div>
+  <div class="math-problem" id="math-problem"></div>
+  <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0"><input type="text" class="math-input" id="math-answer" inputmode="numeric" readonly placeholder="?"></div>
+  <div class="numpad" id="math-numpad"></div>
+  <div style="display:flex;gap:10px;margin-top:12px"><button class="btn btn-outline" onclick="mathClear()">⌫ 擦掉</button><button class="btn btn-sec" onclick="mathSubmit()">✅ 确定</button></div>
+</div>
+<div id="screen-counting" class="screen">
+  <button class="back-btn" onclick="endCounting()">←</button>
+  <div class="hud" style="margin-top:10px"><span class="hud-item" id="count-progress">📍 1/10</span><span class="hud-item" id="count-score">✅ 0</span></div>
+  <div class="guide"><span class="guide-avatar">🔍</span><span class="guide-text" id="count-hint">数一数，图里有几个？</span></div>
+  <div class="math-scene" id="count-scene" style="min-height:140px"></div>
+  <div class="quiz-options" id="count-options" style="grid-template-columns:repeat(4,1fr)"></div>
+</div>
+<div id="screen-shape" class="screen">
+  <button class="back-btn" onclick="endShape()">←</button>
+  <div class="hud" style="margin-top:10px"><span class="hud-item" id="shape-progress">📍 1/10</span><span class="hud-item" id="shape-score">✅ 0</span></div>
+  <div class="guide"><span class="guide-avatar">🎨</span><span class="guide-text">这个东西是什么形状的？</span></div>
+  <div class="card" style="text-align:center"><div class="quiz-scene" id="shape-display"></div><p style="font-size:1.2em;font-weight:600;color:#636E72" id="shape-q"></p></div>
+  <div class="quiz-options" id="shape-options"></div>
+</div>
+<div id="screen-mult" class="screen">
+  <button class="back-btn" onclick="showScreen('screen-menu')">←</button>
+  <h2 style="margin-top:10px">🏪 乘法小商店</h2>
+  <div class="guide"><span class="guide-avatar">🛒</span><span class="guide-text">点击商品学口诀！每学一句得1⭐</span></div>
+  <div style="width:100%;max-width:500px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px" id="mult-grid"></div>
+</div>
+<div id="screen-achievements" class="screen">
+  <button class="back-btn" onclick="showScreen('screen-menu')">←</button>
+  <h2 style="margin-top:10px">🏆 我的成就墙</h2>
+  <div style="width:100%;max-width:500px;margin-top:15px" id="achievements-list"></div>
+</div>
+<script>
+// ===== 场景化汉字数据 =====
+const HANZI={
+erbao:[
+{char:'日',pinyin:'rì',emoji:'☀️',scene:'天上有个大火球',story:'「日」就像太阳☀️的样子，方方的框是太阳身体，中间一横是发出的光',words:['日出','生日','日光'],strokes:4},
+{char:'月',pinyin:'yuè',emoji:'🌙',scene:'弯弯月亮挂天上',story:'「月」像一弯新月🌙，竖撇是月亮弯弯的身体，里面两横是月光',words:['月亮','月光','一月'],strokes:4},
+{char:'水',pinyin:'shuǐ',emoji:'💧',scene:'小河流水哗啦啦',story:'「水」中间一竖是主流，两边的点和撇是溅起的小水花💧',words:['水果','喝水','河水'],strokes:4},
+{char:'火',pinyin:'huǒ',emoji:'🔥',scene:'篝火烧得旺旺的',story:'「火」像一堆篝火🔥，中间是人字形大火苗，两边是小火星在飞溅',words:['火车','大火','火山'],strokes:4},
+{char:'山',pinyin:'shān',emoji:'⛰️',scene:'三座山峰高高耸',story:'「山」就像三座山峰⛰️并排站着，中间最高两边矮',words:['大山','山上','火山'],strokes:3},
+{char:'石',pinyin:'shí',emoji:'🪨',scene:'山坡上有块大石头',story:'「石」上面一横是悬崖，下面的「口」是一块方方的石头🪨',words:['石头','石子','宝石'],strokes:5},
+{char:'田',pinyin:'tián',emoji:'🌾',scene:'农民伯伯的稻田',story:'「田」像从天上看一块块农田🌾，横竖是田埂把田分成四块',words:['田地','水田','田野'],strokes:5},
+{char:'土',pinyin:'tǔ',emoji:'🏔️',scene:'地上堆着泥巴',story:'「土」下面一横是大地，上面像个小土堆，就是地上的泥土',words:['土地','泥土','黄土'],strokes:3},
+{char:'大',pinyin:'dà',emoji:'🙆',scene:'张开手臂说好大呀',story:'「大」像一个人🙆张开两条胳膊叉开腿，表示很大很大',words:['大人','大家','大象'],strokes:3},
+{char:'小',pinyin:'xiǎo',emoji:'🤏',scene:'用手指捏一点点',story:'「小」中间一竖钩两边各一点，像用两根手指🤏捏起很小的东西',words:['小鸟','小花','小人'],strokes:3},
+{char:'人',pinyin:'rén',emoji:'🚶',scene:'一个人走路的样子',story:'「人」像一个人走路🚶，一撇一捺就是迈开的两条腿',words:['大人','人民','人生'],strokes:2},
+{char:'口',pinyin:'kǒu',emoji:'👄',scene:'张开嘴巴说啊',story:'「口」就是张开嘴巴👄的样子，方方的像人说"啊"时的口型',words:['开口','口水','人口'],strokes:3},
+{char:'手',pinyin:'shǒu',emoji:'✋',scene:'伸出小手数手指',story:'「手」最上面像手指头✋，中间一横是手掌，竖钩是手腕',words:['小手','手心','拍手'],strokes:4},
+{char:'鸟',pinyin:'niǎo',emoji:'🐦',scene:'小鸟在天上飞',story:'「鸟」上面像小鸟的头和眼睛🐦，下面是身体和爪子',words:['小鸟','鸟儿','飞鸟'],strokes:5},
+{char:'鱼',pinyin:'yú',emoji:'🐟',scene:'小鱼在水里游',story:'「鱼」上面像鱼头🐟，中间是鱼身，下面四点是尾巴甩出的水花',words:['小鱼','鱼儿','金鱼'],strokes:8},
+{char:'花',pinyin:'huā',emoji:'🌸',scene:'花园里开满了花',story:'「花」上面草字头🌿表示植物，下面「化」提示读音，就是花朵🌸',words:['小花','花朵','花园'],strokes:7},
+{char:'木',pinyin:'mù',emoji:'🌳',scene:'一棵大树站土地上',story:'「木」一横是树枝🌿，一竖是树干，撇捺是树根扎进土里',words:['木头','树木','木马'],strokes:4},
+{char:'天',pinyin:'tiān',emoji:'🌤️',scene:'蓝蓝天空在头顶',story:'「天」上面一横是天顶，下面是「大」，人头顶上面就是天空🌤️',words:['天空','今天','天上'],strokes:4},
+{char:'上',pinyin:'shàng',emoji:'⬆️',scene:'小蚂蚁往上爬',story:'「上」一横是地面，竖和短横是往上⬆️走的路',words:['上面','上学','上车'],strokes:3},
+{char:'下',pinyin:'xià',emoji:'⬇️',scene:'雨滴往下落',story:'「下」一横是天空，下面是雨滴⬇️落下来的样子',words:['下面','下雨','下车'],strokes:3},
+{char:'马',pinyin:'mǎ',emoji:'🐴',scene:'小马在草原上跑',story:'「马」上面像马头🐴的鬃毛，中间是身体，下面一横是马蹄踏地',words:['小马','马车','木马'],strokes:3},
+{char:'牛',pinyin:'niú',emoji:'🐮',scene:'老牛在田里吃草',story:'「牛」上面像两只牛角🐮，下面一竖是牛脸，横是牛头',words:['小牛','牛奶','牛羊'],strokes:4},
+{char:'羊',pinyin:'yáng',emoji:'🐑',scene:'小羊咩咩叫',story:'「羊」上面两点像弯弯的羊角🐑，三横是身体，竖是腿',words:['小羊','山羊','羊毛'],strokes:6},
+{char:'虫',pinyin:'chóng',emoji:'🐛',scene:'毛毛虫在叶子上爬',story:'「虫」像一条小虫子🐛，口是头，竖是身体，提和点是脚',words:['小虫','虫子','毛虫'],strokes:6},
+{char:'雨',pinyin:'yǔ',emoji:'🌧️',scene:'天上掉下小雨滴',story:'「雨」上面一横是天，里面的点和竖是从天上落下来的雨滴🌧️',words:['下雨','大雨','雨水'],strokes:8},
+{char:'风',pinyin:'fēng',emoji:'🌬️',scene:'呼呼呼风吹来了',story:'「风」外面的框是风在打转🌀，里面是被风吹起的树叶',words:['大风','风车','风景'],strokes:4},
+{char:'一',pinyin:'yī',emoji:'1️⃣',scene:'一根手指头',story:'「一」就是一条横线，像一根手指☝️伸出来表示1',words:['一个','一天','一起'],strokes:1},
+{char:'目',pinyin:'mù',emoji:'👁️',scene:'一只大眼睛',story:'「目」竖起来像眼睛👁️，外面框是眼眶，里面两横是眼珠',words:['目光','耳目','题目'],strokes:5},
+{char:'耳',pinyin:'ěr',emoji:'👂',scene:'用耳朵听声音',story:'「耳」像耳朵👂的形状，横竖是耳廓和耳垂',words:['耳朵','木耳','耳目'],strokes:6},
+{char:'足',pinyin:'zú',emoji:'🦶',scene:'用脚踢球真开心',story:'「足」上面是膝盖下面是脚🦶，合起来就是走路的脚',words:['足球','手足','不足'],strokes:7}
+],
+dabao:[
+{char:'春',pinyin:'chūn',emoji:'🌸',scene:'春天花开蝴蝶飞',story:'「春」上面三横加人字像春天阳光☀️温暖，下面是「日」表示春天太阳',words:['春天','春风','春雨','立春'],strokes:9},
+{char:'夏',pinyin:'xià',emoji:'🏖️',scene:'夏天去海边玩',story:'「夏」上面像大屋顶，下面像人走路🏖️，夏天人们出门玩',words:['夏天','夏日','盛夏'],strokes:10},
+{char:'秋',pinyin:'qiū',emoji:'🍂',scene:'秋天树叶变黄了',story:'「秋」左边「禾」是庄稼🌾，右边「火」是变红的颜色，秋天丰收啦',words:['秋天','秋风','金秋','秋千'],strokes:9},
+{char:'冬',pinyin:'dōng',emoji:'⛄',scene:'冬天堆雪人',story:'「冬」上面像雪花❄️形状，下面两点是冰，表示冬天很冷',words:['冬天','冬日','寒冬','冬雪'],strokes:5},
+{char:'明',pinyin:'míng',emoji:'🌅',scene:'太阳月亮一起亮',story:'「明」左边「日」☀️右边「月」🌙，日月同辉特别明亮',words:['明天','明亮','光明','明白'],strokes:8},
+{char:'休',pinyin:'xiū',emoji:'🛌',scene:'靠在大树上休息',story:'「休」左边「人」右边「木」🌳，一个人靠在大树旁休息',words:['休息','休假','午休'],strokes:6},
+{char:'看',pinyin:'kàn',emoji:'👀',scene:'手搭凉棚往远看',story:'「看」上面是「手」✋下面是「目」👁️，手搭眼睛上往远处看',words:['看书','看见','观看','好看'],strokes:9},
+{char:'想',pinyin:'xiǎng',emoji:'💭',scene:'心里在想事情',story:'「想」下面是「心」❤️表示用心思考，上面「相」提示读音',words:['想念','思想','想法','想象'],strokes:13},
+{char:'爱',pinyin:'ài',emoji:'❤️',scene:'心里充满爱',story:'「爱」中间有个「心」❤️，表示爱是从心里发出来的',words:['爱心','可爱','爱好','爱人'],strokes:10},
+{char:'学',pinyin:'xué',emoji:'📖',scene:'小朋友在学习',story:'「学」上面像两手摆弄东西，下面「子」👦表示小孩动手学习',words:['学习','上学','学校','学生'],strokes:8},
+{char:'好',pinyin:'hǎo',emoji:'👍',scene:'女子在一起真好',story:'「好」左边「女」👩右边「子」👦，女和孩子在一起就是好',words:['好人','好看','你好','好吃'],strokes:6},
+{char:'飞',pinyin:'fēi',emoji:'✈️',scene:'小鸟天上飞',story:'「飞」像一只展翅高飞的鸟✈️，撇和点是展开的翅膀',words:['飞机','飞鸟','飞快','起飞'],strokes:3},
+{char:'走',pinyin:'zǒu',emoji:'🚶',scene:'迈开大步向前走',story:'「走」上面像人摆臂，下面是脚🚶在迈步',words:['走路','行走','走动','出走'],strokes:7},
+{char:'跑',pinyin:'pǎo',emoji:'🏃',scene:'操场上赛跑',story:'「跑」左边「足」🦶用脚，右边「包」提示读音，用脚快速移动',words:['跑步','奔跑','跑道','赛跑'],strokes:12},
+{char:'听',pinyin:'tīng',emoji:'👂',scene:'竖起耳朵认真听',story:'「听」左边「口」👄是声音，右边「斤」，用耳朵接收声音',words:['听话','听见','好听','听力'],strokes:7},
+{char:'说',pinyin:'shuō',emoji:'🗣️',scene:'张嘴说话',story:'「说」左边「讠」和语言有关🗣️，右边「兑」提示读音',words:['说话','说明','小说','听说'],strokes:9},
+{char:'读',pinyin:'dú',emoji:'📚',scene:'大声朗读课文',story:'「读」左边「讠」语言📖，右边像「卖」，用嘴念出文字',words:['读书','朗读','阅读','读者'],strokes:10},
+{char:'写',pinyin:'xiě',emoji:'✍️',scene:'用笔写字',story:'「写」上面「冖」像桌子，下面像手拿笔✍️在纸上写',words:['写字','书写','大写','作家'],strokes:5},
+{char:'画',pinyin:'huà',emoji:'🎨',scene:'画一幅画',story:'「画」外面像画框🖼️，里面「田」像画的格子',words:['画画','图画','画家','书画'],strokes:8},
+{char:'乐',pinyin:'lè',emoji:'😄',scene:'开开心心真快乐',story:'「乐」像一个人笑得合不拢嘴😄，表示快乐开心',words:['快乐','音乐','乐园','乐于'],strokes:5},
+{char:'星',pinyin:'xīng',emoji:'⭐',scene:'夜空闪闪星星',story:'「星」上面「日」☀️天上发光体，下面「生」提示读音',words:['星星','明星','星光','行星'],strokes:9},
+{char:'红',pinyin:'hóng',emoji:'🔴',scene:'红红的苹果',story:'「红」左边「纟」丝线🧵，右边「工」读音，古代红色丝线珍贵',words:['红色','红花','红旗','火红'],strokes:6},
+{char:'绿',pinyin:'lǜ',emoji:'🟢',scene:'春天树叶绿油油',story:'「绿」左边「纟」丝线，右边像水流过山坡🌿，丝绸染成草木色',words:['绿色','绿叶','绿树','草绿'],strokes:11},
+{char:'雪',pinyin:'xuě',emoji:'❄️',scene:'下雪了白茫茫',story:'「雪」上面「雨」🌧️从天上来，下面像雪花❄️的形状',words:['下雪','大雪','雪人','雪花'],strokes:11},
+{char:'电',pinyin:'diàn',emoji:'⚡',scene:'打雷闪电',story:'「电」像闪电⚡的形状，外面是云层里面是电光',words:['电话','电视','电脑','闪电'],strokes:5},
+{char:'光',pinyin:'guāng',emoji:'💡',scene:'阳光照身上暖洋洋',story:'「光」上面像火苗🔥发光，下面「儿」，火照亮了人',words:['阳光','月光','光明','光亮'],strokes:6},
+{char:'树',pinyin:'shù',emoji:'🌲',scene:'高高的大树',story:'「树」左边「木」🌳和树木有关，右边「对」提示读音',words:['大树','树叶','种树','树林'],strokes:9},
+{char:'坐',pinyin:'zuò',emoji:'🪑',scene:'两个人坐土上',story:'「坐」上面两个「人」👫，下面「土」是地面，并排坐地上',words:['坐下','请坐','坐车','坐好'],strokes:7},
+{char:'吃',pinyin:'chī',emoji:'🍚',scene:'大口吃饭真香',story:'「吃」左边「口」👄用嘴，右边「乞」读音，用嘴送食物',words:['吃饭','吃苦','好吃','吃东西'],strokes:6},
+{char:'花',pinyin:'huā',emoji:'🌺',scene:'五颜六色花朵',story:'「花」上面「艹」草🌿是植物，下面「化」读音，植物开放就是花',words:['花朵','花园','开花','红花'],strokes:7}
+]};
+
+// ===== 场景化数学 =====
+const MATH_SCENES={
+add10:[
+{story:'🐰 小兔子有{a}根胡萝卜🥕，又拔了{b}根，一共几根？',emoji:'🥕',a:[1,5],b:[1,5]},
+{story:'🐱 小猫钓了{a}条鱼🐟，又钓了{b}条，一共几条？',emoji:'🐟',a:[1,5],b:[1,5]},
+{story:'🌟 天上有{a}颗星星⭐，又亮了{b}颗，一共几颗？',emoji:'⭐',a:[1,5],b:[1,5]},
+{story:'🍎 盘里有{a}个苹果🍎，妈妈又放了{b}个，一共几个？',emoji:'🍎',a:[1,5],b:[1,5]},
+{story:'🎈 有{a}个气球🎈，又买了{b}个，一共几个？',emoji:'🎈',a:[1,5],b:[1,5]},
+{story:'🐦 树上有{a}只小鸟🐦，又飞来{b}只，一共几只？',emoji:'🐦',a:[1,4],b:[1,4]},
+],
+sub10:[
+{story:'🍪 有{a}块饼干🍪，吃掉了{b}块，还剩几块？',emoji:'🍪',a:[5,10],b:[1,4]},
+{story:'🎈 有{a}个气球🎈，飞走了{b}个，还剩几个？',emoji:'🎈',a:[5,10],b:[1,4]},
+{story:'🐟 鱼缸有{a}条鱼🐟，送朋友{b}条，还剩几条？',emoji:'🐟',a:[5,10],b:[1,4]},
+{story:'🍬 有{a}颗糖🍬，分给同学{b}颗，还剩几颗？',emoji:'🍬',a:[5,10],b:[1,4]},
+{story:'🦋 花上有{a}只蝴蝶🦋，飞走了{b}只，还剩几只？',emoji:'🦋',a:[5,10],b:[1,4]},
+],
+add100:[
+{story:'📚 图书馆有{a}本书📚，又买了{b}本，一共几本？',emoji:'📚',a:[10,60],b:[10,40]},
+{story:'🏫 学校有{a}个男生和{b}个女生，一共多少人？',emoji:'👨‍🎓',a:[15,50],b:[15,50]},
+{story:'💰 存钱罐有{a}元💰，又收到{b}元红包🧧，一共多少？',emoji:'🧧',a:[20,60],b:[10,40]},
+{story:'🌳 公园种了{a}棵松树🌳和{b}棵柳树，一共几棵？',emoji:'🌳',a:[15,50],b:[10,40]},
+],
+sub100:[
+{story:'🍎 果园有{a}个苹果🍎，摘走了{b}个，还剩几个？',emoji:'🍎',a:[30,99],b:[10,29]},
+{story:'📖 一本书有{a}页📖，看了{b}页，还剩几页？',emoji:'📖',a:[40,99],b:[15,39]},
+{story:'🚌 公交车有{a}人🚌，下去{b}人，还剩几人？',emoji:'🚌',a:[30,80],b:[10,29]},
+],
+mult:[
+{story:'🍬 每盒{a}颗糖🍬，买了{b}盒，一共几颗？',emoji:'🍬',a:[2,9],b:[2,9]},
+{story:'✏️ 每包{a}支铅笔✏️，买了{b}包，一共几支？',emoji:'✏️',a:[2,9],b:[2,9]},
+{story:'🍪 每盘{a}块饼干🍪，摆了{b}盘，一共几块？',emoji:'🍪',a:[2,9],b:[2,9]},
+{story:'🌷 每行{a}朵花🌷，种了{b}行，一共几朵？',emoji:'🌷',a:[2,9],b:[2,9]},
+],
+div:[
+{story:'🍊 把{a}个橘子🍊分给{b}人，每人几个？',emoji:'🍊',a:[4,81],b:[2,9]},
+{story:'📚 把{a}本书📚放在{b}个架子上，每架几本？',emoji:'📚',a:[4,81],b:[2,9]},
+{story:'🍪 把{a}块饼干🍪分到{b}个盘子，每盘几块？',emoji:'🍪',a:[4,81],b:[2,9]},
+]};
+const SHAPES_LIFE=[
+{emoji:'🍞',name:'正方形',q:'吐司面包是什么形状？',opts:['正方形','圆形','三角形','长方形']},
+{emoji:'🍕',name:'圆形',q:'披萨是什么形状？',opts:['三角形','圆形','正方形','菱形']},
+{emoji:'🍙',name:'三角形',q:'饭团是什么形状？',opts:['圆形','正方形','三角形','星形']},
+{emoji:'🚪',name:'长方形',q:'教室的门是什么形状？',opts:['正方形','长方形','圆形','三角形']},
+{emoji:'🪁',name:'菱形',q:'风筝是什么形状？',opts:['菱形','三角形','圆形','正方形']},
+{emoji:'⚽',name:'圆形',q:'足球是什么形状？',opts:['正方形','三角形','圆形','长方形']},
+{emoji:'📺',name:'长方形',q:'电视屏幕是什么形状？',opts:['长方形','正方形','圆形','菱形']},
+{emoji:'⭐',name:'星形',q:'五角星是什么形状？',opts:['圆形','星形','三角形','菱形']},
+{emoji:'🧊',name:'正方形',q:'冰块是什么形状？',opts:['圆形','三角形','正方形','长方形']},
+{emoji:'🍩',name:'圆形',q:'甜甜圈是什么形状？',opts:['圆形','正方形','菱形','三角形']},
+];
+const COUNT_SCENES=[
+{emoji:'🍎',text:'数一数，盘子里有几个苹果？'},{emoji:'⭐',text:'天上有几颗星星？'},
+{emoji:'🐟',text:'鱼缸里有几条小鱼？'},{emoji:'🌸',text:'花园里开了几朵花？'},
+{emoji:'🎈',text:'有几个气球飞上天？'},{emoji:'🦋',text:'花丛中有几只蝴蝶？'},
+{emoji:'🍪',text:'盘子里有几块饼干？'},{emoji:'🐱',text:'院子里有几只小猫？'},
+];
+
+// ===== STATE =====
+let currentProfile=localStorage.getItem('hzmath_profile')||'';
+let progress=JSON.parse(localStorage.getItem('hzmath_progress')||'null')||{stars:0,streak:0,lastDate:'',hanziLearned:{},mathDone:0,countDone:0,shapeDone:0,multLearned:{},achievements:[]};
+let currentList=[],cardIdx=0,cardFlipped=false;
+let quizMode='',quizIdx=0,quizCorrect=0,quizTotal=10,quizList=[];
+let mathMode='',mathIdx=0,mathCorrect=0,mathTotal=10,mathAnswer='',mathProblems=[];
+let countIdx=0,countCorrect=0,countAnswer=0;
+let shapeIdx=0,shapeCorrect=0;
+let matchCards=[],matchFlipped=[],matchMatched=0,matchMoves=0;
+let currentScreen='screen-profile';
+
+function init(){updateStreak();if(currentProfile){showScreen('screen-menu');renderMenu();}}
+function updateStreak(){const t=new Date().toDateString();if(progress.lastDate!==t){const y=new Date(Date.now()-864e5).toDateString();progress.streak=progress.lastDate===y?progress.streak+1:1;progress.lastDate=t;save();}}
+function save(){localStorage.setItem('hzmath_progress',JSON.stringify(progress));}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');currentScreen=id;if(id==='screen-menu')renderMenu();if(id==='screen-achievements')renderAchievements();}
+function selectProfile(p){currentProfile=p;localStorage.setItem('hzmath_profile',p);showScreen('screen-menu');renderMenu();speak(p==='dabao'?'大宝勇士，开始冒险！':'二宝小朋友，来玩游戏！');}
+
+function renderMenu(){
+  const isDa=currentProfile==='dabao';
+  document.getElementById('hud-profile').textContent=isDa?'🦸‍♂️ 大宝':'🧒 二宝';
+  document.getElementById('hud-stars').textContent='⭐ '+progress.stars;
+  document.getElementById('hud-streak').textContent='🔥 '+progress.streak+'天';
+  document.getElementById('guide-text').textContent=isDa?'大宝勇士！闯汉字岛还是数学岛？':'二宝！选一个好玩的开始吧～';
+  document.querySelector('#menu-guide .guide-avatar').textContent=isDa?'🧙‍♂️':'🧸';
+  const hz=isDa?[
+    {icon:'🏔️',title:'看图猜字',desc:'看图片猜汉字',action:"startQuiz('pic2char')"},
+    {icon:'📖',title:'字卡冒险',desc:'图片+故事记汉字',action:'startCards()'},
+    {icon:'🧩',title:'图文配对',desc:'翻卡找配对',action:'startMatch()'},
+    {icon:'🔊',title:'听音辨字',desc:'听发音找出字',action:"startQuiz('listen')"},
+  ]:[
+    {icon:'🎨',title:'看图认字',desc:'看图片说汉字',action:"startQuiz('pic2char')"},
+    {icon:'📖',title:'字卡故事',desc:'每个字有故事',action:'startCards()'},
+    {icon:'🧩',title:'翻翻乐',desc:'找配对的卡片',action:'startMatch()'},
+    {icon:'🔊',title:'听音找字',desc:'听声音选图片',action:"startQuiz('listen')"},
+  ];
+  document.getElementById('hanzi-modes').innerHTML=hz.map(m=>`<div class="card mode-card" onclick="${m.action}"><span class="mode-scene">${m.icon}</span><div class="mode-title">${m.title}</div><div class="mode-desc">${m.desc}</div></div>`).join('');
+  const mt=isDa?[
+    {icon:'🛒',title:'购物算术',desc:'买东西算钱',action:"startMath('add100')"},
+    {icon:'⚔️',title:'减法闯关',desc:'100以内减法',action:"startMath('sub100')"},
+    {icon:'🍬',title:'乘法商店',desc:'场景乘法题',action:"startMath('mult')"},
+    {icon:'🍊',title:'分水果',desc:'平均分东西',action:"startMath('div')"},
+  ]:[
+    {icon:'🍎',title:'数水果',desc:'数一数有几个',action:'startCounting()'},
+    {icon:'🐰',title:'加法故事',desc:'小兔拔萝卜',action:"startMath('add10')"},
+    {icon:'🍪',title:'减法故事',desc:'吃饼干还剩几块',action:"startMath('sub10')"},
+    {icon:'🔷',title:'图形世界',desc:'生活中的形状',action:'startShapes()'},
+  ];
+  document.getElementById('math-modes').innerHTML=mt.map(m=>`<div class="card mode-card" onclick="${m.action}"><span class="mode-scene">${m.icon}</span><div class="mode-title">${m.title}</div><div class="mode-desc">${m.desc}</div></div>`).join('');
+}
+
+// ===== HANZI CARDS =====
+function startCards(){currentList=shuffle([...HANZI[currentProfile]]).slice(0,10);cardIdx=0;cardFlipped=false;showScreen('screen-hanzi-card');renderCard();}
+function renderCard(){const h=currentList[cardIdx];document.getElementById('hz-emoji').textContent=h.emoji;document.getElementById('hz-char').textContent=h.char;document.getElementById('hz-pinyin').textContent=h.pinyin;document.getElementById('hz-card-progress').textContent=`📍 ${cardIdx+1}/${currentList.length}`;document.getElementById('hz-story').style.display='none';document.getElementById('hz-words').style.display='none';cardFlipped=false;setTimeout(()=>speak(h.char),400);}
+function flipCard(){const h=currentList[cardIdx];if(!cardFlipped){cardFlipped=true;document.getElementById('hz-story').style.display='block';document.getElementById('hz-story-text').textContent=h.story;document.getElementById('hz-words').style.display='flex';document.getElementById('hz-words').innerHTML=h.words.map(w=>`<span class="hanzi-word" onclick="speak('${w}')">${w} 🔊</span>`).join('');progress.hanziLearned[h.char]=(progress.hanziLearned[h.char]||0)+1;save();}}
+function nextCard(){cardIdx++;if(cardIdx>=currentList.length){addStars(2);showResult('📖','学完10个字卡！',10,10,2,'startCards()');return;}renderCard();}
+function speakCurrent(){const h=currentList[cardIdx];speak(h.char+'，'+h.words.join('，'));
+}
+
+// ===== QUIZ =====
+function startQuiz(mode){quizMode=mode;quizIdx=0;quizCorrect=0;quizList=shuffle([...HANZI[currentProfile]]).slice(0,quizTotal);showScreen('screen-hanzi-quiz');renderQuiz();}
+function renderQuiz(){
+  if(quizIdx>=quizList.length){const s=quizCorrect>=9?3:quizCorrect>=7?2:quizCorrect>=5?1:0;addStars(s);showResult(quizCorrect>=8?'🎉':'💪','闯关完成！',quizCorrect,quizTotal,s,`startQuiz('${quizMode}')`);return;}
+  const h=quizList[quizIdx];
+  document.getElementById('hz-quiz-progress').textContent=`📍 ${quizIdx+1}/${quizTotal}`;
+  document.getElementById('hz-quiz-score').textContent=`✅ ${quizCorrect}`;
+  const others=shuffle(HANZI[currentProfile].filter(x=>x.char!==h.char)).slice(0,3);
+  const opts=shuffle([h,...others]);
+  if(quizMode==='pic2char'){
+    document.getElementById('hz-quiz-hint').textContent='看图片，猜猜是哪个字？';
+    document.getElementById('hz-quiz-scene').textContent=h.emoji;
+    document.getElementById('hz-quiz-extra').innerHTML=`<p style="color:#999;font-size:.85em;margin-top:5px">提示：${h.scene}</p>`;
+    document.getElementById('hz-quiz-options').innerHTML=opts.map(o=>`<div class="quiz-opt" onclick="answerQuiz(this,'${o.char}','${h.char}')"><span style="font-size:2em;font-family:'Kaiti SC',serif">${o.char}</span><br><span style="font-size:.7em;color:#999">${o.pinyin}</span></div>`).join('');
+  }else{
+    document.getElementById('hz-quiz-hint').textContent='🔊 听一听，是哪个字？（点喇叭再听）';
+    document.getElementById('hz-quiz-scene').innerHTML=`<span style="cursor:pointer;font-size:1.2em" onclick="speak('${h.char}')">🔊 点我听发音</span>`;
+    document.getElementById('hz-quiz-extra').innerHTML='';
+    setTimeout(()=>speak(h.char),300);
+    document.getElementById('hz-quiz-options').innerHTML=opts.map(o=>`<div class="quiz-opt" onclick="answerQuiz(this,'${o.char}','${h.char}')"><span style="font-size:1.8em">${o.emoji}</span><br><span style="font-size:1.3em;font-family:'Kaiti SC',serif">${o.char}</span></div>`).join('');
+  }
+}
+function answerQuiz(el,sel,cor){const opts=document.querySelectorAll('#hz-quiz-options .quiz-opt');opts.forEach(o=>o.style.pointerEvents='none');if(sel===cor){quizCorrect++;el.classList.add('correct');playSound('correct');speak('答对了！');}else{el.classList.add('wrong');playSound('wrong');opts.forEach(o=>{if(o.innerHTML.includes('>'+cor+'<'))o.classList.add('correct');});speak('这个是'+cor);}setTimeout(()=>{quizIdx++;renderQuiz();},1400);}
+function endQuiz(){showScreen('screen-menu');}
+
+// ===== MATCH GAME =====
+function startMatch(){const sel=shuffle([...HANZI[currentProfile]]).slice(0,6);matchCards=[];matchFlipped=[];matchMatched=0;matchMoves=0;sel.forEach((h,i)=>{matchCards.push({id:i*2,pairId:i,content:h.char,type:'char'});matchCards.push({id:i*2+1,pairId:i,content:h.emoji,type:'emoji'});});matchCards=shuffle(matchCards);showScreen('screen-match');renderMatch();}
+function renderMatch(){document.getElementById('match-moves').textContent=`👆 ${matchMoves}步`;document.getElementById('match-pairs').textContent=`🎯 ${matchMatched}/6对`;document.getElementById('match-grid').innerHTML=matchCards.map((c,i)=>{const show=matchFlipped.includes(i)||c.matched;return`<div class="match-card ${c.matched?'matched':''} ${show?'flipped':''}" onclick="flipMatch(${i})">${show?`<span style="font-size:${c.type==='emoji'?'2em':'1.5em'};font-family:${c.type==='char'?"'Kaiti SC',serif":'inherit'}">${c.content}</span>`:'<span style="font-size:1.2em">❓</span>'}</div>`;}).join('');}
+function flipMatch(idx){if(matchFlipped.includes(idx)||matchCards[idx].matched||matchFlipped.length>=2)return;matchFlipped.push(idx);renderMatch();if(matchFlipped.length===2){matchMoves++;const[a,b]=matchFlipped;if(matchCards[a].pairId===matchCards[b].pairId){matchCards[a].matched=true;matchCards[b].matched=true;matchMatched++;matchFlipped=[];playSound('correct');setTimeout(()=>{renderMatch();if(matchMatched>=6){addStars(3);showResult('🧩','全部配对成功！',6,6,3,'startMatch()');}},500);}else{playSound('wrong');setTimeout(()=>{matchFlipped=[];renderMatch();},900);}document.getElementById('match-moves').textContent=`👆 ${matchMoves}步`;document.getElementById('match-pairs').textContent=`🎯 ${matchMatched}/6对`;}}
+function endMatch(){showScreen('screen-menu');}
+
+// ===== MATH =====
+function startMath(mode){mathMode=mode;mathIdx=0;mathCorrect=0;mathAnswer='';mathProblems=genMath(mode,mathTotal);showScreen('screen-math');renderNumpad();renderMath();}
+function genMath(mode,n){const sc=MATH_SCENES[mode]||MATH_SCENES.add10;const ps=[];for(let i=0;i<n;i++){const s=sc[i%sc.length];let a,b,ans,op;if(mode==='mult'){a=rand(s.a[0],s.a[1]);b=rand(s.b[0],s.b[1]);ans=a*b;op='×';}else if(mode==='div'){b=rand(s.b[0],s.b[1]);ans=rand(2,9);a=b*ans;op='÷';}else if(mode.includes('sub')){a=rand(s.a[0],s.a[1]);b=rand(s.b[0],Math.min(s.b[1],a-1));ans=a-b;op='-';}else{a=rand(s.a[0],s.a[1]);b=rand(s.b[0],s.b[1]);if(mode==='add10'&&a+b>10)b=10-a;ans=a+b;op='+';}ps.push({story:s.story.replace('{a}',a).replace('{b}',b),emoji:s.emoji,a,b,op,ans});}return ps;}
+function renderMath(){
+  if(mathIdx>=mathProblems.length){const s=mathCorrect>=9?3:mathCorrect>=7?2:mathCorrect>=5?1:0;addStars(s);progress.mathDone+=mathCorrect;save();checkAchievements();showResult(mathCorrect>=8?'🎉':'💪','数学闯关完成！',mathCorrect,mathTotal,s,`startMath('${mathMode}')`);return;}
+  const p=mathProblems[mathIdx];
+  document.getElementById('math-progress').textContent=`📍 ${mathIdx+1}/${mathTotal}`;
+  document.getElementById('math-score').textContent=`✅ ${mathCorrect}`;
+  document.getElementById('math-story').textContent=p.story;
+  // Visual emoji scene
+  let html='';const sA=Math.min(p.a,12),sB=Math.min(p.b,12);
+  if(p.op==='+'){html=Array(sA).fill(`<span class="math-item">${p.emoji}</span>`).join('')+'<span style="font-size:1.8em;margin:0 6px">➕</span>'+Array(sB).fill(`<span class="math-item">${p.emoji}</span>`).join('');}
+  else if(p.op==='-'){html=Array(sA).fill(`<span class="math-item">${p.emoji}</span>`).join('')+'<span style="font-size:1.8em;margin:0 6px">➖</span>'+Array(sB).fill(`<span class="math-item" style="opacity:.35">${p.emoji}</span>`).join('');}
+  else if(p.op==='×'){for(let g=0;g<Math.min(p.b,4);g++){html+=`<span style="display:inline-flex;gap:2px;margin:2px;padding:3px 6px;background:#fff;border-radius:8px">`;for(let k=0;k<Math.min(p.a,6);k++)html+=`<span class="math-item" style="font-size:1.4em">${p.emoji}</span>`;html+=`</span>`;}if(p.b>4)html+=`<span style="font-size:1em;color:#666">...共${p.b}组</span>`;}
+  else{html=`<span style="font-size:1.3em">${p.a}个${p.emoji} ÷ ${p.b}人 = 每人?个</span>`;}
+  document.getElementById('math-scene').innerHTML=html;
+  document.getElementById('math-problem').textContent=`${p.a} ${p.op} ${p.b} = ?`;
+  document.getElementById('math-answer').value='';document.getElementById('math-answer').className='math-input';mathAnswer='';
+}
+function renderNumpad(){document.getElementById('math-numpad').innerHTML=[1,2,3,4,5,6,7,8,9,0].map(n=>`<button class="numpad-btn" onclick="mathInput('${n}')">${n}</button>`).join('');}
+function mathInput(n){if(mathAnswer.length<4){mathAnswer+=n;document.getElementById('math-answer').value=mathAnswer;}}
+function mathClear(){mathAnswer='';document.getElementById('math-answer').value='';document.getElementById('math-answer').className='math-input';}
+function mathSubmit(){if(!mathAnswer)return;const p=mathProblems[mathIdx];const inp=document.getElementById('math-answer');if(parseInt(mathAnswer)===p.ans){mathCorrect++;inp.classList.add('correct');playSound('correct');speak('答对了！');}else{inp.classList.add('wrong');playSound('wrong');setTimeout(()=>{inp.value=p.ans;speak('答案是'+p.ans);},600);}setTimeout(()=>{mathIdx++;renderMath();},1200);}
+function endMath(){showScreen('screen-menu');}
+
+// ===== COUNTING =====
+function startCounting(){countIdx=0;countCorrect=0;showScreen('screen-counting');renderCount();}
+function renderCount(){
+  if(countIdx>=10){const s=countCorrect>=9?3:countCorrect>=7?2:countCorrect>=5?1:0;addStars(s);progress.countDone+=countCorrect;save();checkAchievements();showResult('🔢','数数完成！',countCorrect,10,s,'startCounting()');return;}
+  const sc=COUNT_SCENES[countIdx%COUNT_SCENES.length];const n=rand(1,10);countAnswer=n;
+  document.getElementById('count-progress').textContent=`📍 ${countIdx+1}/10`;
+  document.getElementById('count-score').textContent=`✅ ${countCorrect}`;
+  document.getElementById('count-hint').textContent=sc.text;
+  document.getElementById('count-scene').innerHTML=Array(n).fill(`<span class="math-item">${sc.emoji}</span>`).join('');
+  let opts=new Set([n]);while(opts.size<4)opts.add(Math.max(1,Math.min(10,n+rand(-3,3))));
+  document.getElementById('count-options').innerHTML=shuffle([...opts]).map(o=>`<div class="quiz-opt" style="font-size:1.5em;padding:14px" onclick="answerCount(this,${o},${n})">${o}</div>`).join('');
+}
+function answerCount(el,sel,cor){const opts=document.querySelectorAll('#count-options .quiz-opt');opts.forEach(o=>o.style.pointerEvents='none');if(sel===cor){countCorrect++;el.classList.add('correct');playSound('correct');}else{el.classList.add('wrong');playSound('wrong');opts.forEach(o=>{if(parseInt(o.textContent)===cor)o.classList.add('correct');});}setTimeout(()=>{countIdx++;renderCount();},1200);}
+function endCounting(){showScreen('screen-menu');}
+
+// ===== SHAPES =====
+function startShapes(){shapeIdx=0;shapeCorrect=0;showScreen('screen-shape');renderShape();}
+function renderShape(){
+  if(shapeIdx>=10){const s=shapeCorrect>=9?3:shapeCorrect>=7?2:shapeCorrect>=5?1:0;addStars(s);progress.shapeDone+=shapeCorrect;save();showResult('🔷','图形认知完成！',shapeCorrect,10,s,'startShapes()');return;}
+  const sh=SHAPES_LIFE[shapeIdx%SHAPES_LIFE.length];
+  document.getElementById('shape-progress').textContent=`📍 ${shapeIdx+1}/10`;
+  document.getElementById('shape-score').textContent=`✅ ${shapeCorrect}`;
+  document.getElementById('shape-display').textContent=sh.emoji;
+  document.getElementById('shape-q').textContent=sh.q;
+  document.getElementById('shape-options').innerHTML=shuffle([...sh.opts]).map(o=>`<div class="quiz-opt" onclick="answerShape(this,'${o}','${sh.name}')">${o}</div>`).join('');
+}
+function answerShape(el,sel,cor){const opts=document.querySelectorAll('#shape-options .quiz-opt');opts.forEach(o=>{o.style.pointerEvents='none';if(o.textContent===cor)o.classList.add('correct');});if(sel===cor){shapeCorrect++;el.classList.add('correct');playSound('correct');}else{el.classList.add('wrong');playSound('wrong');}setTimeout(()=>{shapeIdx++;renderShape();},1200);}
+function endShape(){showScreen('screen-menu');}
+
+// ===== RESULT =====
+function showResult(emoji,title,correct,total,stars,retryFn){
+  document.getElementById('result-emoji').textContent=emoji;
+  document.getElementById('result-title').textContent=title;
+  document.getElementById('result-text').textContent=`答对 ${correct}/${total} 题`;
+  document.getElementById('result-bar').style.width=(correct/total*100)+'%';
+  document.getElementById('result-stars').innerHTML=[1,2,3].map(i=>`<span class="star-icon ${i<=stars?'earned':''}">⭐</span>`).join('');
+  document.getElementById('result-retry').onclick=()=>eval(retryFn);
+  showScreen('screen-result');
+}
+
+// ===== ACHIEVEMENTS =====
+const ACHIEVEMENTS=[
+{id:'hz1',icon:'📝',name:'汉字新手',desc:'学会第1个汉字',check:()=>Object.keys(progress.hanziLearned).length>=1},
+{id:'hz10',icon:'📚',name:'识字达人',desc:'学会10个汉字',check:()=>Object.keys(progress.hanziLearned).length>=10},
+{id:'hz20',icon:'🎓',name:'汉字大师',desc:'学会20个汉字',check:()=>Object.keys(progress.hanziLearned).length>=20},
+{id:'m10',icon:'🧮',name:'算术新星',desc:'答对10道数学题',check:()=>progress.mathDone>=10},
+{id:'m50',icon:'💯',name:'数学高手',desc:'答对50道数学题',check:()=>progress.mathDone>=50},
+{id:'m100',icon:'🏅',name:'数学天才',desc:'答对100道数学题',check:()=>progress.mathDone>=100},
+{id:'c10',icon:'🔢',name:'数数能手',desc:'数数答对10题',check:()=>progress.countDone>=10},
+{id:'s10',icon:'🔷',name:'图形专家',desc:'图形答对10题',check:()=>progress.shapeDone>=10},
+{id:'st20',icon:'⭐',name:'星光闪耀',desc:'收集20颗星星',check:()=>progress.stars>=20},
+{id:'st50',icon:'🌟',name:'超级明星',desc:'收集50颗星星',check:()=>progress.stars>=50},
+{id:'sk3',icon:'🔥',name:'坚持三天',desc:'连续学习3天',check:()=>progress.streak>=3},
+{id:'sk7',icon:'💪',name:'一周打卡',desc:'连续学习7天',check:()=>progress.streak>=7},
+];
+function checkAchievements(){ACHIEVEMENTS.forEach(a=>{if(!progress.achievements.includes(a.id)&&a.check()){progress.achievements.push(a.id);showToast(`🏆 解锁：${a.name}！`);playSound('achieve');}});save();}
+function renderAchievements(){document.getElementById('achievements-list').innerHTML=ACHIEVEMENTS.map(a=>{const u=progress.achievements.includes(a.id);return`<div class="achievement ${u?'unlocked':''}"><div class="achievement-icon">${u?a.icon:'🔒'}</div><div style="flex:1"><div class="achievement-name">${a.name}</div><div class="achievement-desc">${a.desc}</div></div>${u?'<span style="color:#00B894;font-weight:700">✓</span>':''}</div>`;}).join('');}
+
+// ===== UTILS =====
+function addStars(n){progress.stars+=n;save();checkAchievements();}
+function rand(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=rand(0,i);[a[i],a[j]]=[a[j],a[i]];}return a;}
+function speak(text){try{const u=new SpeechSynthesisUtterance(text);u.lang='zh-CN';u.rate=0.85;const v=speechSynthesis.getVoices().filter(x=>x.lang.startsWith('zh'));if(v.length)u.voice=v[0];speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
+function playSound(type){try{const c=new(window.AudioContext||window.webkitAudioContext)();const o=c.createOscillator();const g=c.createGain();o.connect(g);g.connect(c.destination);if(type==='correct'){o.frequency.value=523;g.gain.value=.3;o.start();o.frequency.setValueAtTime(659,c.currentTime+.1);o.frequency.setValueAtTime(784,c.currentTime+.2);g.gain.exponentialRampToValueAtTime(.01,c.currentTime+.4);o.stop(c.currentTime+.4);}else if(type==='wrong'){o.frequency.value=200;g.gain.value=.3;o.start();o.frequency.setValueAtTime(150,c.currentTime+.15);g.gain.exponentialRampToValueAtTime(.01,c.currentTime+.3);o.stop(c.currentTime+.3);}else{o.frequency.value=523;g.gain.value=.3;o.start();o.frequency.setValueAtTime(659,c.currentTime+.15);o.frequency.setValueAtTime(784,c.currentTime+.3);o.frequency.setValueAtTime(1047,c.currentTime+.45);g.gain.exponentialRampToValueAtTime(.01,c.currentTime+.7);o.stop(c.currentTime+.7);}}catch(e){}}
+function showToast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2500);}
+document.addEventListener('keydown',e=>{if(currentScreen==='screen-math'){if(e.key>='0'&&e.key<='9')mathInput(e.key);else if(e.key==='Backspace')mathClear();else if(e.key==='Enter')mathSubmit();}});
+init();
+</script>
+</body>
+</html>
