@@ -23,11 +23,25 @@
       hanziSeen: {},               // 认过的字
       mulDone: {},                 // 背熟的乘法口诀 key
       wrong: [],                   // 错题本 [{q,a,why,t}]
-      stats: {}                    // 关卡id → {right,total}
+      stats: {},                   // 关卡id → {right,total}
+      gameBank: 0,                 // 攒下的游戏时间余额（秒）
+      gamePlayedSec: 0,            // 今日已玩（秒），跨天清零
+      gameDay: '',                 // gamePlayedSec 属于哪天
+      gameAccum: { time: 0, quiz: 0, level: 0 }  // 各触发方式的达标进度累计
     };
   }
+  /* 游戏奖励闸门的家长默认档位（可在家长设置里改，存进 S.gameCfg） */
+  const DEFAULT_GAME_CFG = {
+    mode: 'time',        // 触发方式：time=学满分钟 / quiz=答对题数 / level=闯关数
+    timeTier: 15,        // 每学满多少分钟 → 奖励一次
+    quizTier: 20,        // 每答对多少题 → 奖励一次
+    levelTier: 3,        // 每闯过多少关 → 奖励一次
+    rewardMin: 10,       // 每次奖励多少分钟游戏
+    dailyCapMin: 30,     // 每天最多玩多少分钟（防沉迷硬顶）
+    sessionMin: 10       // 单次进入最长玩多少分钟
+  };
   function blankState() {
-    return { cur: null, goal: 20, rate: 1, profiles: { da: blankProfile(), er: blankProfile() } };
+    return { cur: null, goal: 20, rate: 1, gameCfg: Object.assign({}, DEFAULT_GAME_CFG), profiles: { da: blankProfile(), er: blankProfile() } };
   }
   let S = blankState();
   function load() {
@@ -35,7 +49,11 @@
       const raw = JSON.parse(localStorage.getItem(LS) || 'null');
       if (raw && raw.profiles) {
         S = Object.assign(blankState(), raw);
-        ['da', 'er'].forEach(k => { S.profiles[k] = Object.assign(blankProfile(), S.profiles[k] || {}); });
+        S.gameCfg = Object.assign({}, DEFAULT_GAME_CFG, raw.gameCfg || {});
+        ['da', 'er'].forEach(k => {
+          S.profiles[k] = Object.assign(blankProfile(), S.profiles[k] || {});
+          S.profiles[k].gameAccum = Object.assign({ time: 0, quiz: 0, level: 0 }, S.profiles[k].gameAccum || {});
+        });
       }
     } catch (e) { /* 存档坏了就从零开始，不能白屏 */ }
   }
@@ -65,6 +83,47 @@
     p.days[k] = (p.days[k] || 0) + n;
     p.lastDay = k;
     save();
+    checkReward('time', n);
+  }
+
+  /* ─────────── 游戏奖励闸门（学习达标 → 攒游戏时间 → 玩时扣减 + 防沉迷） ─────────── */
+  const gameCfg = () => S.gameCfg || DEFAULT_GAME_CFG;
+  function gameDayRoll() {                 // 跨天把「今日已玩」清零
+    const p = ME(), k = dayKey();
+    if (p.gameDay !== k) { p.gameDay = k; p.gamePlayedSec = 0; save(); }
+  }
+  function gameRemainSec() {               // 还能玩几秒 = min(余额, 每日上限剩余)
+    gameDayRoll();
+    const p = ME(), cap = gameCfg().dailyCapMin * 60;
+    return Math.max(0, Math.min(p.gameBank || 0, cap - (p.gamePlayedSec || 0)));
+  }
+  function spendGameSec(n) {               // 玩时扣余额 + 记当日已玩
+    gameDayRoll();
+    const p = ME();
+    p.gameBank = Math.max(0, (p.gameBank || 0) - n);
+    p.gamePlayedSec = (p.gamePlayedSec || 0) + n;
+    save();
+  }
+  function grantGame() {                   // 发一次奖励
+    const p = ME(), add = gameCfg().rewardMin * 60;
+    p.gameBank = (p.gameBank || 0) + add;
+    save();
+    toast('🎮 学习达标，奖励 ' + gameCfg().rewardMin + ' 分钟游戏时间！');
+    sfx.win(); confetti(20);
+  }
+  /* 累计达标就发奖励：kind = time(秒)/quiz(题)/level(关)，inc 是本次增量 */
+  function checkReward(kind, inc) {
+    if (!S.cur) return;
+    const cfg = gameCfg();
+    if (cfg.mode !== kind) return;         // 只按家长选的触发方式计
+    const p = ME(); gameDayRoll();
+    const tier = kind === 'time' ? cfg.timeTier * 60 : kind === 'quiz' ? cfg.quizTier : cfg.levelTier;
+    if (!tier || tier <= 0) return;
+    p.gameAccum[kind] = (p.gameAccum[kind] || 0) + inc;
+    let got = 0;
+    while (p.gameAccum[kind] >= tier) { p.gameAccum[kind] -= tier; got++; }
+    save();
+    for (let i = 0; i < got; i++) grantGame();
   }
 
   /* ─────────── 声音 ─────────── */
@@ -190,6 +249,7 @@
       { goto: 'mul',    ico: '🔢', tt: '乘法口诀', ds: '点一句听一句' },
       { goto: 'hanzi',  ico: '🔤', tt: '认汉字', ds: '二年级字库 · 拼音组词' },
       { goto: 'trace',  ico: '✍️', tt: '写一写', ds: '手指描红练笔画' },
+      { goto: 'games',  ico: '🎮', tt: '游戏乐园', ds: '学习赚时间 · 边玩边学', color: 'pink' },
       { goto: 'stars',  ico: '🏆', tt: '星星奖章', ds: '看攒了多少颗' }
     ],
     er: [
@@ -198,6 +258,7 @@
       { goto: 'math',   ico: '🚀', tt: '数学游戏', ds: '数一数 · 比多少 · 找规律' },
       { goto: 'mul',    ico: '🔢', tt: '数到十', ds: '一、二、三…十' },
       { goto: 'trace',  ico: '✍️', tt: '描一描', ds: '用手指写大字' },
+      { goto: 'games',  ico: '🎮', tt: '游戏乐园', ds: '学习赚时间 · 边玩边学', color: 'pink' },
       { goto: 'stars',  ico: '🏆', tt: '我的星星', ds: '看看攒了几颗' }
     ]
   };
@@ -240,6 +301,7 @@
     if (g === 'timed') return openTimedMenu();
     if (g === 'mul')   return openMul();
     if (g === 'trace') return openTrace();
+    if (g === 'games') return openGames();
     if (g === 'stars') return openStars();
   }
 
@@ -552,7 +614,7 @@
   function record(q, ok) {
     const p = ME(), key = q._key || 'misc';
     const s = p.stats[key] = p.stats[key] || { right: 0, total: 0 };
-    s.total++; if (ok) s.right++;
+    s.total++; if (ok) { s.right++; checkReward('quiz', 1); }
     save();
   }
   function addWrong(q, val) {
@@ -577,6 +639,7 @@
     if (cfg.key) {
       const prev = p.levelStars[cfg.key] || 0;
       if (stars > prev) { p.stars += (stars - prev); p.levelStars[cfg.key] = stars; }
+      if (stars >= 1) checkReward('level', 1);
     } else {
       p.stars += stars;
     }
@@ -992,6 +1055,103 @@
     showScreen('screen-stars');
   }
 
+  /* ═══════════ 游戏乐园（学习赚时间 → 边玩边学） ═══════════ */
+  function gameProgress() {
+    const cfg = gameCfg(), p = ME(); gameDayRoll();
+    if (cfg.mode === 'time') return { label: '学习时长', acc: Math.floor((p.gameAccum.time || 0) / 60), tier: cfg.timeTier, unit: '分钟' };
+    if (cfg.mode === 'quiz') return { label: '答对题数', acc: p.gameAccum.quiz || 0, tier: cfg.quizTier, unit: '题' };
+    return { label: '闯关数', acc: p.gameAccum.level || 0, tier: cfg.levelTier, unit: '关' };
+  }
+  function openGames() {
+    const G = window.HMGames;
+    if (!G) { toast('游戏还没加载好'); return; }
+    const p = ME(); gameDayRoll();
+    const remain = gameRemainSec(), cap = gameCfg().dailyCapMin * 60;
+    document.getElementById('game-bank').innerHTML = G.fmt(remain) + '<span class="u">可玩</span>';
+    document.getElementById('game-cap').textContent = '今天还能玩 ' + Math.max(0, Math.round((cap - (p.gamePlayedSec || 0)) / 60)) + ' 分钟（每日上限 ' + gameCfg().dailyCapMin + ' 分钟）';
+    const pr = gameProgress();
+    const pct = pr.tier > 0 ? Math.min(100, Math.round(pr.acc / pr.tier * 100)) : 0;
+    document.getElementById('game-prog-txt').textContent = pr.label + ' ' + pr.acc + ' / ' + pr.tier + ' ' + pr.unit + ' → 达标奖励 ' + gameCfg().rewardMin + ' 分钟';
+    document.getElementById('game-prog-bar').style.width = pct + '%';
+    const grid = document.getElementById('games-grid');
+    grid.innerHTML = '';
+    G.GAMES.forEach(g => {
+      const ok = g.kid.indexOf(S.cur) >= 0;
+      const el = document.createElement('div');
+      el.className = 'game-card' + (ok ? '' : ' off');
+      el.innerHTML = '<div class="gc-ico">' + g.icon + '</div>' +
+        '<div class="gc-name">' + g.name + '</div>' +
+        '<div class="gc-desc">' + g.desc + '</div>' +
+        '<div class="gc-tag">' + g.tag + '</div>';
+      el.onclick = () => {
+        sfx.tap();
+        if (!ok) { toast('这个游戏适合' + (S.cur === 'er' ? '哥哥' : '弟弟') + '玩哦'); return; }
+        G.launch(g.id);
+      };
+      grid.appendChild(el);
+    });
+    document.getElementById('games-parent').onclick = () => { sfx.tap(); openParent(); };
+    showScreen('screen-games');
+  }
+
+  /* ─────────── 家长设置（算术验证进入 → 调档位） ─────────── */
+  let PARENT_LOCK = null;
+  function newParentQ() {
+    const x = 3 + Math.floor(Math.random() * 7), y = 3 + Math.floor(Math.random() * 7);
+    PARENT_LOCK = { ans: x + y, ok: (PARENT_LOCK && PARENT_LOCK.ok) || false };
+    document.getElementById('parent-q').textContent = x + ' + ' + y + ' = ?';
+    const inp = document.getElementById('parent-ans'); if (inp) inp.value = '';
+    const err = document.getElementById('parent-err'); if (err) err.classList.add('hide');
+  }
+  function openParent() {
+    newParentQ();
+    document.getElementById('parent-lock').classList.remove('hide');
+    document.getElementById('parent-body').classList.add('hide');
+    document.getElementById('parent-unlock').onclick = () => { sfx.tap(); parentUnlock(); };
+    document.getElementById('parent-back').onclick = () => { sfx.tap(); openGames(); };
+    showScreen('screen-parent');
+  }
+  function parentUnlock() {
+    const v = parseInt(document.getElementById('parent-ans').value, 10);
+    if (v === PARENT_LOCK.ans) {
+      PARENT_LOCK.ok = true; sfx.ok();
+      document.getElementById('parent-lock').classList.add('hide');
+      document.getElementById('parent-body').classList.remove('hide');
+      renderParent();
+    } else { sfx.no(); document.getElementById('parent-err').classList.remove('hide'); newParentQ(); }
+  }
+  function chips(name, opts, cur) {
+    return '<div class="chips">' + opts.map(o =>
+      '<button class="chip' + (String(o.v) === String(cur) ? ' on' : '') + '" data-cfg="' + name + '" data-v="' + o.v + '">' + o.t + '</button>').join('') + '</div>';
+  }
+  function sect(title, hint) {
+    return '<div class="set-sect"><div class="set-sect-t">' + title + (hint ? ' <span class="hint">' + hint + '</span>' : '') + '</div>';
+  }
+  function renderParent() {
+    const cfg = gameCfg();
+    const body = document.getElementById('parent-body');
+    const tierRow = cfg.mode === 'time' ? chips('timeTier', [10,15,20,30].map(v=>({v,t:v+' 分钟'})), cfg.timeTier)
+      : cfg.mode === 'quiz' ? chips('quizTier', [10,15,20,30].map(v=>({v,t:v+' 题'})), cfg.quizTier)
+      : chips('levelTier', [2,3,5,8].map(v=>({v,t:v+' 关'})), cfg.levelTier);
+    body.innerHTML =
+      sect('① 用什么触发奖励', '三选一') +
+        chips('mode', [{v:'time',t:'⏱ 学满分钟'},{v:'quiz',t:'✅ 答对题数'},{v:'level',t:'🚀 闯关数'}], cfg.mode) + '</div>' +
+      sect('② 达标档位', '攒够就奖励一次') + tierRow + '</div>' +
+      sect('③ 每次奖励几分钟') + chips('rewardMin', [5,10,15,20].map(v=>({v,t:v+' 分钟'})), cfg.rewardMin) + '</div>' +
+      sect('④ 每日上限', '防沉迷硬顶') + chips('dailyCapMin', [15,20,30,45,60].map(v=>({v,t:v+' 分钟'})), cfg.dailyCapMin) + '</div>' +
+      sect('⑤ 单次最长', '一次进去最多玩多久') + chips('sessionMin', [5,10,15,20].map(v=>({v,t:v+' 分钟'})), cfg.sessionMin) + '</div>' +
+      '<div class="btn-row" style="margin-top:16px"><button class="btn primary" id="parent-done">✅ 保存并返回</button></div>';
+    body.querySelectorAll('[data-cfg]').forEach(btn => {
+      btn.onclick = () => {
+        const k = btn.getAttribute('data-cfg');
+        const v = btn.getAttribute('data-v');
+        S.gameCfg[k] = (k === 'mode') ? v : parseInt(v, 10);
+        save(); sfx.tap(); renderParent();
+      };
+    });
+    document.getElementById('parent-done').onclick = () => { sfx.ok(); save(); openGames(); };
+  }
+
   /* ═══════════ 事件绑定 ═══════════ */
   function bind() {
     document.querySelectorAll('[data-back]').forEach(b => {
@@ -1185,6 +1345,7 @@
     document.addEventListener('pointerdown', () => { lastDown = Date.now(); }, true);
     document.addEventListener('click', e => {
       if (Date.now() - lastDown > 800) return;                    // 没有配套的本页按下 → 残留点击，忽略
+      if (curScreen === 'screen-play') return;                    // 玩游戏时不触发点字注音（地鼠头顶字会被误弹）
       if (!e.clientX && !e.clientY) return;                       // 键盘触发的假点击
       if (e.target.closest && e.target.closest(PY_SKIP)) return;  // 能点的东西有自己的活干
       const info = pyReadAt(e.clientX, e.clientY);
@@ -1193,6 +1354,17 @@
       if (rect) pyShow(info, rect);
     });
   }
+
+  /* 桥：把 App 内部能力暴露给 07_games.js（游戏引擎在独立 IIFE，够不到这里的闭包） */
+  window.HMBridge = {
+    sfx, beep, speak, toast, confetti, showScreen,
+    KID: () => KID(),
+    hanziPool: () => hanziPool(),
+    cfg: () => gameCfg(),
+    gameRemainSec: () => gameRemainSec(),
+    spendGameSec: (n) => spendGameSec(n),
+    openGames: () => openGames()
+  };
 
   /* ═══════════ 启动 ═══════════ */
   load();

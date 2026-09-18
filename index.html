@@ -553,6 +553,57 @@ body{
   <p class="foot-note" id="map-foot"></p>
 </div>
 
+<!-- ═══════════ 10. 游戏乐园（学习赚时间 → 边玩边学） ═══════════ -->
+<div class="screen" id="screen-games">
+  <div class="topbar">
+    <button class="icon-btn" data-back="screen-home">←</button>
+    <div class="tb-title">🎮 游戏乐园</div>
+    <button class="icon-btn" id="games-parent" title="家长设置">⚙️</button>
+  </div>
+  <div class="game-bank-card">
+    <div class="gb-left">
+      <div class="gb-num" id="game-bank">0:00<span class="u">可玩</span></div>
+      <div class="gb-cap" id="game-cap">今天还能玩 0 分钟</div>
+    </div>
+    <div class="gb-emoji">🎁</div>
+  </div>
+  <div class="game-prog">
+    <div class="gp-txt" id="game-prog-txt">学习时长 0 / 15 分钟 → 达标奖励 10 分钟</div>
+    <div class="gp-bar"><div class="gp-fill" id="game-prog-bar"></div></div>
+  </div>
+  <div class="sect-title">🕹️ 选一个玩 <span class="hint">边玩边学</span></div>
+  <div class="games-grid" id="games-grid"></div>
+  <p class="foot-note">游戏时间要靠学习赚；玩的时候也在认字、算数</p>
+</div>
+
+<!-- ═══════════ 11. 家长设置（算术验证进入） ═══════════ -->
+<div class="screen" id="screen-parent">
+  <div class="topbar">
+    <button class="icon-btn" id="parent-back">←</button>
+    <div class="tb-title">⚙️ 家长设置</div>
+    <div style="flex:none;width:40px"></div>
+  </div>
+  <div class="card" id="parent-lock">
+    <div style="font-size:40px;text-align:center">🔒</div>
+    <div class="set-sect-t" style="text-align:center;margin:8px 0">家长验证：算一算</div>
+    <div class="parent-q" id="parent-q">3 + 4 = ?</div>
+    <input class="parent-ans" id="parent-ans" type="number" inputmode="numeric" placeholder="填答案">
+    <div class="parent-err hide" id="parent-err">答案不对哦，再试一次</div>
+    <div class="btn-row" style="margin-top:12px"><button class="btn primary" id="parent-unlock">解锁</button></div>
+  </div>
+  <div id="parent-body" class="hide"></div>
+</div>
+
+<!-- ═══════════ 12. 游戏进行中（外壳：计时 + 舞台） ═══════════ -->
+<div class="screen" id="screen-play">
+  <div class="topbar">
+    <button class="icon-btn" id="play-back">←</button>
+    <div class="tb-title" id="play-title">游戏</div>
+    <div class="prog-txt" id="play-time" style="flex:none">⏱ 0:00</div>
+  </div>
+  <div id="play-stage"></div>
+</div>
+
 <style>
 /* ══════════════════════════════════════════════════════════════
    糖果冒险主题 · 第二部分：关卡地图 / 连击 / 筛选chips
@@ -605,6 +656,53 @@ body{
 }
 .chip:active{transform:scale(.94);}
 .chip.on{background:var(--grad-brand);color:#fff;border-color:transparent;box-shadow:0 4px 12px rgba(255,122,89,.35);}
+
+/* ══════════════════════════════════════════════════════════════
+   糖果冒险主题 · 第三部分：游戏乐园 / 打地鼠 / 家长设置
+   ══════════════════════════════════════════════════════════════ */
+.game-bank-card{display:flex;align-items:center;justify-content:space-between;background:var(--grad-pink);border-radius:var(--r);padding:18px 20px;box-shadow:0 8px 22px rgba(255,111,181,.30);color:#fff;margin-bottom:14px;}
+.game-bank-card .gb-num{font-size:40px;font-weight:900;line-height:1;}
+.game-bank-card .gb-num .u{font-size:15px;font-weight:800;margin-left:6px;opacity:.92;}
+.game-bank-card .gb-cap{font-size:12px;color:rgba(255,255,255,.92);margin-top:8px;font-weight:700;}
+.game-bank-card .gb-emoji{font-size:46px;animation:float 3s ease-in-out infinite;}
+.game-prog{background:var(--card);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow);margin-bottom:16px;}
+.game-prog .gp-txt{font-size:13px;font-weight:800;color:var(--ink2);margin-bottom:9px;}
+.game-prog .gp-bar{height:12px;border-radius:8px;background:var(--line2);overflow:hidden;}
+.game-prog .gp-fill{height:100%;width:0;background:var(--grad-green);border-radius:8px;transition:width .4s ease;}
+.games-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.game-card{background:var(--card);border-radius:var(--r);padding:18px 12px;box-shadow:var(--shadow);cursor:pointer;text-align:center;border:3px solid #FFE0EF;transition:transform .16s cubic-bezier(.34,1.56,.64,1);}
+.game-card:active{transform:scale(.95);}
+.game-card.off{opacity:.45;filter:grayscale(.4);}
+.game-card .gc-ico{font-size:40px;line-height:1;margin-bottom:8px;animation:bounce 2.6s ease-in-out infinite;}
+.game-card .gc-name{font-size:16px;font-weight:900;}
+.game-card .gc-desc{font-size:11px;color:var(--ink3);margin-top:5px;line-height:1.4;font-weight:600;}
+.game-card .gc-tag{display:inline-block;margin-top:8px;font-size:10px;font-weight:800;color:var(--pink);background:#FFF0F7;border-radius:20px;padding:3px 10px;}
+/* 打地鼠 */
+.mole-ask{font-size:19px;font-weight:900;text-align:center;margin:6px 0 14px;color:var(--ink);}
+.mole-ask b{color:var(--brand);font-size:24px;}
+.mole-score{text-align:center;font-size:14px;font-weight:800;color:var(--ink2);margin-bottom:12px;}
+.mole-score .g{color:var(--green);} .mole-score .r{color:var(--red);}
+.mole-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:400px;margin:0 auto;}
+.mole-hole{position:relative;aspect-ratio:1/1;border-radius:50%;background:radial-gradient(circle at 50% 40%,#8B5E3C,#4A2E19);box-shadow:inset 0 6px 14px rgba(0,0,0,.45);overflow:hidden;display:flex;align-items:flex-end;justify-content:center;}
+.mole-hole.show{align-items:center;justify-content:center;background:radial-gradient(circle at 50% 50%,#6B4423,#3A2413);}
+.mole-hole.show .mole-face{font-size:40px;}
+.mole{width:80%;transform:translateY(105%);transition:transform .18s cubic-bezier(.34,1.56,.64,1);display:flex;flex-direction:column;align-items:center;cursor:pointer;padding-bottom:4px;}
+.mole.up{transform:translateY(0);}
+.mole.hit{transform:translateY(105%) scale(.8);opacity:.4;}
+.mole.shake{animation:moleShake .3s;}
+@keyframes moleShake{0%,100%{margin-left:0}25%{margin-left:-6px}75%{margin-left:6px}}
+.mole-face{font-size:34px;line-height:1;}
+.mole-tag{background:#fff;border-radius:12px;padding:2px 8px;font-size:16px;font-weight:900;color:var(--brand);box-shadow:0 2px 6px rgba(0,0,0,.2);margin-bottom:2px;min-width:24px;text-align:center;}
+.mole-opts{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px;}
+.mole-opt{min-width:64px;font-size:22px;font-weight:900;}
+.mole-opt.bad{border-color:var(--red);color:var(--red);}
+/* 家长设置 */
+.parent-q{font-size:32px;font-weight:900;text-align:center;color:var(--brand);margin:10px 0;}
+.parent-ans{display:block;width:120px;margin:0 auto;font-size:24px;font-weight:800;text-align:center;padding:10px;border:3px solid var(--line2);border-radius:14px;font-family:inherit;}
+.parent-err{color:var(--red);font-size:13px;font-weight:800;text-align:center;margin-top:10px;}
+.set-sect{background:var(--card);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow);margin-bottom:12px;}
+.set-sect-t{font-size:15px;font-weight:900;color:var(--ink);margin-bottom:6px;}
+.set-sect-t .hint{font-size:11px;font-weight:700;color:var(--ink3);}
 
 </style>
 <div class="combo" id="combo"></div>
@@ -2008,11 +2106,25 @@ var PY_AMB = "一不个中为乐仔伯似作倒兴几卡发只号呀和咱哇啦
       hanziSeen: {},               // 认过的字
       mulDone: {},                 // 背熟的乘法口诀 key
       wrong: [],                   // 错题本 [{q,a,why,t}]
-      stats: {}                    // 关卡id → {right,total}
+      stats: {},                   // 关卡id → {right,total}
+      gameBank: 0,                 // 攒下的游戏时间余额（秒）
+      gamePlayedSec: 0,            // 今日已玩（秒），跨天清零
+      gameDay: '',                 // gamePlayedSec 属于哪天
+      gameAccum: { time: 0, quiz: 0, level: 0 }  // 各触发方式的达标进度累计
     };
   }
+  /* 游戏奖励闸门的家长默认档位（可在家长设置里改，存进 S.gameCfg） */
+  const DEFAULT_GAME_CFG = {
+    mode: 'time',        // 触发方式：time=学满分钟 / quiz=答对题数 / level=闯关数
+    timeTier: 15,        // 每学满多少分钟 → 奖励一次
+    quizTier: 20,        // 每答对多少题 → 奖励一次
+    levelTier: 3,        // 每闯过多少关 → 奖励一次
+    rewardMin: 10,       // 每次奖励多少分钟游戏
+    dailyCapMin: 30,     // 每天最多玩多少分钟（防沉迷硬顶）
+    sessionMin: 10       // 单次进入最长玩多少分钟
+  };
   function blankState() {
-    return { cur: null, goal: 20, rate: 1, profiles: { da: blankProfile(), er: blankProfile() } };
+    return { cur: null, goal: 20, rate: 1, gameCfg: Object.assign({}, DEFAULT_GAME_CFG), profiles: { da: blankProfile(), er: blankProfile() } };
   }
   let S = blankState();
   function load() {
@@ -2020,7 +2132,11 @@ var PY_AMB = "一不个中为乐仔伯似作倒兴几卡发只号呀和咱哇啦
       const raw = JSON.parse(localStorage.getItem(LS) || 'null');
       if (raw && raw.profiles) {
         S = Object.assign(blankState(), raw);
-        ['da', 'er'].forEach(k => { S.profiles[k] = Object.assign(blankProfile(), S.profiles[k] || {}); });
+        S.gameCfg = Object.assign({}, DEFAULT_GAME_CFG, raw.gameCfg || {});
+        ['da', 'er'].forEach(k => {
+          S.profiles[k] = Object.assign(blankProfile(), S.profiles[k] || {});
+          S.profiles[k].gameAccum = Object.assign({ time: 0, quiz: 0, level: 0 }, S.profiles[k].gameAccum || {});
+        });
       }
     } catch (e) { /* 存档坏了就从零开始，不能白屏 */ }
   }
@@ -2050,6 +2166,47 @@ var PY_AMB = "一不个中为乐仔伯似作倒兴几卡发只号呀和咱哇啦
     p.days[k] = (p.days[k] || 0) + n;
     p.lastDay = k;
     save();
+    checkReward('time', n);
+  }
+
+  /* ─────────── 游戏奖励闸门（学习达标 → 攒游戏时间 → 玩时扣减 + 防沉迷） ─────────── */
+  const gameCfg = () => S.gameCfg || DEFAULT_GAME_CFG;
+  function gameDayRoll() {                 // 跨天把「今日已玩」清零
+    const p = ME(), k = dayKey();
+    if (p.gameDay !== k) { p.gameDay = k; p.gamePlayedSec = 0; save(); }
+  }
+  function gameRemainSec() {               // 还能玩几秒 = min(余额, 每日上限剩余)
+    gameDayRoll();
+    const p = ME(), cap = gameCfg().dailyCapMin * 60;
+    return Math.max(0, Math.min(p.gameBank || 0, cap - (p.gamePlayedSec || 0)));
+  }
+  function spendGameSec(n) {               // 玩时扣余额 + 记当日已玩
+    gameDayRoll();
+    const p = ME();
+    p.gameBank = Math.max(0, (p.gameBank || 0) - n);
+    p.gamePlayedSec = (p.gamePlayedSec || 0) + n;
+    save();
+  }
+  function grantGame() {                   // 发一次奖励
+    const p = ME(), add = gameCfg().rewardMin * 60;
+    p.gameBank = (p.gameBank || 0) + add;
+    save();
+    toast('🎮 学习达标，奖励 ' + gameCfg().rewardMin + ' 分钟游戏时间！');
+    sfx.win(); confetti(20);
+  }
+  /* 累计达标就发奖励：kind = time(秒)/quiz(题)/level(关)，inc 是本次增量 */
+  function checkReward(kind, inc) {
+    if (!S.cur) return;
+    const cfg = gameCfg();
+    if (cfg.mode !== kind) return;         // 只按家长选的触发方式计
+    const p = ME(); gameDayRoll();
+    const tier = kind === 'time' ? cfg.timeTier * 60 : kind === 'quiz' ? cfg.quizTier : cfg.levelTier;
+    if (!tier || tier <= 0) return;
+    p.gameAccum[kind] = (p.gameAccum[kind] || 0) + inc;
+    let got = 0;
+    while (p.gameAccum[kind] >= tier) { p.gameAccum[kind] -= tier; got++; }
+    save();
+    for (let i = 0; i < got; i++) grantGame();
   }
 
   /* ─────────── 声音 ─────────── */
@@ -2175,6 +2332,7 @@ var PY_AMB = "一不个中为乐仔伯似作倒兴几卡发只号呀和咱哇啦
       { goto: 'mul',    ico: '🔢', tt: '乘法口诀', ds: '点一句听一句' },
       { goto: 'hanzi',  ico: '🔤', tt: '认汉字', ds: '二年级字库 · 拼音组词' },
       { goto: 'trace',  ico: '✍️', tt: '写一写', ds: '手指描红练笔画' },
+      { goto: 'games',  ico: '🎮', tt: '游戏乐园', ds: '学习赚时间 · 边玩边学', color: 'pink' },
       { goto: 'stars',  ico: '🏆', tt: '星星奖章', ds: '看攒了多少颗' }
     ],
     er: [
@@ -2183,6 +2341,7 @@ var PY_AMB = "一不个中为乐仔伯似作倒兴几卡发只号呀和咱哇啦
       { goto: 'math',   ico: '🚀', tt: '数学游戏', ds: '数一数 · 比多少 · 找规律' },
       { goto: 'mul',    ico: '🔢', tt: '数到十', ds: '一、二、三…十' },
       { goto: 'trace',  ico: '✍️', tt: '描一描', ds: '用手指写大字' },
+      { goto: 'games',  ico: '🎮', tt: '游戏乐园', ds: '学习赚时间 · 边玩边学', color: 'pink' },
       { goto: 'stars',  ico: '🏆', tt: '我的星星', ds: '看看攒了几颗' }
     ]
   };
@@ -2225,6 +2384,7 @@ var PY_AMB = "一不个中为乐仔伯似作倒兴几卡发只号呀和咱哇啦
     if (g === 'timed') return openTimedMenu();
     if (g === 'mul')   return openMul();
     if (g === 'trace') return openTrace();
+    if (g === 'games') return openGames();
     if (g === 'stars') return openStars();
   }
 
@@ -2537,7 +2697,7 @@ var PY_AMB = "一不个中为乐仔伯似作倒兴几卡发只号呀和咱哇啦
   function record(q, ok) {
     const p = ME(), key = q._key || 'misc';
     const s = p.stats[key] = p.stats[key] || { right: 0, total: 0 };
-    s.total++; if (ok) s.right++;
+    s.total++; if (ok) { s.right++; checkReward('quiz', 1); }
     save();
   }
   function addWrong(q, val) {
@@ -2562,6 +2722,7 @@ var PY_AMB = "一不个中为乐仔伯似作倒兴几卡发只号呀和咱哇啦
     if (cfg.key) {
       const prev = p.levelStars[cfg.key] || 0;
       if (stars > prev) { p.stars += (stars - prev); p.levelStars[cfg.key] = stars; }
+      if (stars >= 1) checkReward('level', 1);
     } else {
       p.stars += stars;
     }
@@ -2977,6 +3138,103 @@ var PY_AMB = "一不个中为乐仔伯似作倒兴几卡发只号呀和咱哇啦
     showScreen('screen-stars');
   }
 
+  /* ═══════════ 游戏乐园（学习赚时间 → 边玩边学） ═══════════ */
+  function gameProgress() {
+    const cfg = gameCfg(), p = ME(); gameDayRoll();
+    if (cfg.mode === 'time') return { label: '学习时长', acc: Math.floor((p.gameAccum.time || 0) / 60), tier: cfg.timeTier, unit: '分钟' };
+    if (cfg.mode === 'quiz') return { label: '答对题数', acc: p.gameAccum.quiz || 0, tier: cfg.quizTier, unit: '题' };
+    return { label: '闯关数', acc: p.gameAccum.level || 0, tier: cfg.levelTier, unit: '关' };
+  }
+  function openGames() {
+    const G = window.HMGames;
+    if (!G) { toast('游戏还没加载好'); return; }
+    const p = ME(); gameDayRoll();
+    const remain = gameRemainSec(), cap = gameCfg().dailyCapMin * 60;
+    document.getElementById('game-bank').innerHTML = G.fmt(remain) + '<span class="u">可玩</span>';
+    document.getElementById('game-cap').textContent = '今天还能玩 ' + Math.max(0, Math.round((cap - (p.gamePlayedSec || 0)) / 60)) + ' 分钟（每日上限 ' + gameCfg().dailyCapMin + ' 分钟）';
+    const pr = gameProgress();
+    const pct = pr.tier > 0 ? Math.min(100, Math.round(pr.acc / pr.tier * 100)) : 0;
+    document.getElementById('game-prog-txt').textContent = pr.label + ' ' + pr.acc + ' / ' + pr.tier + ' ' + pr.unit + ' → 达标奖励 ' + gameCfg().rewardMin + ' 分钟';
+    document.getElementById('game-prog-bar').style.width = pct + '%';
+    const grid = document.getElementById('games-grid');
+    grid.innerHTML = '';
+    G.GAMES.forEach(g => {
+      const ok = g.kid.indexOf(S.cur) >= 0;
+      const el = document.createElement('div');
+      el.className = 'game-card' + (ok ? '' : ' off');
+      el.innerHTML = '<div class="gc-ico">' + g.icon + '</div>' +
+        '<div class="gc-name">' + g.name + '</div>' +
+        '<div class="gc-desc">' + g.desc + '</div>' +
+        '<div class="gc-tag">' + g.tag + '</div>';
+      el.onclick = () => {
+        sfx.tap();
+        if (!ok) { toast('这个游戏适合' + (S.cur === 'er' ? '哥哥' : '弟弟') + '玩哦'); return; }
+        G.launch(g.id);
+      };
+      grid.appendChild(el);
+    });
+    document.getElementById('games-parent').onclick = () => { sfx.tap(); openParent(); };
+    showScreen('screen-games');
+  }
+
+  /* ─────────── 家长设置（算术验证进入 → 调档位） ─────────── */
+  let PARENT_LOCK = null;
+  function newParentQ() {
+    const x = 3 + Math.floor(Math.random() * 7), y = 3 + Math.floor(Math.random() * 7);
+    PARENT_LOCK = { ans: x + y, ok: (PARENT_LOCK && PARENT_LOCK.ok) || false };
+    document.getElementById('parent-q').textContent = x + ' + ' + y + ' = ?';
+    const inp = document.getElementById('parent-ans'); if (inp) inp.value = '';
+    const err = document.getElementById('parent-err'); if (err) err.classList.add('hide');
+  }
+  function openParent() {
+    newParentQ();
+    document.getElementById('parent-lock').classList.remove('hide');
+    document.getElementById('parent-body').classList.add('hide');
+    document.getElementById('parent-unlock').onclick = () => { sfx.tap(); parentUnlock(); };
+    document.getElementById('parent-back').onclick = () => { sfx.tap(); openGames(); };
+    showScreen('screen-parent');
+  }
+  function parentUnlock() {
+    const v = parseInt(document.getElementById('parent-ans').value, 10);
+    if (v === PARENT_LOCK.ans) {
+      PARENT_LOCK.ok = true; sfx.ok();
+      document.getElementById('parent-lock').classList.add('hide');
+      document.getElementById('parent-body').classList.remove('hide');
+      renderParent();
+    } else { sfx.no(); document.getElementById('parent-err').classList.remove('hide'); newParentQ(); }
+  }
+  function chips(name, opts, cur) {
+    return '<div class="chips">' + opts.map(o =>
+      '<button class="chip' + (String(o.v) === String(cur) ? ' on' : '') + '" data-cfg="' + name + '" data-v="' + o.v + '">' + o.t + '</button>').join('') + '</div>';
+  }
+  function sect(title, hint) {
+    return '<div class="set-sect"><div class="set-sect-t">' + title + (hint ? ' <span class="hint">' + hint + '</span>' : '') + '</div>';
+  }
+  function renderParent() {
+    const cfg = gameCfg();
+    const body = document.getElementById('parent-body');
+    const tierRow = cfg.mode === 'time' ? chips('timeTier', [10,15,20,30].map(v=>({v,t:v+' 分钟'})), cfg.timeTier)
+      : cfg.mode === 'quiz' ? chips('quizTier', [10,15,20,30].map(v=>({v,t:v+' 题'})), cfg.quizTier)
+      : chips('levelTier', [2,3,5,8].map(v=>({v,t:v+' 关'})), cfg.levelTier);
+    body.innerHTML =
+      sect('① 用什么触发奖励', '三选一') +
+        chips('mode', [{v:'time',t:'⏱ 学满分钟'},{v:'quiz',t:'✅ 答对题数'},{v:'level',t:'🚀 闯关数'}], cfg.mode) + '</div>' +
+      sect('② 达标档位', '攒够就奖励一次') + tierRow + '</div>' +
+      sect('③ 每次奖励几分钟') + chips('rewardMin', [5,10,15,20].map(v=>({v,t:v+' 分钟'})), cfg.rewardMin) + '</div>' +
+      sect('④ 每日上限', '防沉迷硬顶') + chips('dailyCapMin', [15,20,30,45,60].map(v=>({v,t:v+' 分钟'})), cfg.dailyCapMin) + '</div>' +
+      sect('⑤ 单次最长', '一次进去最多玩多久') + chips('sessionMin', [5,10,15,20].map(v=>({v,t:v+' 分钟'})), cfg.sessionMin) + '</div>' +
+      '<div class="btn-row" style="margin-top:16px"><button class="btn primary" id="parent-done">✅ 保存并返回</button></div>';
+    body.querySelectorAll('[data-cfg]').forEach(btn => {
+      btn.onclick = () => {
+        const k = btn.getAttribute('data-cfg');
+        const v = btn.getAttribute('data-v');
+        S.gameCfg[k] = (k === 'mode') ? v : parseInt(v, 10);
+        save(); sfx.tap(); renderParent();
+      };
+    });
+    document.getElementById('parent-done').onclick = () => { sfx.ok(); save(); openGames(); };
+  }
+
   /* ═══════════ 事件绑定 ═══════════ */
   function bind() {
     document.querySelectorAll('[data-back]').forEach(b => {
@@ -3170,6 +3428,7 @@ var PY_AMB = "一不个中为乐仔伯似作倒兴几卡发只号呀和咱哇啦
     document.addEventListener('pointerdown', () => { lastDown = Date.now(); }, true);
     document.addEventListener('click', e => {
       if (Date.now() - lastDown > 800) return;                    // 没有配套的本页按下 → 残留点击，忽略
+      if (curScreen === 'screen-play') return;                    // 玩游戏时不触发点字注音（地鼠头顶字会被误弹）
       if (!e.clientX && !e.clientY) return;                       // 键盘触发的假点击
       if (e.target.closest && e.target.closest(PY_SKIP)) return;  // 能点的东西有自己的活干
       const info = pyReadAt(e.clientX, e.clientY);
@@ -3178,6 +3437,17 @@ var PY_AMB = "一不个中为乐仔伯似作倒兴几卡发只号呀和咱哇啦
       if (rect) pyShow(info, rect);
     });
   }
+
+  /* 桥：把 App 内部能力暴露给 07_games.js（游戏引擎在独立 IIFE，够不到这里的闭包） */
+  window.HMBridge = {
+    sfx, beep, speak, toast, confetti, showScreen,
+    KID: () => KID(),
+    hanziPool: () => hanziPool(),
+    cfg: () => gameCfg(),
+    gameRemainSec: () => gameRemainSec(),
+    spendGameSec: (n) => spendGameSec(n),
+    openGames: () => openGames()
+  };
 
   /* ═══════════ 启动 ═══════════ */
   load();
@@ -3197,6 +3467,245 @@ var PY_AMB = "一不个中为乐仔伯似作倒兴几卡发只号呀和咱哇啦
        测试必须打真身，不许在测试里另抄一套匹配逻辑（那就是判据分叉）。 */
     py: { find: pyFindIn, read: pyReadAt, char: PY_CHAR, seg: PY_SEG, amb: PY_AMB, maxlen: PY_MAXLEN }
   };
+})();
+/* ══════════════════════════════════════════════════════════════
+   游戏乐园 · 「边玩边学」小游戏引擎
+   ─ 学习达标 → 赚游戏时间 → 玩这些游戏，而游戏过程本身还在学
+   ─ 「边玩边学」范式（老曾定）：①开局有学习点（打地鼠前先数洞）
+     ②游戏元素承载学习内容（地鼠头顶字/算式答案，打对的那只）
+   ─ 依赖 window.HMBridge（05_app.js 末尾暴露）：
+       sfx/beep/speak/toast/confetti/showScreen/KID/openGames
+       cfg()/gameRemainSec()/spendGameSec(n)/hanziPool()
+   ─ 第一批：打地鼠（大宝算式·汉字 / 二宝数字，都能玩）
+   ══════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  const B = () => window.HMBridge;                 // 运行时取桥，保证 app 已挂载
+  const $ = id => document.getElementById(id);
+  const rnd = n => Math.floor(Math.random() * n);
+  const pick = a => a[rnd(a.length)];
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1);[a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+  /* 游戏清单：首页 / 游戏中心渲染用。kid = 适合的档案 */
+  const GAMES = [
+    { id: 'mole', icon: '🔨', name: '打地鼠', desc: '先数洞，再打对的地鼠', kid: ['da', 'er'], tag: '数数·口算·认字' }
+    /* 第二批预留：{ id:'snake', ... 贪吃蛇 }, { id:'match3', ... 三消 } */
+  ];
+
+  let RUN = null;   // 当前运行中的游戏 {timer, cleanup, done}
+
+  function fmt(sec) {
+    sec = Math.max(0, Math.round(sec));
+    return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+  }
+
+  /* ─────────── 游戏外壳：单次计时 + 扣时间 + 防沉迷 + 退出 ─────────── */
+  /* mount(run, stage, finish) 里搭具体游戏；把自己的定时器登记到 run.cleanup，退出时统一清。 */
+  function shell(title, mount) {
+    const b = B();
+    b.showScreen('screen-play');
+    $('play-title').textContent = title;
+    const stage = $('play-stage');
+    stage.innerHTML = '';
+
+    // 单次可玩 = min(家长设的单次时长, 剩余游戏余额)
+    let left = Math.max(0, Math.round(Math.min(b.cfg().sessionMin * 60, b.gameRemainSec())));
+    const timeEl = $('play-time');
+    timeEl.textContent = '⏱ ' + fmt(left);
+
+    const run = { timer: null, cleanup: null, done: false };
+    RUN = run;
+
+    function finish(msg) {
+      if (run.done) return;
+      run.done = true;
+      clearInterval(run.timer);
+      if (run.cleanup) { try { run.cleanup(); } catch (e) {} }
+      RUN = null;
+      b.openGames();                       // 回游戏中心（顺带刷新剩余时间）
+      if (msg) b.toast(msg);
+    }
+
+    run.timer = setInterval(() => {
+      left--;
+      b.spendGameSec(1);                   // 扣余额 + 记当日已玩（防沉迷）
+      timeEl.textContent = '⏱ ' + fmt(left);
+      if (left === 60) b.toast('还有 1 分钟哦～');
+      if (left <= 0) finish('⏱ 时间到啦，休息一下眼睛吧！');
+      else if (b.gameRemainSec() <= 0) finish('今天玩得够多啦，明天再来！');
+    }, 1000);
+
+    $('play-back').onclick = () => { b.sfx.tap(); finish(''); };
+    mount(run, stage, finish);
+  }
+
+  /* ─────────── 出题：打地鼠的「地鼠顶什么」 ─────────── */
+  /* 返回 {prompt:HTML, speak:朗读文本, answer:正确头顶, cands:[含answer的候选], kind} */
+  function moleQ(kid) {
+    const b = B();
+    if (kid === 'er') {
+      // 二宝（3岁半）：认数字 或 5以内加法
+      if (Math.random() < 0.5) {
+        const n = 1 + rnd(10);
+        return { kind: 'num', prompt: '找出数字 <b>' + n + '</b>', speak: '找出数字 ' + n, answer: String(n), cands: numCands(n, 1, 10) };
+      }
+      const a = 1 + rnd(4), c = 1 + rnd(5 - a > 0 ? 5 - a : 1);
+      const s = a + c;
+      return { kind: 'num', prompt: '<b>' + a + ' + ' + c + ' = ?</b>', speak: a + ' 加 ' + c + ' 等于几', answer: String(s), cands: numCands(s, 1, 10) };
+    }
+    // 大宝（二年级）：口算 或 汉字（拼音选字），各半
+    if (Math.random() < 0.5) {
+      const pool = b.hanziPool();
+      const w = pick(pool);
+      const others = shuffle(pool.filter(x => x.z !== w.z)).slice(0, 3).map(x => x.z);
+      const cands = shuffle([w.z].concat(others));
+      return { kind: 'zi', prompt: '拼音 <b>' + w.py + '</b> 是哪个字？', speak: w.py + '，是哪个字', answer: w.z, cands: cands };
+    }
+    const op = pick(['+', '-', '×']);
+    let a, c, ans;
+    if (op === '+') { a = 10 + rnd(80); c = rnd(100 - a); ans = a + c; }
+    else if (op === '-') { a = 20 + rnd(79); c = rnd(a); ans = a - c; }
+    else { a = 2 + rnd(8); c = 2 + rnd(8); ans = a * c; }
+    return { kind: 'num', prompt: '<b>' + a + ' ' + op + ' ' + c + ' = ?</b>', speak: a + op + c + ' 等于几', answer: String(ans), cands: numCands(ans, Math.max(0, ans - 6), ans + 6) };
+  }
+
+  /* 生成 4 个数字候选（含正确 answer），去重、都在 [lo,hi] 附近 */
+  function numCands(ans, lo, hi) {
+    const set = new Set([String(ans)]);
+    let guard = 0;
+    while (set.size < 4 && guard++ < 60) {
+      const d = lo + rnd(Math.max(1, hi - lo + 1));
+      if (d >= 0) set.add(String(d));
+    }
+    while (set.size < 4) set.add(String(ans + set.size * 2));
+    return shuffle(Array.from(set));
+  }
+
+  /* ─────────── 打地鼠 ─────────── */
+  function mole(run, stage, finish) {
+    const b = B();
+    const kid = b.KID().id;
+
+    /* 阶段①：数洞（开局学习点 = 数数） */
+    const holeN = 5 + rnd(5);                      // 5~9 个洞
+    stage.innerHTML =
+      '<div class="mole-count">' +
+        '<div class="mole-ask">🔢 数一数，一共有几个洞？</div>' +
+        '<div class="mole-grid count" id="mole-count-grid"></div>' +
+        '<div class="mole-opts" id="mole-count-opts"></div>' +
+      '</div>';
+    const cg = $('mole-count-grid');
+    for (let i = 0; i < holeN; i++) {
+      const h = document.createElement('div');
+      h.className = 'mole-hole show';
+      h.innerHTML = '<div class="mole-face">🕳️</div>';
+      cg.appendChild(h);
+    }
+    b.speak('数一数，一共有几个洞');
+    const opts = shuffle([holeN, holeN + 1, Math.max(1, holeN - 1), holeN + 2].map(String))
+      .filter((v, i, arr) => arr.indexOf(v) === i).slice(0, 4);
+    const ob = $('mole-count-opts');
+    opts.forEach(v => {
+      const btn = document.createElement('button');
+      btn.className = 'btn ghost mole-opt';
+      btn.textContent = v;
+      btn.onclick = () => {
+        if (String(holeN) === v) { b.sfx.ok(); b.confetti(12); setTimeout(play, 700); }
+        else { b.sfx.no(); btn.classList.add('bad'); b.toast('再数一遍～'); }
+      };
+      ob.appendChild(btn);
+    });
+
+    /* 阶段②：打地鼠主玩法 */
+    function play() {
+      if (run.done) return;
+      let right = 0, wrong = 0, q = null, ansUp = 0;
+      stage.innerHTML =
+        '<div class="mole-play">' +
+          '<div class="mole-ask" id="mole-q"></div>' +
+          '<div class="mole-score">打对 <b class="g" id="mole-right">0</b> · 打错 <b class="r" id="mole-wrong">0</b></div>' +
+          '<div class="mole-grid" id="mole-grid"></div>' +
+        '</div>';
+      const grid = $('mole-grid');
+      const holes = [];
+      for (let i = 0; i < 9; i++) {
+        const h = document.createElement('div');
+        h.className = 'mole-hole';
+        h.innerHTML = '<div class="mole"><span class="mole-tag"></span><span class="mole-face">🐹</span></div>';
+        grid.appendChild(h);
+        holes.push({ el: h, mole: h.querySelector('.mole'), tag: h.querySelector('.mole-tag'), busy: false });
+      }
+
+      function nextQ() {
+        /* 换题先清场：把还在冒头的地鼠全部缩回，免得上一题的答案残留到新题里误导孩子 */
+        holes.forEach(h => { if (h.busy) hide(h); });
+        ansUp = 0;
+        q = moleQ(kid);
+        run.q = q;                     // 只读测试探针用（HMGames._peek）
+        $('mole-q').innerHTML = q.prompt;
+        b.speak(q.speak);
+      }
+      nextQ();
+
+      /* 冒地鼠：每 ~850ms 找个空洞冒一只。
+         🔴 场上「同时只允许一只」顶正确答案，其余一律是**不等于答案**的干扰项——
+            否则大半地鼠都是对的，孩子乱打也能对，就白玩了（这是出题区分度的命门）。 */
+      const pop = setInterval(() => {
+        if (run.done || !q) return;
+        const free = holes.filter(h => !h.busy);
+        if (!free.length) return;
+        const wrongs = q.cands.filter(c => c !== q.answer);
+        if (!wrongs.length) return;                 // 没有干扰项可用，跳过这次冒头
+        const h = pick(free);
+        let face, isAns;
+        if (ansUp === 0 && Math.random() < 0.55) { face = q.answer; isAns = true; ansUp++; }
+        else { face = pick(wrongs); isAns = false; }
+        h.busy = true; h.isAns = isAns;
+        h.tag.textContent = face;
+        h.mole.classList.add('up');
+        h.mole.onclick = () => {
+          if (!h.busy) return;
+          if (h.isAns) {
+            right++; $('mole-right').textContent = right;
+            b.sfx.ok(); b.beep(1200, 0.08, 'sine', 0.1); b.confetti(6);
+            h.mole.classList.add('hit');
+            hide(h);
+            nextQ();
+          } else {
+            wrong++; $('mole-wrong').textContent = wrong;
+            b.sfx.no();
+            h.mole.classList.add('shake');
+            setTimeout(() => h.mole.classList.remove('shake'), 320);
+          }
+        };
+        // 没被打中，1.9s 后自己缩回
+        h.auto = setTimeout(() => hide(h), 1900);
+      }, 850);
+
+      function hide(h) {
+        clearTimeout(h.auto);
+        h.mole.classList.remove('up', 'hit');
+        h.mole.onclick = null;
+        if (h.isAns) { ansUp = Math.max(0, ansUp - 1); h.isAns = false; }
+        h.busy = false;
+      }
+
+      run.cleanup = () => { clearInterval(pop); holes.forEach(hide); };
+    }
+  }
+
+  /* ─────────── 对外入口 ─────────── */
+  function launch(id) {
+    const b = B();
+    const g = GAMES.find(x => x.id === id);
+    if (!g) return;
+    if (!g.kid.includes(b.KID().id)) { b.toast('这个游戏适合' + (b.KID().id === 'er' ? '哥哥' : '弟弟') + '玩哦'); return; }
+    if (b.gameRemainSec() <= 0) { b.toast('还没有游戏时间，先去学习赚一赚吧！'); b.sfx.no(); return; }
+    if (id === 'mole') shell('🔨 打地鼠', mole);
+  }
+
+  window.HMGames = { GAMES, launch, fmt, _peek: () => (RUN && RUN.q) ? { answer: RUN.q.answer, prompt: RUN.q.prompt } : null };
 })();
 </script>
 </div><!-- /.app -->

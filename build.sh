@@ -10,7 +10,7 @@ OUT=index.html
   cat src/02_body.html
   echo '<script>'
   cat src/03_data_hanzi.js src/03b_data_g2.js src/04_data_math.js \
-      src/03c_data_pinyin.js src/05_app.js
+      src/03c_data_pinyin.js src/05_app.js src/07_games.js
   echo '</script>'
   cat src/06_foot.html
 } > "$OUT"

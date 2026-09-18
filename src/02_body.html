@@ -234,6 +234,57 @@
   <p class="foot-note" id="map-foot"></p>
 </div>
 
+<!-- ═══════════ 10. 游戏乐园（学习赚时间 → 边玩边学） ═══════════ -->
+<div class="screen" id="screen-games">
+  <div class="topbar">
+    <button class="icon-btn" data-back="screen-home">←</button>
+    <div class="tb-title">🎮 游戏乐园</div>
+    <button class="icon-btn" id="games-parent" title="家长设置">⚙️</button>
+  </div>
+  <div class="game-bank-card">
+    <div class="gb-left">
+      <div class="gb-num" id="game-bank">0:00<span class="u">可玩</span></div>
+      <div class="gb-cap" id="game-cap">今天还能玩 0 分钟</div>
+    </div>
+    <div class="gb-emoji">🎁</div>
+  </div>
+  <div class="game-prog">
+    <div class="gp-txt" id="game-prog-txt">学习时长 0 / 15 分钟 → 达标奖励 10 分钟</div>
+    <div class="gp-bar"><div class="gp-fill" id="game-prog-bar"></div></div>
+  </div>
+  <div class="sect-title">🕹️ 选一个玩 <span class="hint">边玩边学</span></div>
+  <div class="games-grid" id="games-grid"></div>
+  <p class="foot-note">游戏时间要靠学习赚；玩的时候也在认字、算数</p>
+</div>
+
+<!-- ═══════════ 11. 家长设置（算术验证进入） ═══════════ -->
+<div class="screen" id="screen-parent">
+  <div class="topbar">
+    <button class="icon-btn" id="parent-back">←</button>
+    <div class="tb-title">⚙️ 家长设置</div>
+    <div style="flex:none;width:40px"></div>
+  </div>
+  <div class="card" id="parent-lock">
+    <div style="font-size:40px;text-align:center">🔒</div>
+    <div class="set-sect-t" style="text-align:center;margin:8px 0">家长验证：算一算</div>
+    <div class="parent-q" id="parent-q">3 + 4 = ?</div>
+    <input class="parent-ans" id="parent-ans" type="number" inputmode="numeric" placeholder="填答案">
+    <div class="parent-err hide" id="parent-err">答案不对哦，再试一次</div>
+    <div class="btn-row" style="margin-top:12px"><button class="btn primary" id="parent-unlock">解锁</button></div>
+  </div>
+  <div id="parent-body" class="hide"></div>
+</div>
+
+<!-- ═══════════ 12. 游戏进行中（外壳：计时 + 舞台） ═══════════ -->
+<div class="screen" id="screen-play">
+  <div class="topbar">
+    <button class="icon-btn" id="play-back">←</button>
+    <div class="tb-title" id="play-title">游戏</div>
+    <div class="prog-txt" id="play-time" style="flex:none">⏱ 0:00</div>
+  </div>
+  <div id="play-stage"></div>
+</div>
+
 <style>
 /* ══════════════════════════════════════════════════════════════
    糖果冒险主题 · 第二部分：关卡地图 / 连击 / 筛选chips
@@ -286,6 +337,53 @@
 }
 .chip:active{transform:scale(.94);}
 .chip.on{background:var(--grad-brand);color:#fff;border-color:transparent;box-shadow:0 4px 12px rgba(255,122,89,.35);}
+
+/* ══════════════════════════════════════════════════════════════
+   糖果冒险主题 · 第三部分：游戏乐园 / 打地鼠 / 家长设置
+   ══════════════════════════════════════════════════════════════ */
+.game-bank-card{display:flex;align-items:center;justify-content:space-between;background:var(--grad-pink);border-radius:var(--r);padding:18px 20px;box-shadow:0 8px 22px rgba(255,111,181,.30);color:#fff;margin-bottom:14px;}
+.game-bank-card .gb-num{font-size:40px;font-weight:900;line-height:1;}
+.game-bank-card .gb-num .u{font-size:15px;font-weight:800;margin-left:6px;opacity:.92;}
+.game-bank-card .gb-cap{font-size:12px;color:rgba(255,255,255,.92);margin-top:8px;font-weight:700;}
+.game-bank-card .gb-emoji{font-size:46px;animation:float 3s ease-in-out infinite;}
+.game-prog{background:var(--card);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow);margin-bottom:16px;}
+.game-prog .gp-txt{font-size:13px;font-weight:800;color:var(--ink2);margin-bottom:9px;}
+.game-prog .gp-bar{height:12px;border-radius:8px;background:var(--line2);overflow:hidden;}
+.game-prog .gp-fill{height:100%;width:0;background:var(--grad-green);border-radius:8px;transition:width .4s ease;}
+.games-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.game-card{background:var(--card);border-radius:var(--r);padding:18px 12px;box-shadow:var(--shadow);cursor:pointer;text-align:center;border:3px solid #FFE0EF;transition:transform .16s cubic-bezier(.34,1.56,.64,1);}
+.game-card:active{transform:scale(.95);}
+.game-card.off{opacity:.45;filter:grayscale(.4);}
+.game-card .gc-ico{font-size:40px;line-height:1;margin-bottom:8px;animation:bounce 2.6s ease-in-out infinite;}
+.game-card .gc-name{font-size:16px;font-weight:900;}
+.game-card .gc-desc{font-size:11px;color:var(--ink3);margin-top:5px;line-height:1.4;font-weight:600;}
+.game-card .gc-tag{display:inline-block;margin-top:8px;font-size:10px;font-weight:800;color:var(--pink);background:#FFF0F7;border-radius:20px;padding:3px 10px;}
+/* 打地鼠 */
+.mole-ask{font-size:19px;font-weight:900;text-align:center;margin:6px 0 14px;color:var(--ink);}
+.mole-ask b{color:var(--brand);font-size:24px;}
+.mole-score{text-align:center;font-size:14px;font-weight:800;color:var(--ink2);margin-bottom:12px;}
+.mole-score .g{color:var(--green);} .mole-score .r{color:var(--red);}
+.mole-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:400px;margin:0 auto;}
+.mole-hole{position:relative;aspect-ratio:1/1;border-radius:50%;background:radial-gradient(circle at 50% 40%,#8B5E3C,#4A2E19);box-shadow:inset 0 6px 14px rgba(0,0,0,.45);overflow:hidden;display:flex;align-items:flex-end;justify-content:center;}
+.mole-hole.show{align-items:center;justify-content:center;background:radial-gradient(circle at 50% 50%,#6B4423,#3A2413);}
+.mole-hole.show .mole-face{font-size:40px;}
+.mole{width:80%;transform:translateY(105%);transition:transform .18s cubic-bezier(.34,1.56,.64,1);display:flex;flex-direction:column;align-items:center;cursor:pointer;padding-bottom:4px;}
+.mole.up{transform:translateY(0);}
+.mole.hit{transform:translateY(105%) scale(.8);opacity:.4;}
+.mole.shake{animation:moleShake .3s;}
+@keyframes moleShake{0%,100%{margin-left:0}25%{margin-left:-6px}75%{margin-left:6px}}
+.mole-face{font-size:34px;line-height:1;}
+.mole-tag{background:#fff;border-radius:12px;padding:2px 8px;font-size:16px;font-weight:900;color:var(--brand);box-shadow:0 2px 6px rgba(0,0,0,.2);margin-bottom:2px;min-width:24px;text-align:center;}
+.mole-opts{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px;}
+.mole-opt{min-width:64px;font-size:22px;font-weight:900;}
+.mole-opt.bad{border-color:var(--red);color:var(--red);}
+/* 家长设置 */
+.parent-q{font-size:32px;font-weight:900;text-align:center;color:var(--brand);margin:10px 0;}
+.parent-ans{display:block;width:120px;margin:0 auto;font-size:24px;font-weight:800;text-align:center;padding:10px;border:3px solid var(--line2);border-radius:14px;font-family:inherit;}
+.parent-err{color:var(--red);font-size:13px;font-weight:800;text-align:center;margin-top:10px;}
+.set-sect{background:var(--card);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow);margin-bottom:12px;}
+.set-sect-t{font-size:15px;font-weight:900;color:var(--ink);margin-bottom:6px;}
+.set-sect-t .hint{font-size:11px;font-weight:700;color:var(--ink3);}
 
 </style>
 <div class="combo" id="combo"></div>
