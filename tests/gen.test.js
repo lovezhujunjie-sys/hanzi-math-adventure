@@ -9,7 +9,7 @@ const ROOT = path.join(__dirname, '..');
 /* 只加载纯数据 + 出题引擎（03/03b/04 不碰 DOM），不加载 05_app.js */
 const pure = ['03_data_hanzi.js', '03b_data_g2.js', '04_data_math.js']
   .map(f => fs.readFileSync(path.join(ROOT, 'src', f), 'utf8')).join('\n');
-const API = new Function(pure + '\n;return {GEN, LEVELS, HANZI_QI, HANZI_G2, MUL_KOUJUE, WORD_KIDS, WORD_ELDERS};')();
+const API = new Function(pure + '\n;return {GEN, LEVELS, HANZI_QI, HANZI_G2, MUL_KOUJUE, WORD_KIDS, WORD_ELDERS, WORD_ITEMS};')();
 
 const N = 3000;
 let fails = [], checks = 0;
@@ -17,7 +17,7 @@ const ok = (cond, msg) => { checks++; if (!cond) fails.push(msg); };
 const num = s => { const m = String(s).replace(/<[^>]+>/g, ' ').match(/-?\d+/); return m ? Number(m[0]) : NaN; };
 
 /* ── 每个题目所有会显示给孩子的字符串，都不许出现 undefined / NaN / null ── */
-const FIELDS = ['big', 'emoji', 'sub', 'story', 'say', 'why', 'whyHtml', 'answer'];
+const FIELDS = ['big', 'emoji', 'sub', 'story', 'say', 'why', 'whyHtml', 'answer', 'drill'];
 function noJunk(name, q) {
   for (const f of FIELDS) {
     const v = q[f];
@@ -108,7 +108,11 @@ let badPron = 0, badWho = 0, badMoney = 0;
 for (let i = 0; i < 4000; i++) {
   const q = API.GEN.word();
   const st = String(q.story);
-  if (/[他她]/.test(st)) badPron++;
+  /* 🔴 代词要扫**所有**会显示给孩子的字段，不能只扫 story：
+     曾经 story 干净、emoji 的小字里却写着「（是他的 3 倍）」——孩子照样看得见。
+     只查一个字段的检查，等于没查。 */
+  const shown = FIELDS.map(f => (q[f] == null ? '' : String(q[f]))).join(' ');
+  if (/[他她]/.test(shown)) badPron++;
   /* 主语绝不允许是长辈或老师——「李老师有68元」正是当初的病灶。
      （「每盒有…」「N 个xx平均分给…」这两类题没有主角，主语是物/量词，不算违规） */
   const m = st.match(/^(\S+?)(有|摘了)/);
@@ -126,6 +130,86 @@ ok(badWho === 0, `应用题主角不是人名：${badWho} 次`);
 ok(badMoney === 0, `给钱的人不是长辈：${badMoney} 次`);
 console.log((badPron || badWho || badMoney ? '  ❌' : '  ✅') +
   ` 4000 题：代词 ${badPron} · 主角异常 ${badWho} · 给钱人异常 ${badMoney}`);
+
+/* ── 量词搭配 ──
+   🔴 这条是**通用**的，不针对某一个生成器：题干里只要出现「<量词><物品名>」，
+      那个量词就必须等于该物品自己声明的 m。
+      踩过的坑：出现过「数一数，有几个图书？」——图书论「本」、铅笔论「支」。
+      一个给中国小孩学中文的 App 教错量词，比算错一道题严重得多，而且它不报错、只静静地教错。
+   🔴 写成通用断言而不是逐句改文案，是因为逐句改只能保住改过的那几句，
+      下次谁新加一个生成器、随手写个「个」，没人拦得住。 */
+console.log('== 量词搭配 ==');
+const ITEMS = API.WORD_ITEMS;
+const MW_BAD = /[个支颗本张块条只]/;          // 会跟物品名撞车的量词
+for (const it of ITEMS) {
+  ok(typeof it.m === 'string' && it.m.length === 1, `物品「${it.n}」没有量词 m`);
+}
+let badMW = [];
+/* 🔴 第二条判据：**悬空量词**——「数字 + 量词」后面没跟名词，量词照样得对。
+   上面那条只查「量词+物品名」挨着写的情况，于是漏掉了「划掉 3 个 ❌」「送走 25 个 ➖」
+   这种量词后面跟的是符号的写法（草莓该论颗、铅笔该论支，它俩全写成了「个」）。
+   注意别误伤「平均分给 3 个小朋友」——那里量词后面跟着名词，是合法的，所以要求后面**没有**名词。 */
+const MW_RE = /(\d+)\s*([个支颗本张块条只])(?![一-龥])/g;
+let badDangling = [];
+for (const [gname, fn] of Object.entries(API.GEN)) {
+  if (typeof fn !== 'function') continue;
+  for (let i = 0; i < 400; i++) {
+    const q = fn.call(API.GEN);
+    const plain = FIELDS.map(f => (q[f] == null ? '' : String(q[f]))).join(' ').replace(/<[^>]+>/g, ' ');
+    /* 这题讲的是哪个物品？题目里出现哪个物品名，全题的量词就得跟它一致 */
+    for (const it of ITEMS) {
+      if (plain.indexOf(it.n) < 0) continue;
+      for (const m of plain.matchAll(MW_RE)) {
+        if (m[2] !== it.m) {
+          badDangling.push(`${gname}：${it.n} 该论「${it.m}」，出现了悬空的「${m[1]} ${m[2]}」` +
+                           `（…${plain.slice(Math.max(0, m.index - 12), m.index + m[0].length + 4).trim()}…）`);
+        }
+      }
+    }
+  }
+}
+for (const [gname, fn] of Object.entries(API.GEN)) {
+  if (typeof fn !== 'function') continue;
+  for (let i = 0; i < 400; i++) {
+    const q = fn.call(API.GEN);
+    const plain = FIELDS.map(f => (q[f] == null ? '' : String(q[f]))).join(' ').replace(/<[^>]+>/g, ' ');
+    for (const it of ITEMS) {
+      for (let p = plain.indexOf(it.n); p >= 0; p = plain.indexOf(it.n, p + 1)) {
+        const ch = plain[p - 1];
+        if (ch && MW_BAD.test(ch) && ch !== it.m) {
+          badMW.push(`${gname}：「…${plain.slice(Math.max(0, p - 10), p + it.n.length + 4).trim()}…」` +
+                     `${it.n} 该论「${it.m}」，写成了「${ch}」`);
+        }
+      }
+    }
+  }
+}
+ok(badMW.length === 0, `量词搭配错了 ${badMW.length} 处，例如：${badMW[0] || ''}`);
+console.log((badMW.length ? '  ❌ ' : '  ✅ ') +
+  ` ${ITEMS.length} 个物品 × 全部生成器 × 400 题：量词错 ${badMW.length} 处`);
+ok(badDangling.length === 0, `悬空量词错了 ${badDangling.length} 处，例如：${badDangling[0] || ''}`);
+console.log((badDangling.length ? '  ❌ ' : '  ✅ ') +
+  ` ${ITEMS.length} 个物品 × 全部生成器 × 400 题：悬空量词错 ${badDangling.length} 处`);
+
+/* ── 题目对象里只许出现「答题屏真的会读」的字段 ──
+   🔴 这条抓的是最阴的一类 bug：**数据生成了、却没人渲染**。
+      曾经 more()（比多少）把两组东西放进 `groups` 字段，而答题屏只读 emoji ——
+      于是一道题只剩「哪一边多？」加两个按钮，左右两边什么都没有，孩子只能瞎蒙。
+      单元测试全绿，因为**没有任何东西报错**；它是靠人肉看图才发现的。
+      判据放这里：跑出来的题目里但凡冒出个渲染器不认识的 key，就说明有人写了不发光的代码。
+   🔴 加新字段时必须同时确认答题屏会读它，然后把名字加进这个白名单——
+      白名单是"渲染器认识的字段"，不是"想写就写"的许可。 */
+console.log('== 题目字段 ↔ 渲染器 ==');
+const RENDERED = new Set(['big', 'bigHz', 'emoji', 'sub', 'story', 'say', 'why', 'whyHtml',
+                          'choices', 'answer', 'input', 'choiceClass', 'padSep', 'drill']);
+let strayKeys = [];
+for (const name of Object.keys(API.GEN).filter(n => n[0] !== '_')) {
+  const q = API.GEN[name].call(API.GEN);
+  for (const k of Object.keys(q)) if (!RENDERED.has(k)) strayKeys.push(`${name} 产出了渲染器不认识的字段「${k}」`);
+}
+ok(strayKeys.length === 0, strayKeys.join('；'));
+console.log((strayKeys.length ? '  ❌ ' : '  ✅ ') +
+  ` 每个生成器的字段都在渲染器认识的白名单里` + (strayKeys.length ? '：' + strayKeys.join('；') : ''));
 
 /* ── 关卡表引用的生成器必须真实存在（历史坑：改了名字忘了改关卡表） ── */
 console.log('== 关卡表 ↔ 生成器 ==');

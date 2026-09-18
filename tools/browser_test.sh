@@ -18,7 +18,7 @@ io.open(appp, 'w', encoding='utf-8').write(html)
 PY
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
   --headless=new --disable-gpu --no-sandbox --allow-file-access-from-files \
-  --window-size=430,932 --virtual-time-budget=8000 \
+  --window-size=430,932 --virtual-time-budget="${BT_BUDGET:-8000}" \
   --dump-dom "file://$APP" 2>/dev/null |
   python3 -c "
 import sys,re

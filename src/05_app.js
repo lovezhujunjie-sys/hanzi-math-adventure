@@ -657,9 +657,15 @@
   function nextTimed() {
     T.q = GEN[pick(T.mode.gens)]();
     T.typed = '';
+    /* 🔴 限时口算是 60 秒速度赛，题面就该是一道**光溜溜的算式**，所以优先用生成器给的
+       drill（'37 + 46 = ?'）。原来这里只认 sub/big，而 100 以内加减的 sub 是
+       「一捆 10 根　一根 1　一共有多少根小棒？」——**题面上写着要看小棒，小棒却没渲染**，
+       孩子根本没法答（小棒图在 emoji 里，这条路径从来没读过它）。
+       关卡屏不受影响，图都在；只有限时屏吃 drill。 */
     const b = document.getElementById('timed-q');
-    b.innerHTML = T.q.sub && !T.q.big ? T.q.sub : (T.q.big || T.q.sub || '');
-    b.style.fontSize = (T.q.big || '').length > 16 ? '30px' : '';
+    const face = T.q.drill || T.q.big || T.q.sub || '';
+    b.innerHTML = face;
+    b.style.fontSize = face.length > 16 ? '30px' : '';
     document.getElementById('timed-ans').innerHTML = '<span class="caret"></span>';
     const pad = document.getElementById('timed-pad');
     if (!pad.dataset.built) {
