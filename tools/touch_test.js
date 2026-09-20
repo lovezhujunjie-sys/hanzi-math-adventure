@@ -115,7 +115,30 @@ const ok = (name, cond, extra) => {
     });
     ok('真手指竖着划 → 画布上出现笔迹（像素 ' + ink0 + ' → ' + after.ink + '）', after.ink > ink0 + 500);
     ok('整段拖动过程中页面位移 0（手指没把页面拖走）', maxScroll === 0 && after.scrolled === 0, 'maxScrollY=' + maxScroll);
-    ok('描满一条边 → 盖章回执', after.stamped);
+    ok('只画一笔竖的**不算写完**（判据是盖住字形的比例，不是笔迹多长）', !after.stamped);
+    /* 整格蛇形描一遍＝孩子沿着字描一遍，这才该盖章 */
+    const ink1 = after.ink;
+    await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: geom.left + geom.cvW * 0.08, y: geom.top + geom.cvH * 0.08, id: 1 }] });
+    for (let i = 0; i < 11; i++) {
+      await client.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x: geom.left + geom.cvW * (i % 2 ? 0.08 : 0.92), y: geom.top + geom.cvH * (0.08 + 0.84 * i / 10), id: 1 }],
+      });
+      await page.waitForTimeout(12);
+      maxScroll = Math.max(maxScroll, await page.evaluate(() => Math.abs(window.scrollY)));
+    }
+    await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(400);
+    const done = await page.evaluate(() => {
+      const cv = document.getElementById('trace-canvas'), d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+      let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 40) n++;
+      const cov = window.__hm.traceCoverage ? window.__hm.traceCoverage() : -1;
+      return { ink: n, stamped: !document.getElementById('trace-stamp').classList.contains('hide'), cov: cov };
+    });
+    ok('整格描一遍 → 笔迹更多（' + ink1 + ' → ' + done.ink + '）', done.ink > ink1 + 500);
+    /* 盖章那一刻覆盖计数就清零了（设计如此），所以这里报的覆盖率是 0，别误会成没盖到 */
+    ok('整格描一遍 → 盖章回执' + (done.stamped ? '（盖章后覆盖计数清零，这是设计）' : ''), done.stamped);
+    ok('整格描的过程中页面位移也一直是 0', maxScroll === 0, 'maxScrollY=' + maxScroll);
     ok('这一屏没有未捕获异常', errs.length === 0, errs[0]);
 
     await page.screenshot({ path: '/tmp/hm-trace-touch-' + vp.h + '.png' });

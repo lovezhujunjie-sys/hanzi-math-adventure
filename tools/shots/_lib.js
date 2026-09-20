@@ -99,27 +99,45 @@ function expectPop(what){
   }, 400);
 }
 
-/* 在描红画布上真画一笔（派发真 pointer 事件，走 pointerdown/move/up 那条路，= 鼠标/触控笔）。
-   🔴 不要绕过界面直接调 markTraced——那是自己验自己，
-      「笔画长度不够也盖章」这类错永远抓不到。
-   total 是希望累计的笔迹长度（像素）。
-   🔴 这个夹具必须**真把 total 走出来**：老版按 r.width*0.5 一步跳对角线，
-      传 0.3 格进去实际画出了 0.707 格 —— 夹具自己把「短划」画成了「长划」，
-      于是门槛一改就假红（2026-09-20 踩到）。现在按小步走，实际墨迹≈total。 */
-function drawTrace(total){
+/* 在描红画布上"描一遍字"（派发真 pointer 事件，走 pointerdown/move/up 那条路 = 鼠标/触控笔）。
+   🔴 不要绕过界面直接调 markTraced——那是自己验自己，判据错了永远抓不到。
+   🔴 判据已经从「笔迹总长」改成「**盖住字形的比例**」（见 05_app.js 的蒙版），
+      所以夹具也必须真的去盖字形：整格蛇形涂一遍（像孩子沿着字描）＝ 盖满；
+      只在角落划一道 ＝ 盖不到多少，**不盖章**。
+   frac ≥ 0.6 → 整格蛇形描一遍；frac < 0.6 → 只在左上角划一道。
+   另配 traceOneLine()：只描正中一条横线（用来验「一」该盖章、「三」还不该盖）。 */
+function drawTrace(frac){
   const cv = document.getElementById('trace-canvas');
   const r = cv.getBoundingClientRect();
   const ev = (type, x, y) => cv.dispatchEvent(new PointerEvent(type,
     { clientX: x, clientY: y, bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse' }));
-  const stepLen = r.width * 0.12;                 // 一步走 0.12 格
-  const d = stepLen / Math.SQRT2;                 // 斜着走，保证每步位移正好是 stepLen
-  const ax = r.left + r.width * 0.35, ay = r.top + r.height * 0.3;
-  const bx = ax + d, by = ay + d;
-  const n = Math.max(1, Math.round(total / stepLen));
-  ev('pointerdown', ax, ay);
-  for (let i = 1; i <= n; i++) ev('pointermove', i % 2 ? bx : ax, i % 2 ? by : ay);
-  ev('pointerup', n % 2 ? bx : ax, n % 2 ? by : ay);
-  return n;
+  if (frac !== undefined && frac < 0.6) {          // 只在左上角划一道
+    const x = r.left + r.width * 0.2, y = r.top + r.height * 0.22;
+    ev('pointerdown', x, y);
+    for (let i = 1; i <= 3; i++) ev('pointermove', x + i * 5, y + (i % 2 ? 7 : -7));
+    ev('pointerup', x + 15, y);
+    return 3;
+  }
+  const x0 = r.left + r.width * 0.08, x1 = r.left + r.width * 0.92;
+  const rows = 11;
+  ev('pointerdown', x0, r.top + r.height * 0.08);
+  for (let i = 0; i < rows; i++) {
+    const y = r.top + r.height * (0.08 + 0.84 * i / (rows - 1));
+    ev('pointermove', i % 2 ? x0 : x1, y);
+  }
+  ev('pointerup', x1, r.top + r.height * 0.92);
+  return rows;
+}
+/* 只描正中一条横线（横贯整格）。「一」应该盖到章，「三」不该。 */
+function traceOneLine(){
+  const cv = document.getElementById('trace-canvas');
+  const r = cv.getBoundingClientRect();
+  const ev = (type, x, y) => cv.dispatchEvent(new PointerEvent(type,
+    { clientX: x, clientY: y, bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse' }));
+  const y = r.top + r.height * 0.5;
+  ev('pointerdown', r.left + r.width * 0.07, y);
+  for (let i = 1; i <= 6; i++) ev('pointermove', r.left + r.width * (0.07 + 0.86 * i / 6), y);
+  ev('pointerup', r.left + r.width * 0.93, y);
 }
 /* 屏幕上的描红画布边长（门槛按它算） */
 function traceCellSize(){

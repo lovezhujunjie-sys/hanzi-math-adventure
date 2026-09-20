@@ -1195,37 +1195,80 @@
     drawTraceBase(ctx, size);
 
     let drawing = false, src = null, ink = 0, last = null, tid = null;
-    /* 笔迹总长：判「写满一格」只看这个数。
-       门槛 = 0.6 倍格子边长（**原来的 1.6 倍是错的**）：
-         · 孩子把「一」「丨」这种**单笔字完整描一遍**，笔迹正好是 0.88 倍边长；
-           卡在 1.6 倍上，第一次正确描完屏幕上**什么都不发生**（不盖章、计数还是 0），
-           大人小孩都会判成「写不了」。二宝字表里正有一二三十这种字。
-         · 留 0.6 的余量是因为小孩描不到边：描到七成就该算数。
-         · 随手点一下、划一道（约 0.3 格）仍然不算 —— 门槛没有放宽到「碰一下就盖章」。
-       🔴 交一次账就把墨清零：不清的话，一旦凑够门槛，
-          之后每一次抬手都算「写满」，随手乱划也能连连盖章。
-       也**没有**「这个字已经盖过章就不再管」的一次性开关——
-       描红就是一个字反复写，第二遍写满必须照样有回执，
-       否则孩子写完一遍再写就毫无动静，像坏掉了
-       （2026-09-18 测试抓到的就是这个：擦掉重写前第二遍不给任何反馈）。
-       重复的问题交给记账那边的 isNew 和盖章那边的 1.2 秒节流。 */
-    const need = size * 0.6;
+    /* ═══ 「写完啦」到底按什么判：**按盖住了多少字形**，不按笔迹多长 ═══
+       老曾 2026-09-20 两句话把这条逼出来了：
+         · 先：「我只要写竖笔顺的时候手机就写不了」→ 上一版把门槛从 1.6 倍边长降到 0.6 倍，
+              好让「一」「丨」这种单笔字描一遍也能算；
+         · 再：「**整个笔画没有完全写完的时候不要出现写完啦的提示**」→ 长度门槛的毛病暴露了：
+              「意」只写一笔、笔迹够长，也会盖「写完啦」——那个提示是假的，孩子会以为写完了。
+
+       现在的判法（这也是描红 App 的通行做法）：
+         ① 把要描的字在离屏画布上画一遍，取出**字形蒙版**，压成 GS×GS 的网格（只记有字迹的格）；
+         ② 孩子每画一笔，就把笔尖经过的格子（按笔宽扩散一圈）标成"盖到了"；
+         ③ 收笔时算覆盖率 = 盖到的格子 / 字形总格子，**≥ COVER_NEED 才算写完**；
+         ④ 交一次账就把覆盖清零：下一遍要重新描满（否则盖章之后随便划一下就又盖）。
+       好处：写一半 → 不盖；「一」「丨」完整描一遍 → 盖（它整个字就这一笔）；
+            「三」只描一条 → 不盖（还有两条没写）。
+       🔴 仍然**不判笔顺、不判像不像、不判好不好**——只看"字形有没有被走过一遍"。 */
+    const GS = 24;                                   // 蒙版网格：24×24，一格约 12px
+    const cellPx = size / GS;
+    const mask = new Uint8Array(GS * GS);            // 1 = 这一格里有字迹
+    const covered = new Uint8Array(GS * GS);         // 1 = 这一格被手指盖过
+    (function buildMask() {
+      const oc = document.createElement('canvas');
+      oc.width = oc.height = size;
+      const ox = oc.getContext('2d');
+      ox.fillStyle = '#000';
+      ox.textAlign = 'center'; ox.textBaseline = 'middle';
+      ox.font = (size * 0.72) + 'px "Kaiti SC","STKaiti","KaiTi",serif';
+      ox.fillText(TRACE.w.z, size / 2, size / 2 + size * 0.03);
+      const d = ox.getImageData(0, 0, size, size).data;
+      for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+        if (d[(y * size + x) * 4 + 3] > 60) mask[Math.floor(y / cellPx) * GS + Math.floor(x / cellPx)] = 1;
+      }
+    })();
+    let maskTotal = 0;
+    for (let i = 0; i < mask.length; i++) if (mask[i]) maskTotal++;
+    const COVER_NEED = 0.72;                         // 盖到七成多就算写完（小孩描不到边）
+    /* 把笔尖经过的地方标成"盖到了"。笔宽 12px ≈ 一格，所以往四周各扩一格。 */
+    const markAt = (x, y) => {
+      const cx = Math.floor(x / cellPx), cy = Math.floor(y / cellPx);
+      for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
+        const gx = cx + i, gy = cy + j;
+        if (gx >= 0 && gx < GS && gy >= 0 && gy < GS && mask[gy * GS + gx]) covered[gy * GS + gx] = 1;
+      }
+    };
+    const markFrom = (a, b) => {                     // 沿着这一小段插值，别漏格
+      if (!a) { markAt(b.x, b.y); return; }
+      const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / (cellPx * 0.5)));
+      for (let i = 1; i <= n; i++) markAt(a.x + (b.x - a.x) * i / n, a.y + (b.y - a.y) * i / n);
+    };
+    const coverage = () => {
+      if (!maskTotal) return 1;
+      let n = 0;
+      for (let i = 0; i < covered.length; i++) if (covered[i]) n++;
+      return n / maskTotal;
+    };
     const posOf = (x, y) => {
       const r = cv.getBoundingClientRect();
       return { x: x - r.left, y: y - r.top };
     };
-    const begin = p => { drawing = true; ctx.beginPath(); ctx.moveTo(p.x, p.y); last = p; };
+    const begin = p => { drawing = true; ctx.beginPath(); ctx.moveTo(p.x, p.y); last = p; markFrom(null, p); };
     const extend = p => {
       if (!drawing) return;
       ctx.strokeStyle = '#4d8df6'; ctx.lineWidth = 12; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       ctx.lineTo(p.x, p.y); ctx.stroke();
       if (last) ink += Math.hypot(p.x - last.x, p.y - last.y);
+      markFrom(last, p);
       last = p;
     };
     const finish = () => {
       if (!drawing) return;
       drawing = false; src = null; last = null;
-      if (ink >= need) { ink = 0; markTraced(); }
+      if (coverage() >= COVER_NEED) {                // 盖满整个字形才算写完
+        covered.fill(0); ink = 0;
+        markTraced();
+      }
     };
     const touchIn = (list, id) => {
       for (let i = 0; i < list.length; i++) if (list[i].identifier === id) return list[i];
@@ -1269,9 +1312,12 @@
     TRACE.reset = () => {
       ctx.clearRect(0, 0, size, size); drawTraceBase(ctx, size);
       ink = 0; drawing = false; last = null; src = null; tid = null;
+      covered.fill(0);                              // 擦掉重写＝重新描一遍，覆盖清零
       TRACE.lastStamp = 0;                        // 擦掉重写＝重新给一次机会，章马上能再盖
       document.getElementById('trace-stamp').classList.add('hide');
     };
+    /* 测试探针：当前覆盖率（只读，给"写一半不盖章"那条断言用） */
+    TRACE.coverage = coverage;
   }
   function drawTraceBase(ctx, size) {
     ctx.clearRect(0, 0, size, size);
@@ -1744,6 +1790,8 @@
     hanziQFactory: (all) => hanziQFactory(all),
     state: () => S, blankProfile,
     quiz: () => Q, learn: () => LEARN, screen: () => curScreen,
+    /* 描红的当前覆盖率（只读）：测试用它证明「写一半不盖章」不是靠猜 */
+    traceCoverage: () => (TRACE && TRACE.coverage) ? TRACE.coverage() : 0,
     /* 点字注音的内部件：给浏览器测试直接驱动**线上这份**实现用。
        测试必须打真身，不许在测试里另抄一套匹配逻辑（那就是判据分叉）。 */
     py: { find: pyFindIn, read: pyReadAt, text: pyText, char: PY_CHAR, seg: PY_SEG, amb: PY_AMB, maxlen: PY_MAXLEN }

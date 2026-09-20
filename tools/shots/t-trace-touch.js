@@ -65,6 +65,23 @@ setTimeout(function () {
     fire('touchend', [], [tEnd]);
     return blocked;
   }
+  /* 用手指把整格蛇形描一遍（＝孩子沿着字描一遍）。
+     🔴 「写完啦」的判据是**盖住字形的比例**，所以一笔竖画不再算写完（老曾 2026-09-20：
+        「整个笔画没有完全写完的时候不要出现写完啦的提示」）。要验盖章就得真描满。 */
+  function fingerScribble(id) {
+    var b = r2(), X = function (u) { return b.left + b.width * u; }, Y = function (v) { return b.top + b.height * v; };
+    var t0 = mkTouch(id, X(0.08), Y(0.08));
+    fire('touchstart', [t0], [t0]);
+    var blocked = true;
+    for (var i = 0; i < 11; i++) {
+      var y = 0.08 + 0.84 * i / 10, x = i % 2 ? 0.08 : 0.92;
+      var t = mkTouch(id, X(x), Y(y));
+      if (fire('touchmove', [t], [t]) !== false) blocked = false;
+    }
+    var tEnd = mkTouch(id, X(0.92), Y(0.92));
+    fire('touchend', [], [tEnd]);
+    return blocked;
+  }
 
   function enter(next) {
     var card = document.querySelector('.kid-card.er');
@@ -102,9 +119,20 @@ setTimeout(function () {
     setTimeout(function () {
       line(inkPixels() > ink0 + 500, '画布上真的出现了竖向笔迹（像素 ' + ink0 + ' → ' + inkPixels() + '）');
       line(blocked, '每一步 touchmove 都被拦住（preventDefault）——页面不会被竖向手势拖走');
-      line(stampOn(), '描满一条边就盖章（门槛已从 1.6 倍降到 0.6 倍）');
-      line(tracedCount() === traced0 + 1, '「' + z + '」记进了写过的字（' + traced0 + ' → ' + tracedCount() + '）');
-      next();
+      line(!stampOn(), '只画一笔竖的**不算写完**（整个字形还没盖满）');
+      line(tracedCount() === traced0, '这一笔也没算进「写过的字」（' + traced0 + ' → ' + tracedCount() + '）');
+      document.getElementById('trace-clear').click();
+      setTimeout(function () {
+        var ink1 = inkPixels();
+        var ok2 = fingerScribble(7);
+        setTimeout(function () {
+          line(inkPixels() > ink1 + 500, '整格描一遍：笔迹在（像素 ' + ink1 + ' → ' + inkPixels() + '）');
+          line(ok2, '整格描一遍：每一步也都拦住了页面滚动');
+          line(stampOn(), '整格描一遍 → 盖章（盖满字形才算写完）');
+          line(tracedCount() === traced0 + 1, '「' + z + '」这才记进写过的字（' + traced0 + ' → ' + tracedCount() + '）');
+          next();
+        }, 200);
+      }, 140);
     }, 200);
   }
 
@@ -129,23 +157,30 @@ setTimeout(function () {
     document.getElementById('trace-clear').click();
     setTimeout(function () {
       var b = r2(), X = function (u) { return b.left + b.width * u; }, Y = function (v) { return b.top + b.height * v; };
-      var a = mkTouch(11, X(0.5), Y(0.15));
+      var a = mkTouch(11, X(0.08), Y(0.08));
       fire('touchstart', [a], [a]);
-      var mid = mkTouch(11, X(0.5), Y(0.5));
+      var mid = mkTouch(11, X(0.92), Y(0.08));
       fire('touchmove', [mid], [mid]);
       var inkMid = inkPixels();
       var palm = mkTouch(12, X(0.9), Y(0.9));
       fire('touchstart', [mid, palm], [palm]);         // 掌根落下
       fire('touchend', [mid], [palm]);                  // 掌根抬起：不该收笔
-      var more = mkTouch(11, X(0.5), Y(0.88));
+      var more = mkTouch(11, X(0.08), Y(0.16));
       fire('touchmove', [more], [more]);
       var inkAfter = inkPixels();
       line(inkAfter > inkMid + 500, '掌根抬起之后，原来那根手指还能接着往下写（像素 ' + inkMid + ' → ' + inkAfter + '）');
       fire('touchend', [], [more]);
       setTimeout(function () {
-        line(stampOn(), '这一笔收笔后照样盖章');
-        next();
-      }, 150);
+        line(!stampOn(), '只写了两笔还不算写完（字形没盖满）');
+        document.getElementById('trace-clear').click();
+        setTimeout(function () {
+          fingerScribble(21);
+          setTimeout(function () {
+            line(stampOn(), '接着把整格描完 → 照样盖章');
+            next();
+          }, 200);
+        }, 140);
+      }, 130);
     }, 120);
   }
 
