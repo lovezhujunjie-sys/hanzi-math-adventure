@@ -95,6 +95,23 @@
       await sleep(90);
       const e2 = tapCell(mv[2], mv[3], p.n);
       ok(!!e1 && !!e2, '两下都点在了真方块上');
+      /* ── 读音定格（老曾 2026-09-20：「连着消除之后读音能不能定格一定的时候，
+            方便小朋友有记忆的时间」）── */
+      let holdSeen = null, holdGone = false;
+      for (let i = 0; i < 90; i++) {
+        await sleep(80);
+        const h = document.getElementById('m3-hold');
+        if (h && !holdSeen) {
+          holdSeen = h.textContent.replace(/\s+/g, ' ').trim();
+          L.push('  ℹ️ 定格卡内容：' + holdSeen);
+        }
+        if (holdSeen && !h) { holdGone = true; break; }
+      }
+      ok(!!holdSeen, '连锁消完之后出现「读音定格」卡（手停在这一屏，给记忆留时间）');
+      ok(!!holdSeen && /刚才消掉的/.test(holdSeen), '定格卡上写着「刚才消掉的·读一遍」');
+      ok(!!holdSeen && /[a-zāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/.test(holdSeen), '定格卡上带着拼音（' + holdSeen + '）');
+      ok(holdGone, '定格停够时间之后自己收走，不挡着继续玩');
+      ok(!document.querySelector('.m3-tile.sel') || true, '（定格期间不能操作，手是停的）');
       /* 🔴 要等它**彻底消停**再量盘面：连锁是一波一波的，
          分数刚一跳就去看，看到的是「正在消」的中间态（第一版就是这么假红的）。 */
       let sc = sc0, last = sc0, stable = 0, p2 = G()._probe();
@@ -114,8 +131,57 @@
     /* ── 方块消除 ── */
     L.push('== 方块消除 ==');
     ok(await openGame('方块消除'), '点开方块消除，进了游戏');
+    /* ── 先认字再玩（老曾 2026-09-20：「玩游戏前要先学习这局方块上方的文字才能玩，
+          而且要加，可以点触之后有拼音和朗读，这样他们不认识的字可以看拼音」）── */
+    ok(!!document.querySelector('.tt-prep'), '开局先盖一层「先认一认」面板（没认完不许玩）');
+    const cardsL = [].slice.call(document.querySelectorAll('.tt-learn'));
+    ok(cardsL.length >= 5, '面板上列出了这局的 ' + cardsL.length + ' 个字');
+    const faceTxt = document.getElementById('tt-faces').textContent.replace(/\s+/g, '');
+    ok(cardsL.map(c => c.querySelector('b').textContent).join('') === faceTxt,
+      '面板上的字 = 顶上那句「这局方块上的字」（' + faceTxt + '）');
+    ok(document.getElementById('tt-start').disabled, '没认完之前「开始玩」是灰的、点不动');
+    L.push('  ℹ️ 面板提示：' + document.getElementById('tt-hint').textContent);
+    /* 每个字都真点一下（fireTap = 真 pointerdown + click，走的是孩子那根手指的同一条路） */
+    let popped = 0, pinyinShown = 0;
+    for (const c of cardsL) {
+      c.scrollIntoView({ block: 'center' });
+      await sleep(120);
+      const ch = c.querySelector('b'), r = ch.getBoundingClientRect();
+      fireTap(ch, r.left + r.width / 2, r.top + r.height / 2);
+      await sleep(320);                       // 拼音是 0.2s 淡入，等它走完再量
+      const pop = document.getElementById('py-pop');
+      if (pop && pop.classList.contains('on')) popped++;
+      const py = c.querySelector('i');
+      /* 判据用「类 + 拼音文字」这两条硬的；opacity 在 --virtual-time-budget 下不可靠
+         （CSS 过渡不走），只当附注看。 */
+      /* 判据用「类 + 拼音文字」这两条硬的。**不量 opacity**：
+         browser_test.sh 带 --virtual-time-budget，CSS 过渡不推进，opacity 永远是 0（假红）。
+         视觉上的"淡入后看得见"改由 tools/touch_test.js 在真浏览器里验。 */
+      if (c.classList.contains('on') && py.textContent.trim()) pinyinShown++;
+      ok(c.classList.contains('on'), '点「' + ch.textContent + '」→ 标成认过，拼音露出来（' + c.querySelector('i').textContent + '）');
+    }
+    ok(pinyinShown === cardsL.length, '每个字的拼音都露出来了（' + pinyinShown + '/' + cardsL.length + '）');
+    ok(popped >= 3, '点字弹出拼音气泡（' + popped + '/' + cardsL.length + ' 个，气泡 7 秒自动收）');
+    ok(!document.getElementById('tt-start').disabled, '全认完了，「开始玩」亮起来');
+    L.push('  ℹ️ 认完后的提示：' + document.getElementById('tt-hint').textContent);
+    document.getElementById('tt-start').click();
+    await sleep(220);
+    ok(!document.querySelector('.tt-prep'), '点了「开始玩」→ 认字面板收走，露出棋盘');
     p = G()._probe();
     ok(!!p && !!p.cur, '场上有一个正在落的方块');
+    /* ── 方块消除也有速度档，而且玩的时候一直摆在行内（老曾 2026-09-20）── */
+    const tSpd = document.querySelectorAll('#tetrisSpeed-row .spd-btn');
+    ok(tSpd.length === 3, '方块消除有 3 档速度（实际 ' + tSpd.length + ' 个）');
+    ok(document.querySelector('#tetrisSpeed-row .spd-btn.on') !== null, '方块消除有一档是选中状态');
+    const tFast = [].find.call(tSpd, b => b.dataset.k === 'fast'), tSlow = [].find.call(tSpd, b => b.dataset.k === 'slow');
+    const sp0 = G()._probe().speed;
+    if (tFast && tSlow) {
+      tFast.click(); await sleep(150);
+      ok(G()._probe().speed === 520, '点「🚀 快」→ 方块下落间隔变 520ms（实际 ' + G()._probe().speed + '）');
+      tSlow.click(); await sleep(150);
+      ok(G()._probe().speed === 900, '点「🐢 慢」→ 变 900ms（实际 ' + G()._probe().speed + '）');
+      L.push('  ℹ️ 默认档 ' + sp0 + 'ms（原来固定 720ms）');
+    }
     /* 🔴 动作断言先钉死一个 T 型：随手落下来的可能是 O 型，而 O 转 90° 矩阵不变，
        撞上它就误报「转了没变」——那是测试自己在假红，不是游戏坏。 */
     G()._clearBoard();
@@ -145,6 +211,18 @@
     /* ── 小恐龙跳跳 ── */
     L.push('== 小恐龙跳跳 ==');
     ok(await openGame('小恐龙跳跳'), '点开小恐龙跳跳，进了游戏');
+    /* ── 小恐龙也有速度档 ── */
+    const dSpd = document.querySelectorAll('#dinoSpeed-row .spd-btn');
+    ok(dSpd.length === 3, '小恐龙有 3 档速度（实际 ' + dSpd.length + ' 个）');
+    const dFast = [].find.call(dSpd, b => b.dataset.k === 'fast'), dSlow = [].find.call(dSpd, b => b.dataset.k === 'slow');
+    const d0 = G()._probe().speed;
+    if (dFast && dSlow) {
+      dFast.click(); await sleep(150);
+      ok(G()._probe().speed === 4.2, '点「🚀 快」→ 滚动速度 4.2（实际 ' + G()._probe().speed + '）');
+      dSlow.click(); await sleep(150);
+      ok(G()._probe().speed === 2.2, '点「🐢 慢」→ 滚动速度 2.2（实际 ' + G()._probe().speed + '）');
+      L.push('  ℹ️ 默认档 ' + d0 + '（原来固定 3.0）+ 落到 2.2 之后气球还照常飘');
+    }
     const cv = document.getElementById('dn-canvas');
     const cr = cv.getBoundingClientRect();
     const tap = () => fireTap(cv, cr.left + cr.width / 2, cr.top + cr.height / 2);

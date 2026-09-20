@@ -69,6 +69,30 @@
     cards[0].click();
     await sleep(300);
     ok(scr() === 'screen-play', '点「打地鼠」进了游戏（' + scr() + '）');
+    /* 先过「数洞」这一关才进主玩法 */
+    const holes = document.querySelectorAll('#mole-count-grid .mole-hole').length;
+    let answered = false;
+    [].forEach.call(document.querySelectorAll('#mole-count-opts .mole-opt'), b => {
+      if (!answered && b.textContent.trim() === String(holes)) { b.click(); answered = true; }
+    });
+    ok(answered, '数洞阶段：数出 ' + holes + ' 个洞并答对');
+    await sleep(1100);
+    /* ── 打地鼠速度档（老曾 2026-09-20：「打地鼠应该也要有可以调节速度的」）── */
+    const mSpd = document.querySelectorAll('#moleSpeed-row .spd-btn');
+    ok(mSpd.length === 3, '打地鼠有 3 档速度可点（实际 ' + mSpd.length + ' 个）');
+    ok(document.querySelector('#moleSpeed-row .spd-btn.on') !== null, '地鼠速度有一档是选中状态');
+    const mSlow = [].find.call(mSpd, b => b.dataset.k === 'slow'), mFast = [].find.call(mSpd, b => b.dataset.k === 'fast');
+    ok(!!mSlow && !!mFast, '找得到「慢」「快」两个按钮');
+    if (mSlow && mFast) {
+      const d0 = G()._spd();
+      ok(d0 && d0.pop >= 1000, '默认档比原来的 850ms 慢：间隔 ' + d0.pop + 'ms、地鼠停 ' + d0.hide + 'ms');
+      mFast.click(); await sleep(150);
+      ok(G()._spd().pop === 850, '点「🚀 快」→ 冒头间隔变 850ms（实际 ' + G()._spd().pop + '）');
+      ok(G()._spd().hide === 1900, '地鼠停留时间也跟着变（' + G()._spd().hide + 'ms）');
+      mSlow.click(); await sleep(150);
+      ok(G()._spd().pop === 1250, '点「🐢 慢」→ 变 1250ms（实际 ' + G()._spd().pop + '）');
+      ok(window.__hm.state().opts.moleSpeed === 'slow', '地鼠速度被记住（存档 moleSpeed=' + window.__hm.state().opts.moleSpeed + '）');
+    }
     document.getElementById('play-back').click();
     await sleep(200);
 
@@ -90,6 +114,24 @@
     ok(p0.foods.length === 4, '场上 4 个候选食物（实际 ' + p0.foods.length + '）');
     ok(p0.foods.some(f => f.text === q0.answer), '4 个候选里有正确答案 ' + q0.answer);
     const len0 = p0.len;
+
+    /* ── 速度档（老曾 2026-09-20：「贪吃蛇目前的速度太快了，能不能加一个调速度的」）── */
+    const spdBtns = document.querySelectorAll('#snakeSpeed-row .spd-btn');
+    ok(spdBtns.length === 3, '贪吃蛇画面上有 3 档速度可点（实际 ' + spdBtns.length + ' 个）');
+    ok(document.querySelector('#snakeSpeed-row .spd-btn.on') !== null, '有一档是选中状态（默认档）');
+    const spdDefault = G()._probe().speed;
+    ok(spdDefault >= 340, '默认档比原来慢：' + spdDefault + 'ms（原来一上来就是 260ms）');
+    let slow = null, fast = null;
+    [].forEach.call(spdBtns, b => { if (b.dataset.k === 'slow') slow = b; if (b.dataset.k === 'fast') fast = b; });
+    slow.click(); await sleep(120);
+    ok(G()._probe().speed === 460, '点「🐢 慢」→ 变成 460ms（实际 ' + G()._probe().speed + '）');
+    ok(G()._probe().spd === 'slow' && slow.classList.contains('on'), '选中状态跟着走');
+    fast.click(); await sleep(120);
+    ok(G()._probe().speed === 250, '点「🚀 快」→ 变成 250ms（实际 ' + G()._probe().speed + '）');
+    ok(window.__hm.state().opts && window.__hm.state().opts.snakeSpeed === 'fast',
+      '选择被记住了（存档里 snakeSpeed=' + (window.__hm.state().opts || {}).snakeSpeed + '，下次进来还是这一档）');
+    slow.click(); await sleep(120);                 // 后面引导小蛇的那段用慢档，稳
+    ok(G()._probe().speed === 460, '切回「🐢 慢」也生效');
 
     /* 引导蛇去吃正确答案：每 40ms 修正一次方向，直到吃够 2 个或超时。
        🔴 记的是**峰值**长度、以及吃过几道**不同**的题：

@@ -379,6 +379,13 @@
 #sn-canvas{display:block;margin:0 auto;border-radius:22px;background:#FFF3E8;
   border:3px solid var(--brand);box-shadow:var(--shadow);touch-action:none;}
 .sn-tip{text-align:center;font-size:12px;font-weight:700;color:var(--ink4);margin-top:12px;}
+/* ── 游戏内速度档（贪吃蛇 + 打地鼠共用，老曾 2026-09-20：太快了，要能调） ── */
+.spd-row{display:flex;gap:8px;justify-content:center;margin:0 0 10px;}
+.spd-btn{
+  font:800 14px/1 inherit;padding:9px 14px;border-radius:14px;cursor:pointer;
+  background:#fff;color:var(--ink2);border:2px solid var(--line2);box-shadow:var(--shadow);
+}
+.spd-btn.on{background:var(--grad-brand);color:#fff;border-color:transparent;}
 /* 三消配对 */
 .m3-ask{font-size:16px;font-weight:900;text-align:center;margin:2px 0;color:var(--ink);min-height:24px;}
 .m3-ask b{color:var(--brand);}
@@ -391,6 +398,17 @@
   cursor:pointer;user-select:none;-webkit-user-select:none;box-shadow:inset 0 -3px 0 rgba(0,0,0,.12);}
 .m3-tile.sel{transform:scale(1.12);outline:4px solid #fff;outline-offset:-6px;z-index:2;}
 .m3-tile.pop{transform:scale(.2) rotate(24deg);opacity:0;}
+/* ── 三消「读音定格」（老曾 2026-09-20：连锁消完之后读音要停一会儿，方便记忆）──
+   整条连锁走完才出现，一个字一个字地读，读完自己收走；盖在盘面上，这段时间手是停的。 */
+.m3-hold{
+  position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:6px;
+  background:rgba(255,248,241,.92);animation:fadeUp .2s ease;
+}
+.m3-hold-tt{font-size:12px;font-weight:800;color:var(--ink4);}
+.m3-hold-big{font-size:56px;font-weight:900;color:var(--brand);font-family:"Kaiti SC","STKaiti","KaiTi",serif;line-height:1.1;}
+.m3-hold-big i{font-style:normal;font-size:20px;color:var(--ink2);margin-left:8px;vertical-align:middle;}
+.m3-hold-dots{font-size:13px;color:var(--brand);letter-spacing:2px;}
 .m3-tip{text-align:center;font-size:12px;font-weight:700;color:var(--ink4);margin-top:10px;}
 /* 方块消除 */
 .tt-score{text-align:center;font-size:13px;font-weight:800;color:var(--ink2);margin-bottom:6px;}
@@ -401,6 +419,29 @@
 .tt-pad{display:flex;gap:10px;justify-content:center;margin-top:12px;}
 .tt-btn{width:62px;height:52px;font-size:22px;font-weight:900;padding:0;}
 .tt-tip{text-align:center;font-size:12px;font-weight:700;color:var(--ink4);margin-top:10px;}
+/* ── 方块消除「先认字」面板（老曾 2026-09-20）──
+   盖在棋盘上：认全了这局要用的字/数字，才能开始玩；每个字点一下出拼音气泡+朗读。 */
+#play-stage{position:relative;}
+.tt-prep{
+  position:absolute;inset:0;z-index:5;border-radius:18px;
+  background:linear-gradient(160deg,#fff,#FFF8F1);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px 8px;
+}
+.tt-prep-tt{font-size:16px;font-weight:900;color:var(--ink);}
+.tt-prep-sub{font-size:12px;font-weight:700;color:var(--ink4);margin-top:-4px;}
+.tt-learn-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:330px;}
+.tt-learn{
+  position:relative;width:56px;height:66px;border-radius:14px;background:#fff;
+  border:2px solid var(--line2);box-shadow:var(--shadow);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+}
+.tt-learn b{font-size:27px;font-weight:900;color:var(--ink);font-family:"Kaiti SC","STKaiti","KaiTi",serif;line-height:1;}
+.tt-learn i{font-style:normal;font-size:12px;font-weight:800;color:var(--brand);opacity:0;transition:opacity .2s;}
+.tt-learn .ck{position:absolute;right:-3px;top:-7px;font-size:15px;opacity:0;transition:opacity .2s;}
+.tt-learn.on{border-color:var(--green);background:var(--green-soft);}
+.tt-learn.on i,.tt-learn.on .ck{opacity:1;}
+.tt-prep-hint{font-size:14px;font-weight:900;color:var(--brand);min-height:20px;}
+#tt-start[disabled]{opacity:.42;filter:grayscale(.5);cursor:default;}
 /* 小恐龙跳跳 */
 .dn-ask{font-size:19px;font-weight:900;text-align:center;margin:4px 0 2px;color:var(--ink);}
 .dn-ask b{color:var(--brand);font-size:24px;}

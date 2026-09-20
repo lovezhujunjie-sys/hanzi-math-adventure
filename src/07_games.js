@@ -23,6 +23,52 @@
   const pick = a => a[rnd(a.length)];
   const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1);[a[i], a[j]] = [a[j], a[i]]; } return a; };
 
+  /* 数字的读音（二宝那套：方块、消消乐上写的是数字，拼音表里只有汉字）。
+     两处都要用：方块消除的「先认字」面板、三消的读音定格。 */
+  const NUM_PY = {
+    '1': 'yī', '2': 'èr', '3': 'sān', '4': 'sì', '5': 'wǔ',
+    '6': 'liù', '7': 'qī', '8': 'bā', '9': 'jiǔ', '10': 'shí'
+  };
+  const pyOfSay = (face, say) => NUM_PY[say] || NUM_PY[face] || say;
+
+  /* ═══════════ 游戏内的速度档（贪吃蛇 / 打地鼠共用一套） ═══════════
+     老曾 2026-09-20：「贪吃蛇目前的速度太快了，能不能加一个调速度的」
+                 「打地鼠应该也要有可以调节速度的」。
+     三档 + **记住选择**（存进 S.opts，跟进度一起进 localStorage，下次进来还是这一档）。
+     cfg 里每档的 v 由游戏自己解释：蛇＝每步毫秒数，地鼠＝{pop: 冒头间隔, hide: 停留时长}。
+     🔴 默认档**比原来慢**（原来蛇 260ms、地鼠 850/1900ms 对 3 岁半太快），
+        而且二宝（3 岁半）默认「慢」、大宝默认「中」。 */
+  function speedCtl(storeKey, cfg, defKey, onChange) {
+    const b = B();
+    const keys = Object.keys(cfg);
+    const saved = b.opt(storeKey);
+    let key = cfg[saved] ? saved : (cfg[defKey] ? defKey : keys[0]);
+    const rowId = storeKey + '-row';
+    return {
+      get key() { return key; },
+      get v() { return cfg[key].v; },
+      get entry() { return cfg[key]; },
+      html: '<div class="spd-row" id="' + rowId + '">' + keys.map(k =>
+        '<button type="button" class="spd-btn' + (k === key ? ' on' : '') + '" data-k="' + k + '">' +
+        cfg[k].ico + ' ' + cfg[k].name + '</button>').join('') + '</div>',
+      bind() {
+        const row = $(rowId);
+        if (!row) return;
+        const btns = [].slice.call(row.querySelectorAll('.spd-btn'));
+        btns.forEach(el => {
+          el.onclick = () => {
+            if (!cfg[el.dataset.k] || el.dataset.k === key) return;
+            key = el.dataset.k;
+            b.opt(storeKey, key);                       // 记住选择
+            btns.forEach(x => x.classList.toggle('on', x.dataset.k === key));
+            b.sfx.tap();
+            if (onChange) onChange(key, cfg[key].v);
+          };
+        });
+      }
+    };
+  }
+
   /* 游戏清单：首页 / 游戏中心渲染用。kid = 适合的档案 */
   const GAMES = [
     { id: 'mole',   icon: '🔨', name: '打地鼠',     desc: '先数洞，再打对的地鼠',   kid: ['da', 'er'], tag: '数数·口算·认字' },
@@ -66,7 +112,13 @@
       if (msg) b.toast(msg);
     }
 
+    /* 认字/备课阶段：先不扣时长。老曾要「玩之前先认这局的字」，那段时间不该算他玩掉了。 */
+    let held = false;
+    run.hold = () => { held = true; };
+    run.resume = () => { held = false; };
+
     run.timer = setInterval(() => {
+      if (held) return;                    // 备课/认字阶段不计时也不扣余额（见 run.hold）
       left--;
       b.spendGameSec(1);                   // 扣余额 + 记当日已玩（防沉迷）
       timeEl.textContent = '⏱ ' + fmt(left);
@@ -160,12 +212,23 @@
     function play() {
       if (run.done) return;
       let right = 0, wrong = 0, q = null, ansUp = 0;
+      /* 速度档（老曾 2026-09-20：「打地鼠应该也要有可以调节速度的」
+                         + 稍后「每个游戏都要可以调节速度的地方吧！最好随时都可以调节速度」）。
+         原来是写死的：每 850ms 冒一只、1900ms 自己缩回 —— 对 3 岁半太快。
+         慢档 1250/2600：地鼠停 2.6 秒，够他看清数字再打。**打着的时候也一直能改。** */
+      const SPD = speedCtl('moleSpeed', {
+        slow: { v: { pop: 1250, hide: 2600 }, ico: '🐢', name: '慢' },
+        mid:  { v: { pop: 1000, hide: 2200 }, ico: '🚶', name: '中' },
+        fast: { v: { pop: 850,  hide: 1900 }, ico: '🚀', name: '快' }
+      }, kid === 'er' ? 'slow' : 'mid', () => restartPop());
       stage.innerHTML =
         '<div class="mole-play">' +
           '<div class="mole-ask" id="mole-q"></div>' +
           '<div class="mole-score">打对 <b class="g" id="mole-right">0</b> · 打错 <b class="r" id="mole-wrong">0</b></div>' +
+          SPD.html +
           '<div class="mole-grid" id="mole-grid"></div>' +
         '</div>';
+      SPD.bind();
       const grid = $('mole-grid');
       const holes = [];
       for (let i = 0; i < 9; i++) {
@@ -187,10 +250,11 @@
       }
       nextQ();
 
-      /* 冒地鼠：每 ~850ms 找个空洞冒一只。
+      /* 冒地鼠：每 SPD.v.pop 毫秒找个空洞冒一只（速度档由孩子自己调）。
          🔴 场上「同时只允许一只」顶正确答案，其余一律是**不等于答案**的干扰项——
             否则大半地鼠都是对的，孩子乱打也能对，就白玩了（这是出题区分度的命门）。 */
-      const pop = setInterval(() => {
+      let pop = null;
+      function popTick() {
         if (run.done || !q) return;
         const free = holes.filter(h => !h.busy);
         if (!free.length) return;
@@ -218,9 +282,11 @@
             setTimeout(() => h.mole.classList.remove('shake'), 320);
           }
         };
-        // 没被打中，1.9s 后自己缩回
-        h.auto = setTimeout(() => hide(h), 1900);
-      }, 850);
+        // 没被打中，过一会儿自己缩回（按当前速度档）
+        h.auto = setTimeout(() => hide(h), SPD.v.hide);
+      }
+      function restartPop() { clearInterval(pop); pop = setInterval(popTick, SPD.v.pop); }
+      restartPop();
 
       function hide(h) {
         clearTimeout(h.auto);
@@ -231,6 +297,8 @@
       }
 
       run.cleanup = () => { clearInterval(pop); holes.forEach(hide); };
+      /* 测试探针：当前速度档（只读） */
+      run.spd = () => ({ key: SPD.key, pop: SPD.v.pop, hide: SPD.v.hide });
     }
   }
 
@@ -243,11 +311,23 @@
     const b = B();
     const kid = b.KID().id;
     const N = kid === 'er' ? 8 : 10;                 // 格子数：二宝格子大，好点好滑
+    /* 速度档（老曾 2026-09-20：「贪吃蛇目前的速度太快了，能不能加一个调速度的」）。
+       🔴 原来是固定 260ms 起步、每吃对一次 -12ms（下限 150），3 岁半的小孩根本反应不过来。
+          现在三档可选，**默认比原来慢**，而且每档有自己的加速下限。
+          「慢」460ms：从棋盘这头到那头约 3.7 秒，够小孩想。
+       ⚠️ 必须**先建好**再拼 HTML —— stage.innerHTML 里用到了 SPD.html（踩过 TDZ）。 */
+    const SPD = speedCtl('snakeSpeed', {
+      slow: { v: 460, floor: 300, ico: '🐢', name: '慢' },
+      mid:  { v: 340, floor: 230, ico: '🚶', name: '中' },
+      fast: { v: 250, floor: 150, ico: '🚀', name: '快' }
+    }, kid === 'er' ? 'slow' : 'mid', (k, v) => { speed = v; restart(); });
     stage.innerHTML =
       '<div class="sn-ask" id="sn-q"></div>' +
       '<div class="sn-score">吃到 <b class="g" id="sn-right">0</b> · 吃错 <b class="r" id="sn-wrong">0</b></div>' +
+      SPD.html +
       '<canvas id="sn-canvas"></canvas>' +
       '<div class="sn-tip">手指在画面上滑动 · 指挥小蛇去吃对的答案</div>';
+    SPD.bind();
 
     const cv = $('sn-canvas');
     const W = Math.max(180, Math.min(stage.clientWidth - 6, Math.round(window.innerHeight * 0.5)));
@@ -261,7 +341,7 @@
     const mid = Math.floor(N / 2);
     let body = [{ x: 2, y: mid }, { x: 1, y: mid }, { x: 0, y: mid }];
     let dir = { x: 1, y: 0 }, want = { x: 1, y: 0 };
-    let foods = [], q = null, right = 0, wrong = 0, speed = 260, hitAt = 0, timer = null;
+    let foods = [], q = null, right = 0, wrong = 0, speed = SPD.v, hitAt = 0, timer = null;
 
     function roundRect(x, y, w, h, r) {
       ctx.beginPath();
@@ -337,7 +417,6 @@
       clearInterval(timer);
       timer = setInterval(step, speed);
     }
-
     function step() {
       if (run.done || !q) return;
       if (!(want.x === -dir.x && want.y === -dir.y)) dir = want;   // 不许 180° 掉头
@@ -354,7 +433,7 @@
         right++; $('sn-right').textContent = right;
         b.sfx.ok(); b.beep(1250, 0.08, 'sine', 0.1); b.confetti(8);
         body.unshift({ x: nx, y: ny });
-        speed = Math.max(150, speed - 12);                          // 越吃越快
+        speed = Math.max(SPD.entry.floor, speed - 12);              // 越吃越快，但各档有自己的下限
         restart();
         nextQ();
         return;
@@ -404,8 +483,9 @@
 
     /* 测试探针：让自动化脚本能把蛇**真的**引到正确答案那儿去（不是绕过玩法直接改分）。
        不带这个就只能靠随机撞食物，那种测试证明不了「吃对的会变长」。 */
-    run.probe = () => ({
-      len: body.length, right: right, wrong: wrong, speed: speed,
+   run.probe = () => ({
+     len: body.length, right: right, wrong: wrong, speed: speed,
+     spd: SPD.key,
       head: { x: body[0].x, y: body[0].y }, dir: { x: dir.x, y: dir.y },
       foods: foods.map(f => ({ x: f.x, y: f.y, text: f.text }))
     });
@@ -546,15 +626,25 @@
 
     /* 消除 → 下落 → 补新 → 再查（连锁），一路走到底 */
     async function resolve() {
+      /* 🔴 老曾 2026-09-20：「三消配对有时候连着消除之后，读音能不能定格一定的时候，
+         这样方便小朋友有记忆的时间」。
+         原来的毛病：每消一步就喊一句（`b.speak`），而连锁的每一步只隔 ~480ms，
+         speak 会把上一句掐掉 —— 孩子听到的是零碎的音，字也没看清。
+         现在改成：**整条链走完之后**把这一串读音一次性"定格"出来，
+         一个字一个字地读，每个字在屏幕上停够 hold 毫秒，读完才放开手让下一手。 */
+      const held = [];                       // [{face, say}] 整条链上消掉过的组（去重、保序）
       for (let guard = 0; guard < 40 && !run.done && !over; guard++) {
         const hit = matches();
         if (!hit.size) break;
-        const said = [];
-        hit.forEach(i => { const t = bd[i]; if (t && said.indexOf(G[t.g].say) < 0) said.push(G[t.g].say); });
+        hit.forEach(i => {
+          const t = bd[i];
+          if (!t) return;
+          if (held.some(x => x.say === G[t.g].say)) return;
+          held.push({ face: (G[t.g].faces || [])[0] || '', say: G[t.g].say });
+        });
         score += hit.size;
         $('m3-score').textContent = score;
         b.sfx.ok(); b.beep(1150, 0.08, 'sine', 0.1); b.confetti(6);
-        if (said.length) { b.speak(said.join('，')); $('m3-ask').innerHTML = '🔊 读作 <b>' + said.join(' · ') + '</b>'; }
         hit.forEach(i => { if (bd[i]) bd[i].el.classList.add('pop'); });
         await sleep(240);
         hit.forEach(i => { if (bd[i]) { bd[i].el.remove(); bd[i] = null; } });
@@ -576,6 +666,11 @@
         }
         await sleep(240);
       }
+      /* 定格：把这一串读音慢慢过一遍（每个字停够时间 + 屏幕上大字写着） */
+      if (held.length && !run.done && !over) {
+        $('m3-ask').innerHTML = '🔊 读作 <b>' + held.map(x => x.say).join(' · ') + '</b>';
+        await holdReading(held);
+      }
       /* 死局：洗一遍再消（洗的是同一批方块，不改变难度） */
       if (!run.done && !over && !findMove()) {
         b.toast('没有能消的啦，重新洗一下～');
@@ -583,6 +678,29 @@
         await sleep(140);
         await resolve();
       }
+    }
+
+    /* 把刚消掉的字一个个"定格"给孩子看：大字 + 拼音，读一个停一会儿。
+       停多久：每个字 1.2~1.8 秒（字多的链按 4.2 秒总预算摊，别让孩子等太久）。 */
+    async function holdReading(list) {
+      const per = Math.min(1800, Math.max(1200, Math.round(4200 / list.length)));
+      const wrap = $('m3-wrap');
+      let box = document.getElementById('m3-hold');
+      if (!box) {
+        box = document.createElement('div');
+        box.id = 'm3-hold'; box.className = 'm3-hold';
+        wrap.appendChild(box);
+      }
+      for (let i = 0; i < list.length; i++) {
+        if (run.done || over) break;
+        box.innerHTML =
+          '<div class="m3-hold-tt">刚才消掉的 · 读一遍</div>' +
+          '<div class="m3-hold-big">' + (list[i].face || '') + '<i>' + pyOfSay(list[i].face, list[i].say) + '</i></div>' +
+          '<div class="m3-hold-dots">' + list.map((_, k) => k === i ? '●' : '○').join(' ') + '</div>';
+        b.speak(list[i].say);
+        await sleep(per);
+      }
+      box.remove();
     }
 
     async function onTap(el) {
@@ -647,9 +765,19 @@
       ? ['1', '2', '3', '4', '5', '6', '7']
       : shuffle(b.hanziPool().slice()).slice(0, 7).map(w => w.z);
 
+    /* 速度档（老曾 2026-09-20：「每个游戏都要可以调节速度的地方吧！最好随时都可以调节速度」）。
+       这里调的是方块**下落**的快慢（原来固定 720ms 一格，每消 8 行再自己快一档）。
+       行内一直摆着，孩子玩着觉得跟不上就随手换。 */
+    const TTSPD = speedCtl('tetrisSpeed', {
+      slow: { v: 900, floor: 560, ico: '🐢', name: '慢' },
+      mid:  { v: 720, floor: 420, ico: '🚶', name: '中' },
+      fast: { v: 520, floor: 240, ico: '🚀', name: '快' }
+    }, kid === 'er' ? 'slow' : 'mid', (k, v) => { speed = v; restart(); });
+
     stage.innerHTML =
       '<div class="tt-score">消掉 <b class="g" id="tt-lines">0</b> 行 · 这局方块上的字：<b id="tt-faces"></b></div>' +
       '<canvas id="tt-canvas"></canvas>' +
+      TTSPD.html +
       '<div class="tt-pad">' +
         '<button type="button" class="btn ghost tt-btn" id="tt-l">◀</button>' +
         '<button type="button" class="btn ghost tt-btn" id="tt-rot">↻</button>' +
@@ -657,6 +785,7 @@
         '<button type="button" class="btn ghost tt-btn" id="tt-dn">▼</button>' +
       '</div>' +
       '<div class="tt-tip">也可以滑画面：左右滑移动 · 上滑转一下 · 下滑快点落</div>';
+    TTSPD.bind();
     $('tt-faces').textContent = FACES.join(' ');
 
     const maxW = Math.max(160, stage.clientWidth - 6);
@@ -671,7 +800,7 @@
     ctx.scale(dpr, dpr);
 
     let g = new Array(COLS * ROWS).fill(-1);        // -1 = 空；否则是方块类型下标
-    let cur = null, lines = 0, speed = 720, timer = null, dead = false;
+    let cur = null, lines = 0, speed = TTSPD.v, timer = null, dead = false;
     const gi = (x, y) => y * COLS + x;
     const rot = m => m.map((r, i) => r.map((_, j) => m[j][3 - i]));
 
@@ -725,7 +854,7 @@
       $('tt-lines').textContent = lines;
       b.sfx.ok(); b.beep(900 + n * 160, 0.14, 'triangle', 0.12); b.confetti(10 + n * 6);
       b.speak(said.join('，') + (n > 1 ? '，消了 ' + n + ' 行' : ''));
-      if (lines % 8 === 0) speed = Math.max(240, speed - 90);
+      if (lines % 8 === 0) speed = Math.max(TTSPD.entry.floor, speed - 90);   // 越消越快，但受当前档位的下限管着
     }
     function lock() {
       for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
@@ -796,7 +925,8 @@
       cols: COLS, rows: ROWS, lines: lines,
       grid: g.slice(),
       cur: cur ? { t: cur.t, x: cur.x, y: cur.y, m: cur.m.map(r => r.slice()) } : null,
-      faces: FACES.slice()
+      faces: FACES.slice(),
+      speed: speed, spd: TTSPD.key
     });
     run.act = what => {
       if (what === 'left') move(-1); else if (what === 'right') move(1);
@@ -813,9 +943,63 @@
       draw();
     };
 
-    newPiece();
-    draw();
-    restart();
+    draw();                                     // 空盘先画好（此刻被认字面板盖住）
+
+    /* ═══ 先认字再玩（老曾 2026-09-20）═══
+       原话：「玩游戏前要先学习这局方块上方的文字才能玩，而且要加，
+              可以点触之后有拼音和朗读，这样他们不认识的字可以看拼音」。
+       做法：开局用一块面板**盖住**棋盘，把这局要用的每个字/数字列出来，每个点一下——
+         · 汉字走 App 自己的「点字注音」：点一下 → 拼音气泡 + 朗读（不另抄一套读音）；
+         · 二宝的数字没有拼音表，这里自己念，并把读音（yī/èr/sān…）印在卡片上。
+       认全了「开始玩」才亮。认字这段时间**不计游戏时长**（run.hold）。
+       ⚠️ 是「盖住」不是「藏起来」：这样底下的按钮点不到、分也刷不了，
+          而方块那套逻辑一行都不用挪。 */
+    if (run.hold) run.hold();
+    const isHan = kid !== 'er';
+    const PY = isHan ? FACES.map(z => b.hanziPy(z)) : FACES.map(f => pyOfSay(f, f));
+    const learned = {};
+    const panel = document.createElement('div');
+    panel.className = 'tt-prep';
+    panel.innerHTML =
+      '<div class="tt-prep-tt">' + (isHan ? '先认一认这局的字' : '先认一认这局的数') + '</div>' +
+      '<div class="tt-prep-sub">每个都点一下，听听怎么念</div>' +
+      '<div class="tt-learn-row">' +
+        FACES.map((f, i) =>
+          '<div class="tt-learn" data-i="' + i + '"><b>' + f + '</b><i>' + (PY[i] || '') + '</i><span class="ck">✓</span></div>').join('') +
+      '</div>' +
+      '<div class="tt-prep-hint" id="tt-hint"></div>' +
+      '<button type="button" class="btn primary" id="tt-start" disabled>开始玩 ▶</button>';
+    stage.appendChild(panel);
+    let allDone = false;
+    function renderPrep() {
+      const left = FACES.length - Object.keys(learned).length;
+      $('tt-hint').textContent = left ? '还要认 ' + left + ' 个' : '🎉 认全啦，开始玩吧！';
+      $('tt-start').disabled = left > 0;
+      if (!left && !allDone) { allDone = true; b.confetti(14); b.sfx.ok(); }
+    }
+    renderPrep();
+    [].slice.call(panel.querySelectorAll('.tt-learn')).forEach(card => {
+      card.onclick = () => {
+        const i = +card.dataset.i;
+        const face = card.querySelector('b');
+        /* 点一下 = 弹拼音气泡 + 念出来（游戏屏关着全局点字注音，这里显式喊一声）。
+           数字也带上读音（1 → yī），孩子一样能看到拼音。 */
+        b.pyTap(FACES[i], face, PY[i]);
+        if (learned[i]) return;                    // 认过的再点：只再听一遍
+        learned[i] = 1;
+        card.classList.add('on');
+        renderPrep();
+      };
+    });
+    $('tt-start').onclick = () => {
+      if (Object.keys(learned).length < FACES.length) return;
+      if (run.resume) run.resume();
+      panel.remove();
+      newPiece();
+      draw();
+      restart();
+      b.sfx.ok();
+    };
   }
 
   /* ─────────── 小恐龙跳跳（超级玛丽的替代） ─────────── */
@@ -827,11 +1011,21 @@
   function dino(run, stage, finish) {
     const b = B();
     const kid = b.KID().id;
+    /* 速度档（老曾 2026-09-20：「每个游戏都要可以调节速度的地方吧！最好随时都可以调节速度」）。
+       这里调的是**世界滚动的快慢**（原来固定 3.0 像素/帧 ≈ 每秒 180 像素）。
+       行内一直摆着，跳着也能随手换档。⚠️ 先建好再拼 HTML（stage.innerHTML 里用到 DSPD.html）。 */
+    const DSPD = speedCtl('dinoSpeed', {
+      slow: { v: 2.2, ico: '🐢', name: '慢' },
+      mid:  { v: 3.0, ico: '🚶', name: '中' },
+      fast: { v: 4.2, ico: '🚀', name: '快' }
+    }, kid === 'er' ? 'slow' : 'mid', (k, v) => { SPD = v; });
     stage.innerHTML =
       '<div class="dn-ask" id="dn-q"></div>' +
       '<div class="dn-score">吃到 <b class="g" id="dn-right">0</b> · 撞错 <b class="r" id="dn-wrong">0</b></div>' +
+      DSPD.html +
       '<canvas id="dn-canvas"></canvas>' +
       '<div class="dn-tip">点画面（或按空格）跳一下 · 跳起来吃对的答案，别撞错的</div>';
+    DSPD.bind();
     const cv = $('dn-canvas');
     const W = Math.max(220, Math.min(stage.clientWidth - 6, Math.round(window.innerHeight * 0.62)));
     const H = Math.max(180, Math.round(W * 0.55));
@@ -846,7 +1040,7 @@
     const DW = 34, DH = 30;
     const BY = GY - 96;                             // 气球中心的高度：跳到最高点正好够着
     const R = 22;
-    const SPD = 3.0;                                // 世界滚动速度（像素/帧）
+    let SPD = DSPD.v;                               // 世界滚动速度（像素/帧），可由速度档随时改
     const GRAV = 0.9, JUMPV = -13.2;
 
     let dy = 0, vy = 0, onGround = true, scroll = 0;
@@ -1009,5 +1203,6 @@
     _clearBoard: () => { if (RUN && RUN.clearBoard) RUN.clearBoard(); },
     _setCell: (x, y, t) => { if (RUN && RUN.setCell) RUN.setCell(x, y, t); },
     _setPiece: (t, x, y, rotN) => { if (RUN && RUN.setPiece) RUN.setPiece(t, x, y, rotN); }
+    ,_spd: () => (RUN && RUN.spd) ? RUN.spd() : null      // 当前速度档（只读，给测试用）
   };
 })();

@@ -41,7 +41,7 @@
     sessionMin: 10       // 单次进入最长玩多少分钟
   };
   function blankState() {
-    return { cur: null, goal: 20, rate: 1, gameCfg: Object.assign({}, DEFAULT_GAME_CFG), profiles: { da: blankProfile(), er: blankProfile() } };
+    return { cur: null, goal: 20, rate: 1, gameCfg: Object.assign({}, DEFAULT_GAME_CFG), opts: {}, profiles: { da: blankProfile(), er: blankProfile() } };
   }
   let S = blankState();
   function load() {
@@ -86,6 +86,15 @@
 
   /* ─────────── 游戏时长（每天上限 + 单次上限，玩时每秒扣减） ─────────── */
   const gameCfg = () => S.gameCfg || DEFAULT_GAME_CFG;
+  /* 游戏里的小偏好（现在用它存贪吃蛇速度）：跟进度一起进 localStorage。
+     🔴 老存档里没有 S.opts 这个字段，读的时候必须兜底，不能假定它存在。
+     opt(k) 读、opt(k, v) 写（写会立刻存档）。 */
+  function gameOpt(k, v) {
+    if (!S.opts) S.opts = {};
+    if (v === undefined) return S.opts[k];
+    S.opts[k] = v; save();
+    return v;
+  }
   function gameDayRoll() {                 // 跨天把「今日已玩」清零
     const p = ME(), k = dayKey();
     if (p.gameDay !== k) { p.gameDay = k; p.gamePlayedSec = 0; save(); }
@@ -1701,6 +1710,21 @@
     KID: () => KID(),
     hanziPool: () => hanziPool(),
     cfg: () => gameCfg(),
+    opt: (k, v) => gameOpt(k, v),
+    /* 一个字默认怎么念（游戏里要显示/朗读它自己的字时用）。走的是**同一份**拼音表，
+       免得游戏里另抄一套读音——那就是判据分叉。 */
+    hanziPy: (z) => (pyText(z) || [])[0] || '',
+    /* 游戏里点一个字 → 弹**同一个**拼音气泡 + 朗读。
+       🔴 游戏屏（screen-play）是全局点字注音**故意关掉**的地方（地鼠头顶、方块上的字会被误弹），
+          所以游戏里要看拼音必须显式喊这一声；气泡长相和读音仍然走同一份实现，不另抄。
+       pyOverride 用来给「数字」也配上读音（1 → yī），拼音表里只有汉字。 */
+    pyTap: (z, el, pyOverride) => {
+      const py = pyOverride || (pyText(z) || [])[0] || '';
+      if (!py) return false;
+      const node = (el && el.getBoundingClientRect) ? el : document.getElementById('play-stage');
+      pyShow({ ch: z, py: py }, node.getBoundingClientRect());
+      return true;
+    },
     gameRemainSec: () => gameRemainSec(),
     spendGameSec: (n) => spendGameSec(n),
     openGames: () => openGames()

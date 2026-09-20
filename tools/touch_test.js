@@ -122,6 +122,55 @@ const ok = (name, cond, extra) => {
     await ctx.close();
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     真浏览器里验一次「方块消除·先认字」和「速度档」的**看得见**部分。
+     🔴 这些必须在这份测试里验，不能只靠 browser_test.sh：
+        那套带 --virtual-time-budget，CSS 过渡根本不推进 ——
+        「拼音淡入后看得见」在那边永远是 opacity:0（假红）；气泡也是同理。
+     ══════════════════════════════════════════════════════════════ */
+  console.log('\n== 方块消除·先认字（真浏览器，看得到的那种）==');
+  {
+    const ctx = await browser.newContext({ viewport: { width: 430, height: 932 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+    const page = await ctx.newPage();
+    const errs = [];
+    page.on('pageerror', e => errs.push(e.message));
+    await page.goto(FILE, { waitUntil: 'load' });
+    await page.waitForTimeout(1800);                 // 等过点字注音的开机冷静期
+    await page.evaluate(() => document.querySelector('.kid-card.da').click());
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      document.querySelectorAll('#home-mods .mod').forEach(m => { const t = m.querySelector('.tt'); if (t && t.textContent.includes('游戏乐园')) m.click(); });
+    });
+    await page.waitForTimeout(300);
+    await page.evaluate(() => {
+      document.querySelectorAll('#games-grid .game-card').forEach(c => { if (c.querySelector('.gc-name').textContent.includes('方块消除')) c.click(); });
+    });
+    await page.waitForTimeout(500);
+    const prep = await page.evaluate(() => {
+      const cards = document.querySelectorAll('.tt-learn');
+      return { n: cards.length, disabled: document.getElementById('tt-start').disabled,
+        py0: cards[0] ? getComputedStyle(cards[0].querySelector('i')).opacity : null };
+    });
+    ok('方块消除开局先出「先认一认」面板（' + prep.n + ' 个字）', prep.n >= 5);
+    ok('没认完「开始玩」点不动', prep.disabled === true);
+    ok('没点之前拼音是藏着的（opacity ' + prep.py0 + '）', prep.py0 === '0');
+    await page.locator('.tt-learn').first().click();
+    await page.waitForTimeout(420);                  // 0.2s 淡入走完
+    const after1 = await page.evaluate(() => {
+      const c = document.querySelector('.tt-learn');
+      return { cls: c.className, py: getComputedStyle(c.querySelector('i')).opacity,
+        pyTxt: c.querySelector('i').textContent,
+        pop: document.getElementById('py-pop').classList.contains('on'),
+        popTxt: document.getElementById('py-pop').textContent.trim() };
+    });
+    ok('点一下 → 卡片标成认过', /on/.test(after1.cls));
+    ok('点一下 → 拼音真的淡入看得见（opacity ' + after1.py + '，' + after1.pyTxt + '）', after1.py === '1');
+    ok('点一下 → 弹拼音气泡（气泡内容「' + after1.popTxt + '」）', after1.pop);
+    ok('这一屏没有未捕获异常', errs.length === 0, errs[0]);
+    await page.screenshot({ path: '/tmp/hm-tetris-prep.png' });
+    await ctx.close();
+  }
+
   await browser.close();
   console.log('\n共 ' + pass + ' 项通过 / ' + fail + ' 项失败');
   console.log('截图：/tmp/hm-trace-touch-844.png、/tmp/hm-trace-touch-560.png');
