@@ -236,7 +236,7 @@
   <p class="foot-note" id="map-foot"></p>
 </div>
 
-<!-- ═══════════ 10. 游戏乐园（学习赚时间 → 边玩边学） ═══════════ -->
+<!-- ═══════════ 10. 游戏乐园（进去就能玩 · 每日上限防沉迷） ═══════════ -->
 <div class="screen" id="screen-games">
   <div class="topbar">
     <button class="icon-btn" data-back="screen-home">←</button>
@@ -250,13 +250,9 @@
     </div>
     <div class="gb-emoji">🎁</div>
   </div>
-  <div class="game-prog">
-    <div class="gp-txt" id="game-prog-txt">学习时长 0 / 15 分钟 → 达标奖励 10 分钟</div>
-    <div class="gp-bar"><div class="gp-fill" id="game-prog-bar"></div></div>
-  </div>
   <div class="sect-title">🕹️ 选一个玩 <span class="hint">边玩边学</span></div>
   <div class="games-grid" id="games-grid"></div>
-  <p class="foot-note">游戏时间要靠学习赚；玩的时候也在认字、算数</p>
+  <p class="foot-note">玩的时候也在认字、算数；每天玩多久由家长设置</p>
 </div>
 
 <!-- ═══════════ 11. 家长设置（算术验证进入） ═══════════ -->
@@ -348,10 +344,6 @@
 .game-bank-card .gb-num .u{font-size:15px;font-weight:800;margin-left:6px;opacity:.92;}
 .game-bank-card .gb-cap{font-size:12px;color:rgba(255,255,255,.92);margin-top:8px;font-weight:700;}
 .game-bank-card .gb-emoji{font-size:46px;animation:float 3s ease-in-out infinite;}
-.game-prog{background:var(--card);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow);margin-bottom:16px;}
-.game-prog .gp-txt{font-size:13px;font-weight:800;color:var(--ink2);margin-bottom:9px;}
-.game-prog .gp-bar{height:12px;border-radius:8px;background:var(--line2);overflow:hidden;}
-.game-prog .gp-fill{height:100%;width:0;background:var(--grad-green);border-radius:8px;transition:width .4s ease;}
 .games-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .game-card{background:var(--card);border-radius:var(--r);padding:18px 12px;box-shadow:var(--shadow);cursor:pointer;text-align:center;border:3px solid #FFE0EF;transition:transform .16s cubic-bezier(.34,1.56,.64,1);}
 .game-card:active{transform:scale(.95);}
@@ -379,6 +371,44 @@
 .mole-opts{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px;}
 .mole-opt{min-width:64px;font-size:22px;font-weight:900;}
 .mole-opt.bad{border-color:var(--red);color:var(--red);}
+/* 贪吃蛇 */
+.sn-ask{font-size:19px;font-weight:900;text-align:center;margin:4px 0 2px;color:var(--ink);}
+.sn-ask b{color:var(--brand);font-size:24px;}
+.sn-score{text-align:center;font-size:13px;font-weight:800;color:var(--ink2);margin-bottom:8px;}
+.sn-score .g{color:var(--green);} .sn-score .r{color:var(--red);}
+#sn-canvas{display:block;margin:0 auto;border-radius:22px;background:#FFF3E8;
+  border:3px solid var(--brand);box-shadow:var(--shadow);touch-action:none;}
+.sn-tip{text-align:center;font-size:12px;font-weight:700;color:var(--ink4);margin-top:12px;}
+/* 三消配对 */
+.m3-ask{font-size:16px;font-weight:900;text-align:center;margin:2px 0;color:var(--ink);min-height:24px;}
+.m3-ask b{color:var(--brand);}
+.m3-score{text-align:center;font-size:13px;font-weight:800;color:var(--ink2);margin-bottom:8px;}
+.m3-score .g{color:var(--green);}
+#m3-wrap{position:relative;margin:0 auto;border-radius:20px;background:#FFF8F1;
+  border:3px solid var(--brand);box-shadow:var(--shadow);overflow:hidden;}
+.m3-tile{position:absolute;border-radius:14px;color:#fff;font-weight:900;text-align:center;
+  transition:left .17s ease,top .17s ease,transform .17s ease,opacity .2s ease;
+  cursor:pointer;user-select:none;-webkit-user-select:none;box-shadow:inset 0 -3px 0 rgba(0,0,0,.12);}
+.m3-tile.sel{transform:scale(1.12);outline:4px solid #fff;outline-offset:-6px;z-index:2;}
+.m3-tile.pop{transform:scale(.2) rotate(24deg);opacity:0;}
+.m3-tip{text-align:center;font-size:12px;font-weight:700;color:var(--ink4);margin-top:10px;}
+/* 方块消除 */
+.tt-score{text-align:center;font-size:13px;font-weight:800;color:var(--ink2);margin-bottom:6px;}
+.tt-score .g{color:var(--green);}
+.tt-score b{color:var(--brand);}
+#tt-canvas{display:block;margin:0 auto;border-radius:18px;border:3px solid var(--brand);
+  box-shadow:var(--shadow);touch-action:none;}
+.tt-pad{display:flex;gap:10px;justify-content:center;margin-top:12px;}
+.tt-btn{width:62px;height:52px;font-size:22px;font-weight:900;padding:0;}
+.tt-tip{text-align:center;font-size:12px;font-weight:700;color:var(--ink4);margin-top:10px;}
+/* 小恐龙跳跳 */
+.dn-ask{font-size:19px;font-weight:900;text-align:center;margin:4px 0 2px;color:var(--ink);}
+.dn-ask b{color:var(--brand);font-size:24px;}
+.dn-score{text-align:center;font-size:13px;font-weight:800;color:var(--ink2);margin-bottom:8px;}
+.dn-score .g{color:var(--green);} .dn-score .r{color:var(--red);}
+#dn-canvas{display:block;margin:0 auto;border-radius:22px;border:3px solid var(--brand);
+  box-shadow:var(--shadow);touch-action:none;}
+.dn-tip{text-align:center;font-size:12px;font-weight:700;color:var(--ink4);margin-top:12px;}
 /* 家长设置 */
 .parent-q{font-size:32px;font-weight:900;text-align:center;color:var(--brand);margin:10px 0;}
 .parent-ans{display:block;width:120px;margin:0 auto;font-size:24px;font-weight:800;text-align:center;padding:10px;border:3px solid var(--line2);border-radius:14px;font-family:inherit;}

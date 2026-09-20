@@ -1,0 +1,133 @@
+/* 游戏乐园的硬核验（老曾 2026-09-20 报「点了不能玩」）：
+     ① 进去就能玩（不再要「学满 15 分钟赚时间」）
+     ② 贪吃蛇**真把蛇引到正确答案那儿**，看它是不是真的变长、真的换题
+     ③ 吃错的会扣一节、题目不变
+     ④ 每日上限仍然拦得住（防沉迷没被一起拆掉）
+   跑法： bash tools/browser_test.sh tools/shots/t-games.js
+   🔴 判据看每条自己的输出行，不看退出码。 */
+(function () {
+  const L = [];
+  let bad = 0;
+  const ok = (cond, msg) => { if (!cond) bad++; L.push((cond ? '  ✅ ' : '  ❌ ') + msg); };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  function flush() {
+    const n = L.filter(x => x.indexOf('  ✅ ') === 0 || x.indexOf('  ❌ ') === 0).length;
+    L.push('\n共 ' + n + ' 项断言，' + bad + ' 处问题');
+    L.push((bad || n === 0) ? '🔴 游戏乐园没通过' + (n === 0 ? '（一项断言都没跑到）' : '') : '✅ 游戏乐园全部通过');
+    const pre = document.createElement('pre');
+    pre.id = 'TESTOUT';
+    pre.textContent = L.join('\n');
+    document.body.appendChild(pre);
+  }
+  const G = () => window.HMGames;
+  const scr = () => window.__hm.screen();
+
+  /* 走最短方向（含穿墙），别撞上反向——step 里 180° 掉头会被忽略。
+     另外绕开「吃错的答案」：撞上去会被扣一节，把「吃对会变长」这件事盖掉，
+     测出来的就不是游戏对不对，而是测试自己手笨。 */
+  function steerTo(p, target, N) {
+    const sgn = v => v > 0 ? 1 : v < 0 ? -1 : 0;
+    const wrap = v => (v % N + N) % N;
+    let dx = target.x - p.head.x, dy = target.y - p.head.y;
+    if (dx > N / 2) dx -= N; if (dx < -N / 2) dx += N;
+    if (dy > N / 2) dy -= N; if (dy < -N / 2) dy += N;
+    const opts = [];
+    if (Math.abs(dx) >= Math.abs(dy)) { if (dx) opts.push({ x: sgn(dx), y: 0 }); if (dy) opts.push({ x: 0, y: sgn(dy) }); }
+    else { if (dy) opts.push({ x: 0, y: sgn(dy) }); if (dx) opts.push({ x: sgn(dx), y: 0 }); }
+    const legal = opts.filter(o => !(o.x === -p.dir.x && o.y === -p.dir.y));
+    const safe = legal.filter(o => !p.foods.some(f =>
+      f.x === wrap(p.head.x + o.x) && f.y === wrap(p.head.y + o.y) && f.text !== target.text));
+    return safe[0] || legal[0] || { x: 0, y: 0 };
+  }
+
+  async function main() {
+    /* 先把孩子选好、进首页 */
+    const c = document.querySelector('.kid-card.er');
+    const r = c.getBoundingClientRect();
+    fireTap(c, r.left + r.width / 2, r.top + r.height / 2);
+    await sleep(2000);                                  // 等开机冷静期过去（点字注音的闸）
+    ok(scr() === 'screen-home', '进了首页（' + scr() + '）');
+
+    /* ── ① 游戏乐园进去就能玩 ── */
+    L.push('== ① 进去就能玩 ==');
+    const m = pickModTitle('游戏乐园');
+    ok(!!m, '首页有游戏乐园入口');
+    if (!m) { flush(); return; }
+    m.click();
+    await sleep(200);
+    ok(scr() === 'screen-games', '进了游戏中心');
+    const remain = window.HMBridge.gameRemainSec();
+    ok(remain > 0, '🔴 可玩秒数 > 0（不用先学满 15 分钟）—— 实际 ' + remain + ' 秒');
+    const cards = document.querySelectorAll('#games-grid .game-card');
+    const names = [].map.call(cards, x => x.querySelector('.gc-name').textContent);
+    L.push('  ℹ️ 游戏中心摆了 ' + cards.length + ' 款：' + JSON.stringify(names));
+    ok(names.indexOf('贪吃蛇') >= 0, '老曾点名的贪吃蛇在列表里');
+    ok(!document.getElementById('game-prog-txt'), '「学习赚时间」那条进度条已经拿掉了');
+
+    /* ── ② 点打地鼠进得去 ── */
+    L.push('== ② 点进去能玩 ==');
+    cards[0].click();
+    await sleep(300);
+    ok(scr() === 'screen-play', '点「打地鼠」进了游戏（' + scr() + '）');
+    document.getElementById('play-back').click();
+    await sleep(200);
+
+    /* ── ③ 贪吃蛇：真吃 ── */
+    L.push('== ③ 贪吃蛇 ==');
+    const cards2 = document.querySelectorAll('#games-grid .game-card');
+    let snakeIdx = -1;
+    [].forEach.call(cards2, (x, i) => { if (x.querySelector('.gc-name').textContent.indexOf('贪吃蛇') >= 0) snakeIdx = i; });
+    ok(snakeIdx >= 0, '找得到贪吃蛇卡片');
+    if (snakeIdx < 0) { flush(); return; }
+    cards2[snakeIdx].click();
+    await sleep(300);
+    ok(scr() === 'screen-play', '点「贪吃蛇」进了游戏（' + scr() + '）');
+
+    const p0 = G()._probe(), q0 = G()._peek();
+    ok(!!p0 && !!q0, '拿得到蛇的状态和当前题目');
+    if (!p0 || !q0) { flush(); return; }
+    L.push('  ℹ️ 题目：「' + q0.prompt.replace(/<[^>]*>/g, '') + '」，答案 ' + q0.answer);
+    ok(p0.foods.length === 4, '场上 4 个候选食物（实际 ' + p0.foods.length + '）');
+    ok(p0.foods.some(f => f.text === q0.answer), '4 个候选里有正确答案 ' + q0.answer);
+    const len0 = p0.len;
+
+    /* 引导蛇去吃正确答案：每 40ms 修正一次方向，直到吃够 2 个或超时。
+       🔴 记的是**峰值**长度、以及吃过几道**不同**的题：
+          吃对会长一节，但之后再吃错会被扣回去（身体最短 3 节），
+          只看结束时刻的长度会把「真长过」误判成「没长」（第一版就是这么红的）。 */
+    let got = 0, maxLen = len0, lastQ = q0.prompt + '|' + q0.answer, qSeen = 1;
+    for (let tick = 0; tick < 600 && got < 2; tick++) {
+      const p = G()._probe(), q = G()._peek();
+      if (!p || !q) break;
+      if (p.right > got) got = p.right;
+      if (p.len > maxLen) maxLen = p.len;
+      const tag = q.prompt + '|' + q.answer;
+      if (tag !== lastQ) { lastQ = tag; qSeen++; }
+      const target = p.foods.filter(f => f.text === q.answer)[0];
+      if (target) {
+        const d = steerTo(p, target, 8);
+        if (d.x || d.y) G()._steer(d.x, d.y);
+      }
+      await sleep(40);
+    }
+    ok(got >= 1, '🔴 吃到正确答案会得分（实际吃到 ' + got + ' 个）');
+    ok(maxLen > len0, '🔴 吃到正确答案会变长（最长长到 ' + maxLen + ' 节，出发时 ' + len0 + ' 节）');
+    ok(qSeen >= 2, '吃完会换新题（一路上换过 ' + qSeen + ' 道题）');
+
+    /* ── ④ 每日上限仍然拦得住 ── */
+    L.push('== ④ 防沉迷硬顶没被拆掉 ==');
+    const st = window.__hm.state();
+    const keep = st.profiles.er.gamePlayedSec;
+    st.profiles.er.gamePlayedSec = 99999;
+    ok(window.HMBridge.gameRemainSec() === 0, '玩满上限后剩余归零');
+    document.getElementById('play-back').click();
+    await sleep(200);
+    const cards3 = document.querySelectorAll('#games-grid .game-card');
+    if (cards3[0]) cards3[0].click();
+    await sleep(300);
+    ok(scr() === 'screen-games', '🔴 玩到上限后再点游戏就进不去了（停在 ' + scr() + '）');
+    st.profiles.er.gamePlayedSec = keep;                // 还原，别把测试的账留在存档里
+    flush();
+  }
+  main();
+})();

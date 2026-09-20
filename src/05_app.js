@@ -26,19 +26,17 @@
       traceStars: 0,               // 已经因写字发出去的星星数，防重复发
       wrong: [],                   // 错题本 [{q,a,why,t}]
       stats: {},                   // 关卡id → {right,total}
-      gameBank: 0,                 // 攒下的游戏时间余额（秒）
       gamePlayedSec: 0,            // 今日已玩（秒），跨天清零
       gameDay: '',                 // gamePlayedSec 属于哪天
-      gameAccum: { time: 0, quiz: 0, level: 0 }  // 各触发方式的达标进度累计
     };
   }
-  /* 游戏奖励闸门的家长默认档位（可在家长设置里改，存进 S.gameCfg） */
+  /* 游戏时间的家长档位（可在家长设置里改，存进 S.gameCfg）
+     🔴 2026-09-20 老曾拍板：**不再「学习赚时间」，进去就能玩**。
+        起因是他报「游戏乐园不能玩」——查下来二宝账户的余额永远是 0:00，
+        因为门槛是「学满 15 分钟才奖励 10 分钟」，而二宝 3 岁半根本坐不住 15 分钟。
+        而且打地鼠本身就在数数/认字/口算，把它锁起来逻辑不通。
+        防沉迷改由「每日上限」这一道硬顶负责（原来那套 mode/tier/reward 已删）。 */
   const DEFAULT_GAME_CFG = {
-    mode: 'time',        // 触发方式：time=学满分钟 / quiz=答对题数 / level=闯关数
-    timeTier: 15,        // 每学满多少分钟 → 奖励一次
-    quizTier: 20,        // 每答对多少题 → 奖励一次
-    levelTier: 3,        // 每闯过多少关 → 奖励一次
-    rewardMin: 10,       // 每次奖励多少分钟游戏
     dailyCapMin: 30,     // 每天最多玩多少分钟（防沉迷硬顶）
     sessionMin: 10       // 单次进入最长玩多少分钟
   };
@@ -54,7 +52,6 @@
         S.gameCfg = Object.assign({}, DEFAULT_GAME_CFG, raw.gameCfg || {});
         ['da', 'er'].forEach(k => {
           S.profiles[k] = Object.assign(blankProfile(), S.profiles[k] || {});
-          S.profiles[k].gameAccum = Object.assign({ time: 0, quiz: 0, level: 0 }, S.profiles[k].gameAccum || {});
         });
       }
     } catch (e) { /* 存档坏了就从零开始，不能白屏 */ }
@@ -85,47 +82,24 @@
     p.days[k] = (p.days[k] || 0) + n;
     p.lastDay = k;
     save();
-    checkReward('time', n);
   }
 
-  /* ─────────── 游戏奖励闸门（学习达标 → 攒游戏时间 → 玩时扣减 + 防沉迷） ─────────── */
+  /* ─────────── 游戏时长（每天上限 + 单次上限，玩时每秒扣减） ─────────── */
   const gameCfg = () => S.gameCfg || DEFAULT_GAME_CFG;
   function gameDayRoll() {                 // 跨天把「今日已玩」清零
     const p = ME(), k = dayKey();
     if (p.gameDay !== k) { p.gameDay = k; p.gamePlayedSec = 0; save(); }
   }
-  function gameRemainSec() {               // 还能玩几秒 = min(余额, 每日上限剩余)
+  function gameRemainSec() {               // 今天还能玩几秒 = 每日上限 − 今天已玩
     gameDayRoll();
     const p = ME(), cap = gameCfg().dailyCapMin * 60;
-    return Math.max(0, Math.min(p.gameBank || 0, cap - (p.gamePlayedSec || 0)));
+    return Math.max(0, cap - (p.gamePlayedSec || 0));
   }
-  function spendGameSec(n) {               // 玩时扣余额 + 记当日已玩
+  function spendGameSec(n) {               // 记当日已玩（上限到了就由 gameRemainSec 归零）
     gameDayRoll();
     const p = ME();
-    p.gameBank = Math.max(0, (p.gameBank || 0) - n);
     p.gamePlayedSec = (p.gamePlayedSec || 0) + n;
     save();
-  }
-  function grantGame() {                   // 发一次奖励
-    const p = ME(), add = gameCfg().rewardMin * 60;
-    p.gameBank = (p.gameBank || 0) + add;
-    save();
-    toast('🎮 学习达标，奖励 ' + gameCfg().rewardMin + ' 分钟游戏时间！');
-    sfx.win(); confetti(20);
-  }
-  /* 累计达标就发奖励：kind = time(秒)/quiz(题)/level(关)，inc 是本次增量 */
-  function checkReward(kind, inc) {
-    if (!S.cur) return;
-    const cfg = gameCfg();
-    if (cfg.mode !== kind) return;         // 只按家长选的触发方式计
-    const p = ME(); gameDayRoll();
-    const tier = kind === 'time' ? cfg.timeTier * 60 : kind === 'quiz' ? cfg.quizTier : cfg.levelTier;
-    if (!tier || tier <= 0) return;
-    p.gameAccum[kind] = (p.gameAccum[kind] || 0) + inc;
-    let got = 0;
-    while (p.gameAccum[kind] >= tier) { p.gameAccum[kind] -= tier; got++; }
-    save();
-    for (let i = 0; i < got; i++) grantGame();
   }
 
   /* ─────────── 声音 ─────────── */
@@ -257,7 +231,7 @@
       { goto: 'mul',    ico: '🔢', tt: '乘法口诀', ds: '点一句听一句' },
       { goto: 'hanzi',  ico: '🔤', tt: '认汉字', ds: '二年级字库 · 拼音组词' },
       { goto: 'trace',  ico: '✍️', tt: '写一写', ds: '手指描红练笔画' },
-      { goto: 'games',  ico: '🎮', tt: '游戏乐园', ds: '学习赚时间 · 边玩边学', color: 'pink' },
+      { goto: 'games',  ico: '🎮', tt: '游戏乐园', ds: '五款小游戏 · 边玩边学', color: 'pink' },
       { goto: 'stars',  ico: '🏆', tt: '星星奖章', ds: '看攒了多少颗' }
     ],
     er: [
@@ -266,7 +240,7 @@
       { goto: 'math',   ico: '🚀', tt: '数学游戏', ds: '数一数 · 比多少 · 找规律' },
       { goto: 'mul',    ico: '🔢', tt: '数到十', ds: '一、二、三…十' },
       { goto: 'trace',  ico: '✍️', tt: '描一描', ds: '用手指写大字' },
-      { goto: 'games',  ico: '🎮', tt: '游戏乐园', ds: '学习赚时间 · 边玩边学', color: 'pink' },
+      { goto: 'games',  ico: '🎮', tt: '游戏乐园', ds: '五款小游戏 · 边玩边学', color: 'pink' },
       { goto: 'stars',  ico: '🏆', tt: '我的星星', ds: '看看攒了几颗' }
     ]
   };
@@ -646,7 +620,7 @@
   function record(q, ok) {
     const p = ME(), key = q._key || 'misc';
     const s = p.stats[key] = p.stats[key] || { right: 0, total: 0 };
-    s.total++; if (ok) { s.right++; checkReward('quiz', 1); }
+    s.total++; if (ok) { s.right++; }
     save();
   }
   /* 一份成绩统计压成一行「对/总 · xx%」；没练过就给句人话，别显示 0% 。 */
@@ -723,7 +697,7 @@
     if (cfg.key) {
       const prev = p.levelStars[cfg.key] || 0;
       if (stars > prev) { p.stars += (stars - prev); p.levelStars[cfg.key] = stars; }
-      if (stars >= 1) checkReward('level', 1);
+      /* (老奖励闸门已撤：见 DEFAULT_GAME_CFG 注释) */
     } else {
       p.stars += stars;
     }
@@ -1267,24 +1241,17 @@
     showScreen('screen-stars');
   }
 
-  /* ═══════════ 游戏乐园（学习赚时间 → 边玩边学） ═══════════ */
-  function gameProgress() {
-    const cfg = gameCfg(), p = ME(); gameDayRoll();
-    if (cfg.mode === 'time') return { label: '学习时长', acc: Math.floor((p.gameAccum.time || 0) / 60), tier: cfg.timeTier, unit: '分钟' };
-    if (cfg.mode === 'quiz') return { label: '答对题数', acc: p.gameAccum.quiz || 0, tier: cfg.quizTier, unit: '题' };
-    return { label: '闯关数', acc: p.gameAccum.level || 0, tier: cfg.levelTier, unit: '关' };
-  }
+  /* ═══════════ 游戏乐园（边玩边学 · 每日上限防沉迷） ═══════════ */
   function openGames() {
     const G = window.HMGames;
     if (!G) { toast('游戏还没加载好'); return; }
     const p = ME(); gameDayRoll();
-    const remain = gameRemainSec(), cap = gameCfg().dailyCapMin * 60;
+    const remain = gameRemainSec(), cfg = gameCfg();
+    const playedMin = Math.floor((p.gamePlayedSec || 0) / 60);
     document.getElementById('game-bank').innerHTML = G.fmt(remain) + '<span class="u">可玩</span>';
-    document.getElementById('game-cap').textContent = '今天还能玩 ' + Math.max(0, Math.round((cap - (p.gamePlayedSec || 0)) / 60)) + ' 分钟（每日上限 ' + gameCfg().dailyCapMin + ' 分钟）';
-    const pr = gameProgress();
-    const pct = pr.tier > 0 ? Math.min(100, Math.round(pr.acc / pr.tier * 100)) : 0;
-    document.getElementById('game-prog-txt').textContent = pr.label + ' ' + pr.acc + ' / ' + pr.tier + ' ' + pr.unit + ' → 达标奖励 ' + gameCfg().rewardMin + ' 分钟';
-    document.getElementById('game-prog-bar').style.width = pct + '%';
+    document.getElementById('game-cap').textContent = playedMin > 0
+      ? '今天已经玩了 ' + playedMin + ' 分钟，每天最多 ' + cfg.dailyCapMin + ' 分钟'
+      : '每天最多玩 ' + cfg.dailyCapMin + ' 分钟，随时可以来玩';
     const grid = document.getElementById('games-grid');
     grid.innerHTML = '';
     G.GAMES.forEach(g => {
@@ -1342,22 +1309,15 @@
   function renderParent() {
     const cfg = gameCfg();
     const body = document.getElementById('parent-body');
-    const tierRow = cfg.mode === 'time' ? chips('timeTier', [10,15,20,30].map(v=>({v,t:v+' 分钟'})), cfg.timeTier)
-      : cfg.mode === 'quiz' ? chips('quizTier', [10,15,20,30].map(v=>({v,t:v+' 题'})), cfg.quizTier)
-      : chips('levelTier', [2,3,5,8].map(v=>({v,t:v+' 关'})), cfg.levelTier);
     body.innerHTML =
-      sect('① 用什么触发奖励', '三选一') +
-        chips('mode', [{v:'time',t:'⏱ 学满分钟'},{v:'quiz',t:'✅ 答对题数'},{v:'level',t:'🚀 闯关数'}], cfg.mode) + '</div>' +
-      sect('② 达标档位', '攒够就奖励一次') + tierRow + '</div>' +
-      sect('③ 每次奖励几分钟') + chips('rewardMin', [5,10,15,20].map(v=>({v,t:v+' 分钟'})), cfg.rewardMin) + '</div>' +
-      sect('④ 每日上限', '防沉迷硬顶') + chips('dailyCapMin', [15,20,30,45,60].map(v=>({v,t:v+' 分钟'})), cfg.dailyCapMin) + '</div>' +
-      sect('⑤ 单次最长', '一次进去最多玩多久') + chips('sessionMin', [5,10,15,20].map(v=>({v,t:v+' 分钟'})), cfg.sessionMin) + '</div>' +
+      sect('① 每天最多玩多久', '防沉迷硬顶，到点自动停') + chips('dailyCapMin', [15,20,30,45,60].map(v=>({v,t:v+' 分钟'})), cfg.dailyCapMin) + '</div>' +
+      sect('② 单次最长', '一次进去最多玩多久，到点提醒休息') + chips('sessionMin', [5,10,15,20].map(v=>({v,t:v+' 分钟'})), cfg.sessionMin) + '</div>' +
+      '<p class="foot-note" style="margin-top:14px">游戏本身就是学习：认字、数数、口算都在里面。<br>所以不再设「先学够多久才能玩」的门槛。</p>' +
       '<div class="btn-row" style="margin-top:16px"><button class="btn primary" id="parent-done">✅ 保存并返回</button></div>';
     body.querySelectorAll('[data-cfg]').forEach(btn => {
       btn.onclick = () => {
         const k = btn.getAttribute('data-cfg');
-        const v = btn.getAttribute('data-v');
-        S.gameCfg[k] = (k === 'mode') ? v : parseInt(v, 10);
+        S.gameCfg[k] = parseInt(btn.getAttribute('data-v'), 10);
         save(); sfx.tap(); renderParent();
       };
     });
