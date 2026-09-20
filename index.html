@@ -2322,10 +2322,16 @@ var PY_AMB = "一不个中为乐仔伯似作倒兴几卡发只号呀和咱哇啦
 
   /* ─────────── 屏幕切换 ─────────── */
   let curScreen = 'screen-kid';
+  /* 点字注音的开机冷静期从这一刻起算（见 bindPyTap ①）。
+     🔴 取 load 而不是脚本执行时刻：浏览器补发那次点击是在**加载完成之后**，
+        而慢网下「加载完成」离脚本执行可能差出一两秒——从脚本执行起算会漏挡。 */
+  let BOOT_AT = Date.now();
+  window.addEventListener('load', () => { BOOT_AT = Date.now(); });
   function showScreen(id) {
     document.querySelectorAll('.screen').forEach(el => el.classList.toggle('on', el.id === id));
     curScreen = id;
     window.scrollTo(0, 0);
+    pyHide();          /* 切屏必须收掉注音气泡——它是 fixed 定位的，不收就会漂在新屏幕上 */
   }
   let lastAct = Date.now();
   document.addEventListener('pointerdown', () => { lastAct = Date.now(); }, true);
@@ -3676,17 +3682,38 @@ var PY_AMB = "一不个中为乐仔伯似作倒兴几卡发只号呀和咱哇啦
     clearTimeout(pyTimer);
     pyTimer = setTimeout(() => pop.classList.remove('on'), 7000);
   }
+  /* 把气泡收掉：切屏时调（showScreen）。气泡是 fixed + 跨屏幕不消失的，
+     不收的话孩子一看别的屏幕，那个字还漂在上面。 */
+  function pyHide() {
+    const pop = document.getElementById('py-pop');
+    if (pop) { pop.classList.remove('on'); pop.innerHTML = ''; }
+    clearTimeout(pyTimer);
+  }
+
   function bindPyTap() {
-    /* 🔴 防「打开链接的残留点击（ghost click）」：手机/iPad/微信里点链接打开本页时，浏览器会在
-       加载完成后、于「原触摸坐标」补发一个 click——它坐标非零、又不是按钮，却能让点字注音误弹
-       一个莫名其妙的字并朗读出来（老曾 2026-09-18 报的 bug：一打开就冒出个「星」字还念出声）。
-       真点击一定是「本页 pointerdown → click」成对出现；那次残留点击没有本页 pointerdown 配套。
-       所以只认「800ms 内本页真按下过」的 click：阈值很宽松（真按到 click 通常 <100ms），而残留
-       点击距上次按下是「从未」（lastDown=0，差值极大）必被挡，也不误伤正常的点字注音。 */
-    let lastDown = 0;
-    document.addEventListener('pointerdown', () => { lastDown = Date.now(); }, true);
+    /* 🔴🔴 老曾 2026-09-20 报的「一点开 / 换人就冒出一个大字还自动朗读」，是**三个**独立缺口
+       叠在一起。三道闸各自挡一种，别删其中任何一道：
+
+       ① 开机冷静期（BOOT_GUARD）。从微信/桌面点链接打开本页时，浏览器会在加载完成后、
+          于「原触摸坐标」补发一次点击（老曾 2026-09-18 报的「一打开就冒出个『星』字」）。
+          旧代码只查「有没有配套的本页 pointerdown」——可 iOS 会把这次补发合成成完整的一套
+          （pointerdown→pointerup→click 之间只隔几毫秒），所以那道闸挡不住它。
+          开机 1.5 秒内人根本还没看清屏幕，一律不响应，这是唯一能可靠挡住补发点击的判据。
+
+       ② 「按下时和点击时，还是同一块屏幕吗」。元素自己的 onclick 先跑、这里 document 上的
+          listener 后跑 —— 点一张会切屏的东西（首页卡片、孩子卡）时，屏幕**已经切走了**，
+          这里才拿着**旧坐标**去**新屏幕**上取字，取到的是屏幕上完全不相干的另一个字并朗读。
+          2026-09-20 实测复现：点「游戏乐园」卡片 → 冒出「也」；点「数学游戏」→ 冒出「圆」；
+          点「描一描」→ 冒出「用」（老曾截图里首页上那个「音」，就是这么漂上去的）。
+          判据用「按下时的屏幕」而不是「目标的 DOM 归属」：切屏就等于这次点击不是冲着字来的。
+
+       ③ 800ms 内本页真按下过（老代码那道，保留，挡的是别处来的合成 click）。 */
+    let lastDown = 0, downScreen = curScreen;
+    document.addEventListener('pointerdown', () => { lastDown = Date.now(); downScreen = curScreen; }, true);
     document.addEventListener('click', e => {
-      if (Date.now() - lastDown > 800) return;                    // 没有配套的本页按下 → 残留点击，忽略
+      if (Date.now() - BOOT_AT < 1500) return;                    // ① 开机冷静期
+      if (Date.now() - lastDown > 800) return;                    // ③ 没有配套的本页按下 → 残留点击
+      if (curScreen !== downScreen) return;                       // ② 按下之后屏幕切走了 → 不是点字
       if (curScreen === 'screen-play') return;                    // 玩游戏时不触发点字注音（地鼠头顶字会被误弹）
       if (!e.clientX && !e.clientY) return;                       // 键盘触发的假点击
       if (e.target.closest && e.target.closest(PY_SKIP)) return;  // 能点的东西有自己的活干

@@ -10,7 +10,32 @@
   setTimeout(() => { const m = pickMod('数学闯关'); if (m) m.click(); }, 60);
   setTimeout(() => { const it = pickMap('表内乘法'); if (it) it.click(); }, 160);
 
-  setTimeout(run, 220);
+  /* ── 0a. 开机冷静期（闸①）的探针：**必须**跑在 1500ms 之前 ──
+     🔴 老曾 2026-09-20 报的「一点开就冒出一个大字还朗读」。iOS 从微信/桌面打开链接时，
+        浏览器会把补发的那次点击**合成成完整的一套** pointerdown→pointerup→click（相隔几毫秒），
+        所以旧的「有没有本页 pointerdown 配套」那道闸挡不住它。现在靠「开机 1.5 秒内一律不响应」。
+        这条断言在修复前会失败（＝复现 bug），修复后通过。 */
+  setTimeout(function () {
+    const d = document.createElement('div');
+    d.id = 'py-early';
+    d.style.cssText = 'position:fixed;left:24px;top:180px;font-size:34px;z-index:9999;' +
+                      'background:#fff;padding:8px 12px;line-height:1.5';
+    d.textContent = '早字探针';
+    document.body.appendChild(d);
+    const r = document.createRange();
+    r.setStart(d.firstChild, 0); r.setEnd(d.firstChild, 1);
+    const b = r.getBoundingClientRect();
+    const x = b.left + b.width / 2, y = b.top + b.height / 2;
+    const p0 = document.getElementById('py-pop');
+    p0.classList.remove('on'); p0.innerHTML = '';
+    /* 派发到当前屏幕上：闸②问的是「按下和点击之间屏幕切没切」，与目标 DOM 位置无关 */
+    fireTap(document.querySelector('.screen.on'), x, y);
+    window.__early = { on: p0.classList.contains('on'), txt: (p0.textContent || '').trim() };
+    d.remove();
+  }, 300);
+
+  /* 正常点字的断言要等冷静期过去 —— 真人在打开页面 1.5 秒内也点不到字 */
+  setTimeout(run, 2400);
 
 function run() {
   const L = [];
@@ -92,6 +117,11 @@ function run() {
         所以只认「近期有过本页按下」的 click。这条断言在修复前会失败（＝复现 bug），修复后通过。
      🔴 必须放在任何真实 pointerdown 之前跑：前面 kid()/pickMod().click() 都是裸 .click()（不派
         pointerdown），所以此刻内部 lastDown 仍是初始值，正好模拟「距上次按下已过很久」。 */
+  L.push('== 开机冷静期（打开链接后 1.5 秒内不响应点字）==');
+  const early = window.__early;
+  ok(!!early, '冷静期探针跑过了（跑在 1500ms 之前）');
+  if (early) ok(!early.on, '开机冷静期内真按一下也不弹气泡、不朗读' + (early.on ? '；实际弹出「' + early.txt + '」' : ''));
+
   L.push('== ghost click 防护（打开链接的残留点击，无 pointerdown 配套）==');
   const cg = centerOf(probe.firstChild, 4);          // 探针「数」字的真坐标
   pop.classList.remove('on');
