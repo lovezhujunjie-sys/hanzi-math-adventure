@@ -134,10 +134,15 @@ function traceOneLine(){
   const r = cv.getBoundingClientRect();
   const ev = (type, x, y) => cv.dispatchEvent(new PointerEvent(type,
     { clientX: x, clientY: y, bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse' }));
-  const y = r.top + r.height * 0.5;
-  ev('pointerdown', r.left + r.width * 0.07, y);
-  for (let i = 1; i <= 6; i++) ev('pointermove', r.left + r.width * (0.07 + 0.86 * i / 6), y);
-  ev('pointerup', r.left + r.width * 0.93, y);
+  /* 🔴 手指/笔尖是有宽度的一条带（12px ≈ 格子的 1/2 格宽），所以夹具也画一条带 ——
+     只画一根零宽的线，楷体的「一」那一横只要偏上/偏下半个格就整条漏掉，
+     于是「一 该盖章」会假红（2026-09-20 踩到）。 */
+  const ys = [0.47, 0.5, 0.53].map(v => r.top + r.height * v);
+  ev('pointerdown', r.left + r.width * 0.07, ys[1]);
+  for (let k = 0; k < ys.length; k++) {
+    for (let i = 1; i <= 6; i++) ev('pointermove', r.left + r.width * (0.07 + 0.86 * i / 6), ys[k]);
+  }
+  ev('pointerup', r.left + r.width * 0.93, ys[2]);
 }
 /* 屏幕上的描红画布边长（门槛按它算） */
 function traceCellSize(){

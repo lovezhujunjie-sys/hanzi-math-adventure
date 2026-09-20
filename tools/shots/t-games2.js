@@ -67,6 +67,9 @@
     fireTap(c, r.left + r.width / 2, r.top + r.height / 2);
     await sleep(2000);
     ok(scr() === 'screen-home', '进了首页');
+    /* 🔴 夹具：游戏乐园现在有「先学习才能进」的门；这一份测游戏本身，先放行。
+       门的三条路（时长/闯关/家长放行）由 tools/shots/t-gate.js 专门验。 */
+    window.__hm.gate.forceOpen();
 
     /* ── 五款游戏都在，而且都点得开 ── */
     L.push('== 游戏中心 ==');

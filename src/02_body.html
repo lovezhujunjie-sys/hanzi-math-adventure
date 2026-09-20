@@ -20,6 +20,12 @@
     <button class="switch" id="home-switch">换人</button>
   </div>
 
+  <!-- 家长入口（2026-09-20）：游戏乐园锁着的时候孩子进不去游戏中心，
+       所以家长页必须在首页也能进 —— 否则"今天直接放行"那个开关就没法用了。 -->
+  <div class="home-tools">
+    <button class="home-tool" id="home-parent">👨‍👩‍👦 家长</button>
+  </div>
+
   <div class="stat-strip">
     <div class="stat"><div class="n" id="st-min">0<span class="u">分</span></div><div class="l">今日学习</div></div>
     <div class="stat"><div class="n" id="st-star">0</div><div class="l">星星 ⭐</div></div>
@@ -31,6 +37,17 @@
   <div class="sect-title">👀 今天练过什么</div>
   <div class="card" id="home-today"><div class="empty-tip">还没开始，随便挑一个玩吧 👆</div></div>
   <p class="foot-note">汉字数学大冒险 · 给麟轩和曾强做的<br>离线可用，断网也能学</p>
+</div>
+
+<!-- 游戏乐园「还没开门」提示（浮层） -->
+<div class="gate-pop hide" id="gate-pop">
+  <div class="gate-card">
+    <div class="gate-emoji">🔒</div>
+    <div class="gate-tt">游戏乐园还没开门</div>
+    <div class="gate-ds" id="gate-ds"></div>
+    <button class="btn primary" id="gate-go">去学习 ▶</button>
+    <button class="btn ghost" id="gate-cancel">再等等</button>
+  </div>
 </div>
 
 <!-- ═══════════ 3. 认字卡（学习） ═══════════ -->
@@ -409,6 +426,33 @@
 .m3-hold-big{font-size:56px;font-weight:900;color:var(--brand);font-family:"Kaiti SC","STKaiti","KaiTi",serif;line-height:1.1;}
 .m3-hold-big i{font-style:normal;font-size:20px;color:var(--ink2);margin-left:8px;vertical-align:middle;}
 .m3-hold-dots{font-size:13px;color:var(--brand);letter-spacing:2px;}
+/* ── 首页家长入口 ── */
+.home-tools{display:flex;justify-content:flex-end;margin:-6px 2px 8px;}
+.home-tool{
+  font:800 12px/1 inherit;padding:7px 12px;border-radius:12px;cursor:pointer;
+  background:#fff;color:var(--ink3);border:2px solid var(--line2);
+}
+/* ── 游戏乐园的门（2026-09-20）：锁着的样子 + 点了之后的提示浮层 ── */
+.mod.gate-locked{opacity:.62;filter:grayscale(.35);}
+.mod.gate-open{box-shadow:0 0 0 3px rgba(255,176,58,.55), var(--shadow);}
+.gate-pop{
+  position:fixed;inset:0;z-index:80;background:rgba(20,20,26,.42);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.gate-pop.hide{display:none;}
+.gate-card{
+  width:100%;max-width:330px;background:var(--card);border-radius:22px;
+  padding:22px 18px 18px;text-align:center;box-shadow:0 18px 40px rgba(0,0,0,.25);
+}
+.gate-emoji{font-size:44px;line-height:1;}
+.gate-tt{font-size:19px;font-weight:900;color:var(--ink);margin:8px 0 10px;}
+.gate-ds{font-size:14px;line-height:1.7;color:var(--ink2);margin-bottom:16px;}
+.gate-ds b{color:var(--brand);}
+.gate-now{font-size:12px;color:var(--ink4);}
+.gate-card .btn{display:block;width:100%;margin-bottom:8px;}
+/* 家长页里的两栏档位（大宝/二宝各一行） */
+.set-row{display:flex;align-items:center;gap:8px;margin:6px 0;}
+.set-row .set-lb{font-size:13px;font-weight:800;color:var(--ink2);flex:0 0 62px;}
 .m3-tip{text-align:center;font-size:12px;font-weight:700;color:var(--ink4);margin-top:10px;}
 /* 方块消除 */
 .tt-score{text-align:center;font-size:13px;font-weight:800;color:var(--ink2);margin-bottom:6px;}

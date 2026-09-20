@@ -28,6 +28,7 @@
       stats: {},                   // 关卡id → {right,total}
       gamePlayedSec: 0,            // 今日已玩（秒），跨天清零
       gameDay: '',                 // gamePlayedSec 属于哪天
+      gate: null,                  // 游戏乐园的门（每天重新挣）：{day, levels, keys, unlocked}
     };
   }
   /* 游戏时间的家长档位（可在家长设置里改，存进 S.gameCfg）
@@ -36,10 +37,13 @@
         因为门槛是「学满 15 分钟才奖励 10 分钟」，而二宝 3 岁半根本坐不住 15 分钟。
         而且打地鼠本身就在数数/认字/口算，把它锁起来逻辑不通。
         防沉迷改由「每日上限」这一道硬顶负责（原来那套 mode/tier/reward 已删）。 */
-  const DEFAULT_GAME_CFG = {
-    dailyCapMin: 30,     // 每天最多玩多少分钟（防沉迷硬顶）
-    sessionMin: 10       // 单次进入最长玩多少分钟
-  };
+	  const DEFAULT_GAME_CFG = {
+	    dailyCapMin: 30,     // 每天最多玩多少分钟（防沉迷硬顶）
+	    sessionMin: 10,      // 单次进入最长玩多少分钟
+	    unlockMin: 21,       // ① 每天有效学习满 21 分钟 → 游戏乐园开门（老曾 2026-09-20 拍板）
+	    unlockLvDa: 2,       // ② 或者今天闯过 2 关（大宝）
+	    unlockLvEr: 1        //    或者今天闯过 1 关（二宝：他 3 岁半，坐不住 21 分钟）
+	  };
   function blankState() {
     return { cur: null, goal: 20, rate: 1, gameCfg: Object.assign({}, DEFAULT_GAME_CFG), opts: {}, profiles: { da: blankProfile(), er: blankProfile() } };
   }
@@ -82,6 +86,7 @@
     p.days[k] = (p.days[k] || 0) + n;
     p.lastDay = k;
     save();
+    gateCheck();          // 学够 21 分钟那一刻要当场撒花开门（老曾要的"兑换感"）
   }
 
   /* ─────────── 游戏时长（每天上限 + 单次上限，玩时每秒扣减） ─────────── */
@@ -94,6 +99,93 @@
     if (v === undefined) return S.opts[k];
     S.opts[k] = v; save();
     return v;
+  }
+
+  /* ═══════════ 游戏乐园的门（2026-09-20 老曾拍板）═══════════
+     规则：**每天都要重新挣一次**，两条路任选一条达成即开门，当天有效：
+       ① 今天有效学习 ≥ unlockMin 分钟（就是首页「今日 N 分钟」同一份计数：
+          只算学习界面 + 页面在前台 + 2 分钟内有操作，挂机不算）；
+       ② 或者今天闯过 unlockLvDa / unlockLvEr 个关卡（正确率 ≥60% 才有星，同一关重刷只算一次）。
+     老曾原话：「每天点进去之后要连续学习21分钟之后才能进入游戏乐园板块,
+               如果用户直接点击游戏乐园板块提示先学习21分钟,或者在闯关游戏里面获得一定的闯关才能进入游戏乐园」。
+     「连续」按**累计**实现（中间离开学习屏不打断）—— 这条口径跟他确认过。
+
+     🔴 三条不许动的规矩（都是拿今天上午那次故障换来的，见 SKILL.md 与交接文档）：
+       一、**不做倒计时余额**。余额会归零、还在界面上看不出来（二宝那次就是：卡片点得动，
+           进去就被踢回）。这里只有「开没开」，开了当天一直有效，玩到一半不会被锁回去。
+       二、**两个孩子分开算**：哥哥学满不给弟弟开门（各自存各自的 gate）。
+       三、**门槛必须够得着**：二宝默认只要 1 关，家长页能改。 */
+  const gateCfgMin = () => gameCfg().unlockMin || DEFAULT_GAME_CFG.unlockMin;
+  const gateLvNeed = () => {
+    const c = gameCfg();
+    return S.cur === 'er' ? (c.unlockLvEr || DEFAULT_GAME_CFG.unlockLvEr)
+                          : (c.unlockLvDa || DEFAULT_GAME_CFG.unlockLvDa);
+  };
+  function gateState() {                        // 今天的这一份（跨天自动重置）
+    const p = ME(), k = dayKey();
+    if (!p.gate || p.gate.day !== k) p.gate = { day: k, levels: 0, keys: {}, unlocked: false };
+    if (!p.gate.keys) p.gate.keys = {};
+    return p.gate;
+  }
+  function gateInfo() {
+    const g = gateState(), need = gateCfgMin() * 60, have = todaySec();
+    const lvNeed = gateLvNeed(), lvHave = Object.keys(g.keys).length;
+    const byTime = have >= need, byLv = lvHave >= lvNeed;
+    const open = !!(g.unlocked || byTime || byLv);
+    return {
+      open: open, unlocked: !!g.unlocked, byTime: byTime, byLv: byLv,
+      have: have, need: need, minsLeft: Math.max(0, Math.ceil((need - have) / 60)),
+      lvHave: lvHave, lvNeed: lvNeed, lvLeft: Math.max(0, lvNeed - lvHave),
+      mins: gateCfgMin()
+    };
+  }
+  function gateLockLine(gi) {
+    return '🔒 再学 ' + gi.minsLeft + ' 分钟，或者今天再闯 ' + gi.lvLeft + ' 关';
+  }
+  /* 闯过一关（调用方只在正确率 ≥60%、也就是拿到星时喊）。
+     同一关重刷只算一次 —— 否则孩子把同一关刷两遍就开门了。 */
+  function gateLevelDone(key) {
+    const g = gateState();
+    const kk = key || ('once' + Date.now());
+    if (g.keys[kk]) return;
+    g.keys[kk] = 1;
+    save();
+    gateCheck();
+  }
+  /* 达成的**那一刻**给一次反馈（撒花 + 提示），并把首页卡片刷成已开门 */
+  let GATE_MEMO = null;
+  function gateCheck() {
+    const info = gateInfo();
+    const was = GATE_MEMO;
+    /* 🔴 先把账记上再庆祝：庆祝里可能要 goHome() 重画首页，而 goHome() 又会调回 gateCheck() ——
+       后记的话第二次进来 GATE_MEMO 还是 false，就会无限递归把页面卡死（2026-09-20 踩到）。 */
+    GATE_MEMO = info.open;
+    if (info.open && was === false) {
+      confetti(18); sfx.ok();
+      toast('🎉 游戏乐园开门啦！');
+      if (curScreen === 'screen-home') goHome();
+    }
+    return info;
+  }
+  /* 家长页的「今天直接放行」：只给当前这个孩子、只给今天 */
+  function gateForceOpen() {
+    const g = gateState();
+    g.unlocked = true;
+    save();
+    gateCheck();
+  }
+  function hideGatePop() {
+    const el = document.getElementById('gate-pop');
+    if (el) el.classList.add('hide');
+  }
+  function gatePrompt(gi) {
+    const pop = document.getElementById('gate-pop');
+    if (!pop) return;
+    document.getElementById('gate-ds').innerHTML =
+      '先学习 <b>' + gi.mins + ' 分钟</b>，或者今天闯过 <b>' + gi.lvNeed + '</b> 关，就能进去玩。<br>' +
+      '<span class="gate-now">今天已经学了 <b>' + Math.floor(gi.have / 60) + '</b> 分钟 · 闯过 <b>' + gi.lvHave + '</b> 关</span>';
+    pop.classList.remove('hide');
+    sfx.no();
   }
   function gameDayRoll() {                 // 跨天把「今日已玩」清零
     const p = ME(), k = dayKey();
@@ -199,6 +291,7 @@
     curScreen = id;
     window.scrollTo(0, 0);
     pyHide();          /* 切屏必须收掉注音气泡——它是 fixed 定位的，不收就会漂在新屏幕上 */
+    hideGatePop();     /* 同上：锁门提示也是浮层，跨屏不收会漂到别的屏上 */
     setPageLock(id === 'screen-trace');   /* 写一写整页锁死，离屏立刻解锁 */
   }
 
@@ -291,12 +384,20 @@
 
     const grid = document.getElementById('home-mods');
     grid.innerHTML = '';
+    const gi = gateCheck();                       // 顺手把"刚打开门"那一刻的撒花补上
     (HOME_MODS[S.cur] || []).forEach(m => {
+      const isGames = m.goto === 'games';
+      const locked = isGames && !gi.open;
       const el = document.createElement('div');
-      el.className = 'mod' + (m.wide ? ' wide' : '');
-      el.innerHTML = '<div class="ico">' + m.ico + '</div>' +
-        '<div class="' + (m.wide ? 'txt' : '') + '"><div class="tt">' + m.tt + '</div><div class="ds">' + m.ds + '</div></div>';
-      el.onclick = () => { sfx.tap(); route(m.goto); };
+      el.className = 'mod' + (m.wide ? ' wide' : '') + (locked ? ' gate-locked' : '') + (isGames && gi.open ? ' gate-open' : '');
+      const ds = isGames ? (locked ? gateLockLine(gi) : (gi.unlocked || gi.byLv || gi.byTime ? '🎉 今天已经开门了 · 五款小游戏' : m.ds)) : m.ds;
+      el.innerHTML = '<div class="ico">' + (locked ? '🔒' : m.ico) + '</div>' +
+        '<div class="' + (m.wide ? 'txt' : '') + '"><div class="tt">' + m.tt + '</div><div class="ds">' + ds + '</div></div>';
+      el.onclick = () => {
+        sfx.tap();
+        if (locked) { gatePrompt(gi); return; }    // 老曾要的：直接点就提示"先学习 21 分钟"
+        route(m.goto);
+      };
       grid.appendChild(el);
     });
 
@@ -729,7 +830,10 @@
     if (cfg.key) {
       const prev = p.levelStars[cfg.key] || 0;
       if (stars > prev) { p.stars += (stars - prev); p.levelStars[cfg.key] = stars; }
-      /* (老奖励闸门已撤：见 DEFAULT_GAME_CFG 注释) */
+      /* 拿到星＝这关过了（≥60%）→ 记进"今天闯过几关"（游戏乐园的门走这条路）。
+         · 固定关卡（数学关）按 key 去重：把同一关刷两遍不算两关。
+         · 池子型（认字闯关，每轮 10 个随机字）算"一轮"，用 gateRound 标出来。 */
+      if (stars >= 1) gateLevelDone(cfg.gateRound ? (cfg.key + '#' + Date.now()) : cfg.key);
     } else {
       p.stars += stars;
     }
@@ -862,6 +966,7 @@
     const key = 'timed_' + T.mode.id;
     if (stars > (p.levelStars[key] || 0)) p.levelStars[key] = stars;
     save(); touchDay();
+    if (stars >= 1) gateLevelDone(key + '#' + Date.now());   // 限时口算：一轮算一关（≥8 题）
     const wl = document.getElementById('timed-wrong-list');
     if (T.wrongs.length) {
       wl.classList.remove('hide');
@@ -1064,6 +1169,7 @@
   function startHanziQuiz(all, key) {
     startQuiz({
       title: '⚡ 认字闯关', n: 10, key: key || 'hanzi_quiz',
+      gateRound: true,                 // 每轮 10 个随机字：算"今天闯过一关"，不是同一关重刷
       backFn: () => openHanziMap(),
       make: hanziQFactory(all, key)
     });
@@ -1494,7 +1600,18 @@
     body.innerHTML =
       sect('① 每天最多玩多久', '防沉迷硬顶，到点自动停') + chips('dailyCapMin', [15,20,30,45,60].map(v=>({v,t:v+' 分钟'})), cfg.dailyCapMin) + '</div>' +
       sect('② 单次最长', '一次进去最多玩多久，到点提醒休息') + chips('sessionMin', [5,10,15,20].map(v=>({v,t:v+' 分钟'})), cfg.sessionMin) + '</div>' +
-      '<p class="foot-note" style="margin-top:14px">游戏本身就是学习：认字、数数、口算都在里面。<br>所以不再设「先学够多久才能玩」的门槛。</p>' +
+      /* ③④⑤ 是 2026-09-20 老曾要的"先学习再玩"：门槛每天重算，这里只调数字 */
+      sect('③ 学多久才给开门', '算术验证只有家长过得了；每天重新挣一次') +
+        chips('unlockMin', [15,21,30].map(v=>({v,t:v+' 分钟'})), cfg.unlockMin) + '</div>' +
+      sect('④ 或者：今天闯过几关也开门', '同一关刷两遍只算一次；认字闯关每轮算一关') +
+        '<div class="set-row"><span class="set-lb">🚀 大宝</span>' +
+        chips('unlockLvDa', [1,2,3].map(v=>({v,t:v+' 关'})), cfg.unlockLvDa) + '</div>' +
+        '<div class="set-row"><span class="set-lb">🐣 二宝</span>' +
+        chips('unlockLvEr', [1,2,3].map(v=>({v,t:v+' 关'})), cfg.unlockLvEr) + '</div>' +
+        '<p class="foot-note" style="margin-top:6px">🔴 二宝默认只要 1 关：他 3 岁半坐不住 21 分钟，' +
+        '只卡分钟数等于游戏对他永远锁着（这个坑今天上午刚填过）。</p></div>' +
+      sect('⑤ 今天就让他玩', '今天没学够、但你就是要让他玩时用这个') +
+        '<button class="btn primary" id="gate-open-now">给「' + KID().name + '」今天开一次门 🎮</button></div>' +
       '<div class="btn-row" style="margin-top:16px"><button class="btn primary" id="parent-done">✅ 保存并返回</button></div>';
     body.querySelectorAll('[data-cfg]').forEach(btn => {
       btn.onclick = () => {
@@ -1503,6 +1620,8 @@
         save(); sfx.tap(); renderParent();
       };
     });
+    const nowBtn = document.getElementById('gate-open-now');
+    if (nowBtn) nowBtn.onclick = () => { gateForceOpen(); sfx.ok(); toast('今天给「' + KID().name + '」开门啦 🎮'); renderParent(); };
     document.getElementById('parent-done').onclick = () => { sfx.ok(); save(); openGames(); };
   }
 
@@ -1516,6 +1635,15 @@
       };
     });
     document.getElementById('home-switch').onclick = () => { sfx.tap(); S.cur = null; save(); renderKids(); showScreen('screen-kid'); };
+    /* 家长入口（首页）：游戏乐园锁着的时候这是唯一的门 —— 见 02_body.html 里的说明 */
+    document.getElementById('home-parent').onclick = () => { sfx.tap(); openParent(); };
+    /* 「还没开门」提示浮层：去学习 → 送到这个孩子的主学习模块 */
+    document.getElementById('gate-go').onclick = () => {
+      sfx.tap(); hideGatePop();
+      route(S.cur === 'er' ? 'hanzi' : 'math');
+    };
+    document.getElementById('gate-cancel').onclick = () => { sfx.tap(); hideGatePop(); };
+    document.getElementById('gate-pop').onclick = (e) => { if (e.target.id === 'gate-pop') hideGatePop(); };
 
     /* 认字卡 */
     document.getElementById('learn-prev').onclick = () => { if (LEARN) { sfx.tap(); LEARN.i = (LEARN.i - 1 + LEARN.list.length) % LEARN.list.length; renderLearn(); } };
@@ -1792,6 +1920,28 @@
     quiz: () => Q, learn: () => LEARN, screen: () => curScreen,
     /* 描红的当前覆盖率（只读）：测试用它证明「写一半不盖章」不是靠猜 */
     traceCoverage: () => (TRACE && TRACE.coverage) ? TRACE.coverage() : 0,
+    /* 游戏乐园的门：info/check 是只读探针；reset/forceOpen/addLevel 是**布置输入**的夹具
+       （跟 _setCell 一样——摆好输入之后，"锁着能不能进""达标会不会开"仍然走真实逻辑）。 */
+    gate: {
+      info: () => gateInfo(),
+      addLevel: (key) => { gateLevelDone(key); return gateInfo(); },
+      forceOpen: () => { gateForceOpen(); return gateInfo(); },
+      reset: (kidId) => {
+        const p = S.profiles[kidId || S.cur] || ME();
+        p.days = {}; p.gate = { day: '', levels: 0, keys: {}, unlocked: false };
+        S.gameCfg = Object.assign({}, DEFAULT_GAME_CFG);      // 顺带把家长改过的档位复位
+        save();
+        if (S.cur) goHome();
+        return gateInfo();
+      },
+      setStudySec: (sec, kidId) => {                          // 直接摆"今天已经学了 N 秒"
+        const p = S.profiles[kidId || S.cur] || ME();
+        p.days[dayKey()] = sec;
+        save();
+        if (S.cur) goHome();                                  // 卡片上的"还差几分钟"要跟着变
+        return gateInfo();
+      }
+    },
     /* 点字注音的内部件：给浏览器测试直接驱动**线上这份**实现用。
        测试必须打真身，不许在测试里另抄一套匹配逻辑（那就是判据分叉）。 */
     py: { find: pyFindIn, read: pyReadAt, text: pyText, char: PY_CHAR, seg: PY_SEG, amb: PY_AMB, maxlen: PY_MAXLEN }

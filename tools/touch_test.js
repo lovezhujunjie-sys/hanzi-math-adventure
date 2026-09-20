@@ -161,6 +161,9 @@ const ok = (name, cond, extra) => {
     await page.waitForTimeout(1800);                 // 等过点字注音的开机冷静期
     await page.evaluate(() => document.querySelector('.kid-card.da').click());
     await page.waitForTimeout(200);
+    /* 游戏乐园有「先学习才能进」的门（老曾 2026-09-20）；这一份测的是方块消除本身，
+       先按家长那个开关放行 —— 门自己由 tools/shots/t-gate.js 专门验。 */
+    await page.evaluate(() => { if (window.__hm && window.__hm.gate) window.__hm.gate.forceOpen(); });
     await page.evaluate(() => {
       document.querySelectorAll('#home-mods .mod').forEach(m => { const t = m.querySelector('.tt'); if (t && t.textContent.includes('游戏乐园')) m.click(); });
     });

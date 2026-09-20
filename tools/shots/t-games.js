@@ -47,6 +47,10 @@
     fireTap(c, r.left + r.width / 2, r.top + r.height / 2);
     await sleep(2000);                                  // 等开机冷静期过去（点字注音的闸）
     ok(scr() === 'screen-home', '进了首页（' + scr() + '）');
+    /* 🔴 夹具：游戏乐园现在有「先学习才能进」的门（老曾 2026-09-20 要的）。
+       这一份测的是**游戏本身**，不是门；所以先按家长页那个开关把他今天放行，
+       门自己的三条路（时长/闯关/家长放行）由 tools/shots/t-gate.js 专门验。 */
+    window.__hm.gate.forceOpen();
 
     /* ── ① 游戏乐园进去就能玩 ── */
     L.push('== ① 进去就能玩 ==');

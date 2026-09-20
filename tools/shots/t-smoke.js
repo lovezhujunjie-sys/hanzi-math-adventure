@@ -99,6 +99,9 @@
   /* ── C. 独立单页：限时口算 / 乘法口诀 / 描红 / 星星 ── */
   for (const k of ['er', 'da']) {
     if (!toKid(k)) continue;
+    /* 游戏乐园有「先学习才能进」的门（老曾 2026-09-20 要的）；这份是"入口都打得开"的冒烟，
+       门自己由 tools/shots/t-gate.js 专门验，这里先按家长那个开关放行。 */
+    if (window.__hm && window.__hm.gate) window.__hm.gate.forceOpen();
     const pages = [['限时', '#timed-q'], ['口诀', '#mul-table'], ['描', '#trace-canvas'], ['星星', '#achv-grid']];
     for (const [name, sel] of pages) {
       const m = mod(name);
