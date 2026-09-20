@@ -190,7 +190,30 @@
     curScreen = id;
     window.scrollTo(0, 0);
     pyHide();          /* 切屏必须收掉注音气泡——它是 fixed 定位的，不收就会漂在新屏幕上 */
+    setPageLock(id === 'screen-trace');   /* 写一写整页锁死，离屏立刻解锁 */
   }
+
+  /* ═══════════ 写一写：整页锁死 ═══════════
+     老曾 2026-09-20 的原话：「我进入写一写页面，整个就完全锁定不能动，有一锁，
+     这样页面不动才能保证我能正常书写」。
+
+     为什么非锁不可：孩子用手指竖直往下写时，iOS Safari 会把这串触摸当成**翻页/回弹手势**，
+     页面跟着手指动，竖向笔迹就被整页滚动抢走——横着写没事（页面横着不会滚），
+     症状正是「一写竖笔顺就写不了」。
+     🔴 光靠 CSS `overflow:hidden` 挡不住 iOS 的橡皮筋回弹和「overscroll」，
+        所以再加一道运行时的总闸：锁着的时候，屏幕上任何**单指**滑动都不产生位移
+        （双指留给缩放，不抢）。 */
+  let pageLocked = false;
+  function setPageLock(on) {
+    pageLocked = !!on;
+    document.documentElement.classList.toggle('lock-scroll', pageLocked);
+    if (pageLocked) { try { window.scrollTo(0, 0); } catch (e) {} }
+  }
+  document.addEventListener('touchmove', e => {
+    if (!pageLocked) return;
+    if (e.touches && e.touches.length > 1) return;      // 双指缩放还给他
+    if (e.cancelable) e.preventDefault();
+  }, { passive: false });
   let lastAct = Date.now();
   document.addEventListener('pointerdown', () => { lastAct = Date.now(); }, true);
 
@@ -1088,25 +1111,88 @@
     speak(w.z);
     if (isNew) toast('「' + w.z + '」记下了 · 共 ' + n + ' 个');
   }
+  /* ═════ 描红的输入绑定（只在启动时挂一次）═════
+     🔴 为什么不能用 cv.onpointerdown 那一套「只认 pointer」：
+        手机/iPad 上手指竖直往下写时，iOS Safari 会把这串触摸当成**翻页/回弹手势**，
+        竖向的笔迹被整页滚动抢走（横着写没事，因为页面横着不会滚），
+        症状就是老曾说的「写竖笔顺写不了」。
+        游戏乐园那块画布早就用 `touchmove {passive:false} + preventDefault` 拦过这个坑，
+        描红这块当时漏了 —— 这里补上，而且**手指走 touch 那条独立的路**：
+        pointer 事件在 iOS 上遇到滚动/多指会被 pointercancel 掐断，touch 事件不会。
+
+     同一时刻只认先到的来源（src）：手指走了 touch，就不再理会 type=touch 的 pointer，
+     否则同一根手指会被记两遍（笔画变粗、笔迹长度翻倍）。 */
+  const TRACE_HAS_TOUCH = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  let TRACE_H = null;                       // 当前这一屏的笔迹处理函数，setupCanvas 每次换新
+  (function bindTraceInput() {
+    const cv = document.getElementById('trace-canvas');
+    if (!cv) return;
+    cv.addEventListener('touchstart', e => TRACE_H && TRACE_H.ts(e), { passive: true });
+    /* 🔴 passive:false —— 就是这一条拦住 iOS 的竖向翻页手势 */
+    cv.addEventListener('touchmove', e => TRACE_H && TRACE_H.tm(e), { passive: false });
+    cv.addEventListener('touchend', e => TRACE_H && TRACE_H.te(e), { passive: true });
+    cv.addEventListener('touchcancel', e => TRACE_H && TRACE_H.te(e), { passive: true });
+    cv.addEventListener('pointerdown', e => TRACE_H && TRACE_H.pd(e));
+    cv.addEventListener('pointermove', e => TRACE_H && TRACE_H.pm(e));
+    cv.addEventListener('pointerup', e => TRACE_H && TRACE_H.pu(e));
+    cv.addEventListener('pointercancel', e => TRACE_H && TRACE_H.pu(e));
+  })();
+
   function setupCanvas() {
     const cv = document.getElementById('trace-canvas');
     const wrap = document.getElementById('trace-wrap');
     const dpr = window.devicePixelRatio || 1;
-    const size = wrap.clientWidth || 290;
-    wrap.style.height = size + 'px';
-    cv.width = size * dpr; cv.height = size * dpr;
+    /* 方框必须是正方形。以前拿 clientWidth 去当 height 就用，border-box 下内容区
+       被两条边框各吃掉 3.5px，画布变成 287×280 —— 竖着略扁，字会变形。
+       现在按「内容区是正方形」反推 wrapper 高度。 */
+    const borderY = Math.max(0, wrap.offsetHeight - wrap.clientHeight) || 7;
+    const borderX = Math.max(0, wrap.offsetWidth - wrap.clientWidth) || 7;
+    /* 🔴 整页锁死以后，**必须保证一屏装得下**：装不下的话滚动被锁，
+       「擦掉重写 / 换一个字」就被顶到屏幕外面，孩子根本点不到。
+       所以在矮屏（手机带地址栏/工具栏时可视高度只有 500 出头）把田字格往下收，
+       一直到「整个屏幕不用滚动」。宽屏/平板还是 294px 原尺寸。 */
+    const fitBox = () => {
+      let s = Math.min(294, Math.round(window.innerWidth) - 40);
+      /* 设的是 border-box 的尺寸，所以要把两条边框加回去，内容区才正好是 s×s */
+      const apply = n => {
+        wrap.style.width = (n + borderX) + 'px';
+        wrap.style.height = (n + borderY) + 'px';
+      };
+      apply(s);
+      /* 🔴 判「装得下」不能看 documentElement.scrollHeight —— 锁屏之后
+         html{overflow:hidden;height:100%} 把它**夹到视口高度**了，
+         再高的内容它也只报「刚好等于视口」，于是循环一次都不会进（踩过，假通过）。
+         这里直接量这一屏最后一个元素的下沿，跟视口高比。 */
+      const lastBottom = () => {
+        let b = 0;
+        const cs = document.getElementById('screen-trace').children;
+        for (let i = 0; i < cs.length; i++) {
+          const r = cs[i].getBoundingClientRect();
+          if (r.height > 0 && r.bottom > b) b = r.bottom;
+        }
+        return b;
+      };
+      let guard = 0;
+      while (guard++ < 26 && s > 168 && lastBottom() > window.innerHeight + 1) {
+        s -= 10; apply(s);
+      }
+      return Math.round(wrap.clientWidth) || s;
+    };
+    const size = fitBox();
+    cv.style.width = size + 'px'; cv.style.height = size + 'px';
+    cv.width = Math.round(size * dpr); cv.height = Math.round(size * dpr);
     const ctx = cv.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     drawTraceBase(ctx, size);
-    let drawing = false;
-    const pos = e => {
-      const r = cv.getBoundingClientRect();
-      const p = e.touches ? e.touches[0] : e;
-      return { x: p.clientX - r.left, y: p.clientY - r.top };
-    };
+
+    let drawing = false, src = null, ink = 0, last = null, tid = null;
     /* 笔迹总长：判「写满一格」只看这个数。
-       门槛定成 1.6 倍格子边长——随手点一下、划一道都不算，
-       真沿着字描一遍（一个字通常好几笔）稳稳超过。
+       门槛 = 0.6 倍格子边长（**原来的 1.6 倍是错的**）：
+         · 孩子把「一」「丨」这种**单笔字完整描一遍**，笔迹正好是 0.88 倍边长；
+           卡在 1.6 倍上，第一次正确描完屏幕上**什么都不发生**（不盖章、计数还是 0），
+           大人小孩都会判成「写不了」。二宝字表里正有一二三十这种字。
+         · 留 0.6 的余量是因为小孩描不到边：描到七成就该算数。
+         · 随手点一下、划一道（约 0.3 格）仍然不算 —— 门槛没有放宽到「碰一下就盖章」。
        🔴 交一次账就把墨清零：不清的话，一旦凑够门槛，
           之后每一次抬手都算「写满」，随手乱划也能连连盖章。
        也**没有**「这个字已经盖过章就不再管」的一次性开关——
@@ -1114,25 +1200,66 @@
        否则孩子写完一遍再写就毫无动静，像坏掉了
        （2026-09-18 测试抓到的就是这个：擦掉重写前第二遍不给任何反馈）。
        重复的问题交给记账那边的 isNew 和盖章那边的 1.2 秒节流。 */
-    let ink = 0, last = null;
-    const start = e => { drawing = true; e.preventDefault(); ctx.beginPath(); const p = pos(e); ctx.moveTo(p.x, p.y); last = p; };
-    const move = e => {
-      if (!drawing) return; e.preventDefault();
-      const p = pos(e);
+    const need = size * 0.6;
+    const posOf = (x, y) => {
+      const r = cv.getBoundingClientRect();
+      return { x: x - r.left, y: y - r.top };
+    };
+    const begin = p => { drawing = true; ctx.beginPath(); ctx.moveTo(p.x, p.y); last = p; };
+    const extend = p => {
+      if (!drawing) return;
       ctx.strokeStyle = '#4d8df6'; ctx.lineWidth = 12; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       ctx.lineTo(p.x, p.y); ctx.stroke();
       if (last) ink += Math.hypot(p.x - last.x, p.y - last.y);
       last = p;
     };
-    const end = () => {
-      drawing = false; last = null;
-      if (ink >= size * 1.6) { ink = 0; markTraced(); }
+    const finish = () => {
+      if (!drawing) return;
+      drawing = false; src = null; last = null;
+      if (ink >= need) { ink = 0; markTraced(); }
     };
-    cv.onpointerdown = start; cv.onpointermove = move; cv.onpointerup = end; cv.onpointerleave = end;
-    cv.onpointercancel = end;
+    const touchIn = (list, id) => {
+      for (let i = 0; i < list.length; i++) if (list[i].identifier === id) return list[i];
+      return null;
+    };
+    TRACE_H = {
+      /* 手指按下：认住这一根手指的 identifier。
+         掌根/另一根手指先碰、后碰都不影响这一笔（多指时只有这根手指能改笔迹、能收笔）。 */
+      ts(e) {
+        if (drawing || tid !== null) return;
+        const t = e.changedTouches[0]; if (!t) return;
+        tid = t.identifier; src = 'touch';
+        begin(posOf(t.clientX, t.clientY));
+      },
+      tm(e) {
+        if (e.cancelable) e.preventDefault();          // 🔴 拦住竖向手势被当成翻页/回弹
+        if (src !== 'touch' || tid === null) return;
+        const t = touchIn(e.touches, tid); if (!t) return;
+        extend(posOf(t.clientX, t.clientY));
+      },
+      te(e) {
+        if (tid === null || !touchIn(e.changedTouches, tid)) return;   // 抬的是别的手指：这一笔还在写
+        tid = null; finish();
+      },
+      /* 鼠标与触控笔走 pointer。手指不走这里（iOS 上会被 pointercancel 掐断）。 */
+      pd(e) {
+        if (e.pointerType === 'touch' && TRACE_HAS_TOUCH) return;
+        if (drawing) { drawing = false; last = null; }  // 上一笔没收到抬手（极少见）：不卡死
+        try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+        src = 'pointer'; begin(posOf(e.clientX, e.clientY));
+      },
+      pm(e) {
+        if (src !== 'pointer' || (e.pointerType === 'touch' && TRACE_HAS_TOUCH)) return;
+        extend(posOf(e.clientX, e.clientY));
+      },
+      pu(e) {
+        if (src !== 'pointer' || (e.pointerType === 'touch' && TRACE_HAS_TOUCH)) return;
+        finish();
+      },
+    };
     TRACE.reset = () => {
       ctx.clearRect(0, 0, size, size); drawTraceBase(ctx, size);
-      ink = 0;
+      ink = 0; drawing = false; last = null; src = null; tid = null;
       TRACE.lastStamp = 0;                        // 擦掉重写＝重新给一次机会，章马上能再盖
       document.getElementById('trace-stamp').classList.add('hide');
     };

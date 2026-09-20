@@ -55,7 +55,7 @@
 //                   点击，就凭空弹出一个字的拼音气泡还朗读出来（老曾看到的是「星」字）。修法：注音
 //                   只认「本页 pointerdown → click」成对的事件，残留点击没有配套按下一律忽略；正常
 //                   点字注音不受影响。已用「放回 bug → 断言叫」验证过（t-py.js 的 ghost 断言）。
-const VERSION = 'hm-2026-09-20.3';const INDEX = new URL('./index.html', self.location.href).href;
+const VERSION = 'hm-2026-09-20.4';const INDEX = new URL('./index.html', self.location.href).href;
 
 self.addEventListener('install', e => {
   e.waitUntil(

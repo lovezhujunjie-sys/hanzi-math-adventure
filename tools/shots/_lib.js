@@ -99,21 +99,26 @@ function expectPop(what){
   }, 400);
 }
 
-/* 在描红画布上真画一笔（派发真 pointer 事件，走 onpointerdown/move/up 那条路）。
+/* 在描红画布上真画一笔（派发真 pointer 事件，走 pointerdown/move/up 那条路，= 鼠标/触控笔）。
    🔴 不要绕过界面直接调 markTraced——那是自己验自己，
       「笔画长度不够也盖章」这类错永远抓不到。
-   total 是希望累计的笔迹长度（像素）；门槛是格子边长的 1.6 倍。 */
+   total 是希望累计的笔迹长度（像素）。
+   🔴 这个夹具必须**真把 total 走出来**：老版按 r.width*0.5 一步跳对角线，
+      传 0.3 格进去实际画出了 0.707 格 —— 夹具自己把「短划」画成了「长划」，
+      于是门槛一改就假红（2026-09-20 踩到）。现在按小步走，实际墨迹≈total。 */
 function drawTrace(total){
   const cv = document.getElementById('trace-canvas');
   const r = cv.getBoundingClientRect();
-  const x0 = r.left + r.width * 0.2, y0 = r.top + r.height * 0.2;
   const ev = (type, x, y) => cv.dispatchEvent(new PointerEvent(type,
     { clientX: x, clientY: y, bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse' }));
-  ev('pointerdown', x0, y0);
-  const step = r.width * 0.5;
-  const n = Math.max(1, Math.ceil(total / step));
-  for (let i = 1; i <= n; i++) ev('pointermove', x0 + (i % 2 ? step : 0), y0 + (i % 2 ? step : 0));
-  ev('pointerup', x0, y0);
+  const stepLen = r.width * 0.12;                 // 一步走 0.12 格
+  const d = stepLen / Math.SQRT2;                 // 斜着走，保证每步位移正好是 stepLen
+  const ax = r.left + r.width * 0.35, ay = r.top + r.height * 0.3;
+  const bx = ax + d, by = ay + d;
+  const n = Math.max(1, Math.round(total / stepLen));
+  ev('pointerdown', ax, ay);
+  for (let i = 1; i <= n; i++) ev('pointermove', i % 2 ? bx : ax, i % 2 ? by : ay);
+  ev('pointerup', n % 2 ? bx : ax, n % 2 ? by : ay);
   return n;
 }
 /* 屏幕上的描红画布边长（门槛按它算） */

@@ -1,0 +1,131 @@
+/* 真触摸模拟下的写一写验收（老曾 2026-09-20 报的「手机上竖着写不出来」）。
+
+   为什么不能只用 tools/browser_test.sh：
+     那套是 Chrome + --dump-dom，**没有触摸**，驱动里派发的都是 pointerType:'mouse'，
+     走的不是真机上那根手指的那条路 —— 上个版本就是这么在"全绿"里漏掉这个 bug 的。
+   这里用 Playwright + CDP 的 Input.dispatchTouchEvent 派发**真触摸**，
+   并且在两种视口下各跑一遍（正常手机 / 矮手机），验四件事：
+     ① 进写一写 = 整页锁死（html.lock-scroll），拖动过程中页面位移 = 0；
+     ② 竖向触摸真能画出笔迹；
+     ③ 画布是正方形（以前被边框吃掉 3.5px，竖着略扁）；
+     ④ 锁死之后按钮仍在屏幕里（一屏装得下，田字格会自动收小）。
+
+   跑法（要 playwright-core）：
+     mkdir -p /tmp/pwtest && cd /tmp/pwtest && npm i playwright-core     # 只需要一次
+     cd ~/.agents/skills/汉字数学大冒险
+     NODE_PATH=/tmp/pwtest/node_modules node tools/touch_test.js
+*/
+const { chromium } = require('playwright-core');
+const path = require('path');
+const os = require('os');
+
+const CHROME = path.join(os.homedir(),
+  'Library/Caches/ms-playwright/chromium-1228/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing');
+const FILE = 'file://' + path.join(__dirname, '..', 'index.html');
+
+let pass = 0, fail = 0;
+const fails = [];
+const ok = (name, cond, extra) => {
+  if (cond) { pass++; console.log('  ✅ ' + name); }
+  else { fail++; fails.push(name); console.log('  🔴 ' + name + (extra ? '  → ' + extra : '')); }
+};
+
+(async () => {
+  const browser = await chromium.launch({ executablePath: CHROME, headless: true });
+
+  for (const vp of [
+    { w: 390, h: 844, tag: '正常手机 390×844' },
+    { w: 390, h: 560, tag: '矮手机 390×560（地址栏吃掉高度）' },
+    { w: 390, h: 460, tag: '极矮屏 390×460（田字格必须自己收小）' },
+  ]) {
+    console.log('\n== ' + vp.tag + ' ==');
+    const ctx = await browser.newContext({
+      viewport: { width: vp.w, height: vp.h }, hasTouch: true, isMobile: true, deviceScaleFactor: 2,
+    });
+    const page = await ctx.newPage();
+    const errs = [];
+    page.on('pageerror', e => errs.push(e.message));
+    await page.goto(FILE, { waitUntil: 'load' });
+    await page.waitForTimeout(400);
+
+    await page.evaluate(() => document.querySelector('.kid-card.er').click());
+    await page.waitForTimeout(200);
+    const opened = await page.evaluate(() => {
+      const ms = document.querySelectorAll('#home-mods .mod');
+      // 🔴 二宝首页那一块叫「描一描」，大宝那边才叫「写一写」——按名字找要两个都认
+      for (const m of ms) { const t = m.querySelector('.tt'); if (t && /写一写|描一描/.test(t.textContent)) { m.click(); return true; } }
+      return false;
+    });
+    await page.waitForTimeout(400);
+    const onTrace = await page.evaluate(() => (document.querySelector('.screen.on') || {}).id === 'screen-trace');
+    ok('能进到写一写屏', opened && onTrace);
+    /* 没进去就别说后面的话——在隐藏屏幕上量出来的尺寸全是 0，
+       那种断言会「通过」（0-0≤1.5、0 在屏幕内），是标准的假绿。 */
+    if (!opened || !onTrace) {
+      ok('没进屏就中止这一档，不做假绿断言', false, '停在 ' + await page.evaluate(() => (document.querySelector('.screen.on') || {}).id));
+      await ctx.close();
+      continue;
+    }
+
+    const geom = await page.evaluate(() => {
+      const cv = document.getElementById('trace-canvas'), r = cv.getBoundingClientRect();
+      const next = document.getElementById('trace-next').getBoundingClientRect();
+      const wrap = document.getElementById('trace-wrap');
+      /* 🔴 不能拿 documentElement.scrollHeight 判「装得下」：
+         锁屏后 html{overflow:hidden;height:100%} 会把它夹到视口高度，
+         再高的内容也只报「刚好等于视口」→ 假通过。量最后一个元素的下沿才算数。 */
+      let lastBottom = 0;
+      const kids = document.getElementById('screen-trace').children;
+      for (const el of kids) { const b = el.getBoundingClientRect(); if (b.height > 0 && b.bottom > lastBottom) lastBottom = b.bottom; }
+      return {
+        cvW: r.width, cvH: r.height, left: r.left, top: r.top,
+        locked: document.documentElement.classList.contains('lock-scroll'),
+        scrollH: document.documentElement.scrollHeight, winH: window.innerHeight,
+        nextTop: next.top, nextBottom: next.bottom, wrapW: wrap.clientWidth, lastBottom: lastBottom,
+      };
+    });
+    ok('html 挂上了滚动锁 lock-scroll', geom.locked);
+    ok('画布是正方形（宽 ' + geom.cvW.toFixed(1) + ' × 高 ' + geom.cvH.toFixed(1) + '）',
+      Math.abs(geom.cvW - geom.cvH) <= 1.5, '差 ' + (geom.cvW - geom.cvH).toFixed(1));
+    ok('一屏装得下：整屏内容下沿 ' + Math.round(geom.lastBottom) + ' ≤ 视口 ' + geom.winH, geom.lastBottom <= geom.winH + 1);
+    ok('「换一个字」按钮留在屏幕里（锁了也点得到）：' + Math.round(geom.nextTop) + '~' + Math.round(geom.nextBottom),
+      geom.nextTop >= 0 && geom.nextBottom <= geom.winH + 1);
+
+    // 真触摸：竖着画一笔
+    const client = await ctx.newCDPSession(page);
+    const cx = geom.left + geom.cvW / 2, y0 = geom.top + geom.cvH * 0.12, y1 = geom.top + geom.cvH * 0.9;
+    const ink0 = await page.evaluate(() => {
+      const cv = document.getElementById('trace-canvas'), d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+      let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 40) n++; return n;
+    });
+    await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: cx, y: y0, id: 1 }] });
+    let maxScroll = 0;
+    for (let i = 1; i <= 14; i++) {
+      await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: cx, y: y0 + (y1 - y0) * i / 14, id: 1 }] });
+      await page.waitForTimeout(16);
+      maxScroll = Math.max(maxScroll, await page.evaluate(() => Math.abs(window.scrollY)));
+    }
+    await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(300);
+    const after = await page.evaluate(() => {
+      const cv = document.getElementById('trace-canvas'), d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+      let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 40) n++;
+      return { ink: n, scrolled: Math.abs(window.scrollY),
+        stamped: !document.getElementById('trace-stamp').classList.contains('hide') };
+    });
+    ok('真手指竖着划 → 画布上出现笔迹（像素 ' + ink0 + ' → ' + after.ink + '）', after.ink > ink0 + 500);
+    ok('整段拖动过程中页面位移 0（手指没把页面拖走）', maxScroll === 0 && after.scrolled === 0, 'maxScrollY=' + maxScroll);
+    ok('描满一条边 → 盖章回执', after.stamped);
+    ok('这一屏没有未捕获异常', errs.length === 0, errs[0]);
+
+    await page.screenshot({ path: '/tmp/hm-trace-touch-' + vp.h + '.png' });
+    await ctx.close();
+  }
+
+  await browser.close();
+  console.log('\n共 ' + pass + ' 项通过 / ' + fail + ' 项失败');
+  console.log('截图：/tmp/hm-trace-touch-844.png、/tmp/hm-trace-touch-560.png');
+  console.log(fail === 0 ? '✅ 真触摸下的写一写：整页锁定 + 竖画能写 + 按钮够得着' 
+                         : '🔴 有 ' + fail + ' 项没过：' + fails.join('｜'));
+  process.exit(fail === 0 ? 0 : 1);
+})().catch(e => { console.error('触摸测试崩了:', e); process.exit(1); });

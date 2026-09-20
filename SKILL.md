@@ -199,6 +199,35 @@ q._src = { k: 'hanzi', z: '莓' };              // 凭据：三门中的哪一�
   会**一点反馈都没有**（写了满满一屏，屏幕上什么都没发生），看起来像坏了。`t-trace.js` 里专门留了一条
   「短划之后接着真描一遍，章照样盖得出来」防它回潮。
 
+### 🔴 写一写的两件保命事（2026-09-20，老曾报「手机上写竖笔顺写不了」）
+
+老曾原话：「**我只要写竖笔顺的时候，我的手机或者iPad就写不了**」，随后他自己给出了正解：
+「**或者就是我进入写一写页面，整个就完全锁定不能动，有一锁，这样页面不动才能保证我能正常书写**」。
+
+1. **进去就把整页锁死**（`setPageLock()` + `html.lock-scroll`）：孩子用手指**竖直**往下写时，
+   iOS Safari 会把竖向触摸当成**翻页/回弹手势**，页面跟着手指走，竖向笔迹就被整页滚动抢走
+   （横着写没事——页面横着不会滚，症状才表现成「只有竖的写不了」）。
+   - 锁的规则：`html.lock-scroll{overflow:hidden;height:100%}` + `#screen-trace{touch-action:none}`
+     + 运行时总闸 `document.addEventListener('touchmove', …, {passive:false})` 单指一律 `preventDefault`
+     （光靠 `overflow:hidden` 挡不住 iOS 的橡皮筋；双指留给缩放，不抢）。
+   - 🔴 **锁的前提是「一屏装得下」**：田字格必须按可视高度自己收小（`fitBox()`，294 → 最小 168），
+     否则「擦掉重写 / 换一个字」会被顶出屏幕，锁住之后孩子点不到。
+   - 🔴 **判「装得下」不能看 `documentElement.scrollHeight`**：锁屏后它被 `height:100%` **夹到视口高度**，
+     再高的内容也只报「刚好等于视口」，循环一次都不进（踩过，测试还假通过）。
+     要量 `#screen-trace` 里**最后一个元素的下沿**。
+   - 离开这一屏（`showScreen`）立刻解锁，别的屏照常能滚。
+2. **手指走 `touch` 那条路，不走 pointer**：iOS 遇到滚动/多指会给 `pointercancel`，把笔画掐断。
+   所以输入绑成两套：手指 → `touchstart/move/end`（`touchmove` 必须 `{passive:false}`），
+   鼠标与触控笔 → `pointer*`。**同一时刻只认先到的来源**（`src`），否则同一根手指被记两遍。
+   - 用 `identifier` **认住「正在写的那根手指」**：掌根/第二根手指落下抬起都不许打断这一笔。
+   - 鼠标/笔用 `setPointerCapture`，并**删掉 `pointerleave = end`**——以前手指或鼠标一离开格子，
+     这一笔就被判结束（画到边上一断，看着就是「写不出来」）。
+3. **门槛从 1.6 倍边长降到 0.6 倍**：孩子把「一」「丨」这种**单笔字完整描一遍**只有 0.88 倍，
+   卡在 1.6 倍上第一次正确描完**屏幕上什么都不发生**（不盖章、计数还是 0）——二宝字表里正有一二三十。
+   0.6 的余量是因为小孩描不到边；随手划一道（约 0.3 格）仍然不算。
+4. **田字格必须是正方形**：以前拿 `clientWidth` 直接当 height 用，border-box 下内容区被两条边框
+   各吃掉 3.5px（画布变 287×280，竖着略扁），现在按内容区反推 wrapper 高度。
+
 ## 架构
 
 - `src/` 分部拼接，`build.sh` 拼成单文件 `index.html`：`01_head`（含**主视觉 CSS**：糖果色变量 + 按钮/卡片/田字格/答题/描红等，**第 1 个 `<style>` 块**）→ `02_body`（12 个屏幕 + **第 2 个 `<style>` 块**：关卡地图/combo/点字气泡等）→ 一个 `<script>`（拼接顺序见 `build.sh`：`03_data_hanzi` + `03b_data_g2` + `04_data_math` + `03c_data_pinyin` + `05_app` + `07_games`）→ `06_foot`（离线缓存注册）。🔴 **CSS 分两个 `<style>` 块**（head 一块、body 一块），改视觉两处都要看，详见下面「视觉设计系统」。
@@ -263,6 +292,8 @@ BT_BUDGET=200000 bash tools/browser_test.sh tools/shots/t-smoke.js     # 5. 所�
 BT_BUDGET=200000 bash tools/browser_test.sh tools/shots/t-py.js        # 6. 点字注音（真点真坐标）
 BT_BUDGET=260000 bash tools/browser_test.sh tools/shots/t-reveal.js    # 7. 揭示条（字↔音逐张核）
 BT_BUDGET=260000 bash tools/browser_test.sh tools/shots/t-trace.js     # 8. 描红回执
+BT_BUDGET=260000 bash tools/browser_test.sh tools/shots/t-trace-touch.js # 8b. 写一写触屏：整页锁定 + 竖画能写 + 掌根不打断
+NODE_PATH=/tmp/pwtest/node_modules node tools/touch_test.js            # 8c. 🔴 真触摸（CDP）三档视口：页面位移=0、田字格自动收小、按钮够得着
 BT_BUDGET=200000 bash tools/browser_test.sh tools/shots/t-wrongbook.js # 9. 错题本能练、账没错位
 BT_BUDGET=200000 bash tools/browser_test.sh tools/shots/t-games.js     # 10. 游戏乐园（门槛已拆/真吃/防沉迷）
 BT_BUDGET=200000 bash tools/browser_test.sh tools/shots/t-games2.js    # 11. 五款游戏都能玩（真点真消真跳）
@@ -324,6 +355,10 @@ bash tools/shot.sh tools/shots/a3-games-center.js out/a3-games-center.png  # 13.
   - ⚠️ 组词只保证「是真实词语且含该字」，没有官方印刷物逐字背书。
 - 二年级的字**大部分没有配图**。不为凑「图片化」硬配一张不相干的图——那反而教错联想。用**组词点读**当场景。
 - 描红写字只判定「有没有写」，**不判笔顺、不判像不像**，连「写得对不对」都不看——判据只有**笔迹长度够不够一格**。写得再歪也照样盖章（故意的：这个年纪卡对错会打击积极性，多写几遍才是目的）。
+  - 🔴 门槛 2026-09-20 从 1.6 倍边长**降到 0.6 倍**：1.6 倍会让「一」「丨」这种单笔字
+    完整描一遍都算不过（只有 0.88 倍），第一次写完整屏没反应，看着就是「写不了」。详见上面「写一写的两件保命事」。
+  - ⚠️ **没验过**：老曾手机上真写一遍（我这边只有触摸模拟，验不了 iOS 真机的橡皮筋行为）；
+    以及他孩子实际用不用得顺手。
 - 汉字朗读用浏览器 `speechSynthesis`，**音色取决于设备**，iOS/安卓/macOS 各不相同。
 - ⚠️ **点字注音在按钮上不生效**（**故意的**）：认字闯关的选项、组词小卡按一下有它自己的功能（选中/朗读那个词），不能被抢；而且选项里那些字正是「认字闯关」要考的东西，点一下就出拼音等于直接给答案。
   - **已部分补上**：答错之后会铺一条「揭示条」，把这一题几个选项的字和拼音一起列出来（答案那张高亮）——那时答案已经揭晓，不算泄题，而且**正好是他最想知道这几个字念什么的那一刻**。答对时不出（不拖慢连对的节奏）。
